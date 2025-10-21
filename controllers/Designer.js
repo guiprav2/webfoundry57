@@ -23,7 +23,7 @@ export default class Designer {
       if (frame.preview) path = path.slice('pages/'.length);
       let fullpath = `/${frame.preview ? 'preview' : 'files'}/${sessionStorage.webfoundryTabId}/${name}:${uuid}/${path}`;
       return state.settings.opt.isolate
-        ? `${location.protocol}//${(name || '').toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')}.${location.hostname}:8846${fullpath}?ifdesigner`
+        ? `${location.protocol}//${(name || '').toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')}.${location.hostname}:8846${fullpath}?isolate`
         : fullpath;
     },
 
@@ -67,11 +67,13 @@ export default class Designer {
         if (state.files.current === path) { await post('files.select', null); this.state.list = this.state.list.filter(x => x.path !== path); d.update() }
       });
       addEventListener('message', async ev => {
-        let url = new URL(ev.origin);
-        let parts = url.hostname.split('.');
-        let domain = parts.slice(1).join('.');
-        let name = parts[0];
-        if (domain !== location.hostname || !state.projects.current.startsWith(`${name}:`)) return; // FIXME: Also check path.
+        if (location.origin !== ev.origin) {
+          let url = new URL(ev.origin);
+          let parts = url.hostname.split('.');
+          let domain = parts.slice(1).join('.');
+          let name = parts[0];
+          if (domain !== location.hostname || !state.projects.current.startsWith(`${name}:`)) return; // FIXME: Also check path.
+        }
         let frame = this.state.current;
         switch (ev.data.type) {
           case 'ready':
@@ -89,7 +91,7 @@ export default class Designer {
             break;
           }
           case 'keydown': await post('designer.keydown', ev.data); break;
-          case 'action': console.log(ev.data.key, ev.data); await actions[ev.data.key].handler(ev.data); break;
+          case 'action': await actions[ev.data.key].handler(ev.data); break;
         }
       });
       addEventListener(state.app.mobile ? 'input' : 'keydown', async ev => await post('designer.keydown', ev), true);

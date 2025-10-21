@@ -13,7 +13,7 @@
       (async () => {
         window.rootPrefix = /^\/(files|preview)\//.test(location.pathname) ? location.pathname.split('/').slice(0, 4).join('/') : '/';
         if (rootPrefix === '/' || rootPrefix === '/collab.html') rootPrefix = '.';
-        if (new URL(location.href).searchParams.get('ifdesigner') != null) {
+        if (new URL(location.href).searchParams.get('isolate') != null) {
           await navigator.serviceWorker.register('/sw.js');
           await navigator.serviceWorker.ready;
           if (!navigator.serviceWorker.controller) return location.reload();
@@ -47,7 +47,6 @@
               document.open();
               document.write(await data.data.text());
               document.close();
-              await import(`${rootPrefix}/webfoundry/ifdesigner.js`);
             };
             addEventListener('message', handler);
             parent.postMessage({ type: 'fetch', project, path }, wforigin);
