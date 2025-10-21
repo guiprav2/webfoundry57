@@ -11,11 +11,50 @@
   <body class="min-h-screen">
     <script type="module">
       (async () => {
-        if (location.pathname.includes('/files/')) return;
-        window.rootPrefix = /^\/(files|preview)\//.test(location.pathname)
-          ? location.pathname.split('/').slice(0, 4).join('/')
-          : '/';
+        window.rootPrefix = /^\/(files|preview)\//.test(location.pathname) ? location.pathname.split('/').slice(0, 4).join('/') : '/';
         if (rootPrefix === '/' || rootPrefix === '/collab.html') rootPrefix = '.';
+        if (new URL(location.href).searchParams.get('ifdesigner') != null) {
+          await navigator.serviceWorker.register('/sw.js');
+          await navigator.serviceWorker.ready;
+          if (!navigator.serviceWorker.controller) return location.reload();
+          let wforigin = `${location.protocol}//${location.hostname.split('.').slice(1).join('.')}`;
+          let parts = location.pathname.slice(1).split('/');
+          let tabId = parts[1];
+          navigator.serviceWorker.addEventListener('message', async event => {
+            let { type, project, path } = event.data || {};
+            if (type !== 'fetch') return;
+            let port = event.ports?.[0];
+            if (!port) return;
+            let handler = ev => {
+              let data = ev.data || {};
+              if (data.type !== 'fetch:res' || data.project !== project || data.path !== path) return;
+              removeEventListener('message', handler);
+              port.postMessage(data);
+            };
+            addEventListener('message', handler);
+            parent.postMessage({ type: 'fetch', project, path }, wforigin);
+          });
+          let register = () => navigator.serviceWorker.controller.postMessage({ type:'webfoundry-register-tab', tabId });
+          navigator.serviceWorker.addEventListener('controllerchange', register);
+          register();
+          let project = parts[2];
+          let path = parts.slice(3).join('/');
+          if (path !== 'index.html') {
+            let handler = async ev => {
+              let data = ev.data || {};
+              if (data.type !== 'fetch:res' || data.project !== project || data.path !== path) return;
+              removeEventListener('message', handler);
+              document.open();
+              document.write(await data.data.text());
+              document.close();
+              await import(`${rootPrefix}/webfoundry/ifdesigner.js`);
+            };
+            addEventListener('message', handler);
+            parent.postMessage({ type: 'fetch', project, path }, wforigin);
+            return;
+          }
+        }
+        if (location.pathname.includes('/files/')) return;
         let [, md, mapp] = await Promise.all([
           import(`${rootPrefix}/webfoundry/head.js`),
           import(`${rootPrefix}/webfoundry/dominant.js`),
