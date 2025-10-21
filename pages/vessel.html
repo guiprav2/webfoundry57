@@ -1,0 +1,255 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Vessel Software</title>
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1"
+    />
+    <script>
+      window.rootPrefix = /^\/(files|preview)\//.test(location.pathname)
+        ? location.pathname.split('/').slice(0, 4).join('/')
+        : '/';
+    </script>
+    <script src="../webfoundry/head.js"></script>
+  </head>
+  <body
+    style="display: none; min-height: 100vh"
+    class="bg-slate-950 text-slate-100"
+  >
+    <div class="flex min-h-screen flex-col">
+      <header class="relative overflow-hidden">
+        <div
+          class="absolute inset-0 bg-gradient-to-b from-indigo-900/50 via-slate-900 to-slate-950"
+        ></div>
+        <div
+          class="relative mx-auto flex max-w-6xl flex-col gap-10 px-6 pb-20 pt-24 text-center lg:px-10"
+        >
+          <span
+            class="self-center rounded-full border border-indigo-400/50 px-4 py-1 text-xs uppercase tracking-[0.3em] text-indigo-100/70"
+            >Vessel Software</span
+          >
+          <h1
+            class="text-4xl font-semibold leading-snug text-white sm:text-5xl lg:text-6xl"
+          >
+            One developer, two custom frameworks, production-grade results.
+          </h1>
+          <p class="mx-auto max-w-3xl text-lg text-slate-200/80">
+            I built Dominant and Webfoundry after React handcoding slowed my
+            clients down. Now I ship full sites and apps about 10x faster, with
+            cleaner code and lower delivery cost than a traditional agency.
+          </p>
+          <div class="flex flex-wrap justify-center gap-4">
+            <a
+              class="inline-flex items-center justify-center rounded-full bg-indigo-400 px-6 py-3 text-sm font-semibold text-slate-950 shadow-lg shadow-indigo-500/30 transition hover:bg-indigo-300"
+              href="https://dominant-demos.netlify.app/1kcomponents"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Watch the Dominant demo
+            </a>
+            <a
+              class="inline-flex items-center justify-center rounded-full border border-slate-700 px-6 py-3 text-sm font-semibold text-slate-200 transition hover:border-indigo-300 hover:text-white"
+              href="https://webfoundry56.netlify.app/?demo"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Preview Webfoundry builds
+            </a>
+          </div>
+        </div>
+      </header>
+
+      <main class="flex-1 bg-slate-950">
+        <section class="mx-auto max-w-5xl px-6 py-16 lg:px-10">
+          <div
+            class="grid gap-10 rounded-3xl border border-slate-800 bg-slate-900/50 p-10 text-left shadow-2xl shadow-blue-900/30 lg:grid-cols-3"
+          >
+            <div class="space-y-4 lg:col-span-1">
+              <h2 class="text-2xl font-semibold text-white">How I deliver</h2>
+              <p class="text-sm text-slate-300">
+                Work directly with the engineer who built the tooling. I own
+                discovery, implementation, and iteration without the overhead of
+                agency layers or handoffs.
+              </p>
+            </div>
+            <div
+              class="grid gap-6 text-sm text-slate-200 lg:col-span-2 lg:grid-cols-2"
+            >
+              <div
+                class="rounded-2xl border border-slate-800/80 bg-slate-900/80 p-6"
+              >
+                <h3 class="text-base font-semibold text-white">
+                  Custom stack advantage
+                </h3>
+                <p class="mt-2 leading-relaxed text-slate-300">
+                  Dominant and Webfoundry exist because React handcoding was a
+                  bottleneck. You get architecture that fits your product
+                  instead of conforming to a generic framework.
+                </p>
+              </div>
+              <div
+                class="rounded-2xl border border-slate-800/80 bg-slate-900/80 p-6"
+              >
+                <h3 class="text-base font-semibold text-white">
+                  10x delivery speed
+                </h3>
+                <p class="mt-2 leading-relaxed text-slate-300">
+                  Visual building plus code-level control takes ideas to
+                  production in a fraction of the time it takes to handcraft
+                  React screens.
+                </p>
+              </div>
+              <div
+                class="rounded-2xl border border-slate-800/80 bg-slate-900/80 p-6"
+              >
+                <h3 class="text-base font-semibold text-white">
+                  Embedded partnership
+                </h3>
+                <p class="mt-2 leading-relaxed text-slate-300">
+                  I plug into your roadmap, keep feedback loops tight, and use
+                  live editing sessions so stakeholders always see real
+                  progress.
+                </p>
+              </div>
+              <div
+                class="rounded-2xl border border-slate-800/80 bg-slate-900/80 p-6"
+              >
+                <h3 class="text-base font-semibold text-white">
+                  Lean budget impact
+                </h3>
+                <p class="mt-2 leading-relaxed text-slate-300">
+                  A solo delivery model with proprietary tooling means agency
+                  polish at a fraction of the cost, no surprise staffing fees.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section
+          class="mx-auto flex max-w-6xl flex-col gap-16 px-6 pb-20 lg:px-10"
+        >
+          <article
+            class="grid gap-8 rounded-3xl border border-slate-900 bg-slate-900/60 p-8 lg:grid-cols-[1.1fr_1fr] lg:items-center"
+          >
+            <div class="space-y-5">
+              <span
+                class="rounded-full border border-indigo-400/40 px-3 py-1 text-xs uppercase tracking-[0.22em] text-indigo-100/70"
+              >
+                Dominant
+              </span>
+              <h2 class="text-3xl font-semibold text-white mt-10">
+                Dominant: my lean engine for complex interfaces
+              </h2>
+              <p class="text-slate-300">
+                I wrote Dominant because React's abstractions slowed client work
+                to a crawl. Mutable state, direct DOM bindings, and a single
+                update call keep performance tight and the codebase easy to
+                reason about.
+              </p>
+              <ul class="flex flex-col gap-2 text-sm text-slate-300">
+                <li>
+                  - Mutate plain objects and call `d.update()` when you want the
+                  DOM to react.
+                </li>
+                <li>
+                  - Blend with any DOM API, vanilla JS widget, or legacy
+                  surface.
+                </li>
+                <li>
+                  - Battle-tested on dashboards, marketing sites, and heavy
+                  animation demos.
+                </li>
+              </ul>
+            </div>
+            <div
+              class="overflow-hidden rounded-2xl border border-slate-800 shadow-lg shadow-indigo-900/40"
+            >
+              <iframe
+                src="https://dominant-demos.netlify.app/1kcomponents"
+                title="Dominant 1k components demo"
+                loading="lazy"
+                class="h-[360px] w-full bg-black"
+              ></iframe>
+            </div>
+          </article>
+
+          <article
+            class="grid gap-8 rounded-3xl border border-slate-900 bg-slate-900/60 p-8 lg:grid-cols-[1fr_1.1fr] lg:items-center"
+          >
+            <div class="order-2 space-y-5 lg:order-1">
+              <span
+                class="rounded-full border border-emerald-400/40 px-3 py-1 text-xs uppercase tracking-[0.22em] text-emerald-100/70"
+              >
+                Webfoundry
+              </span>
+              <h2 class="text-3xl font-semibold text-white mt-10">
+                Webfoundry: 10x faster sites and apps
+              </h2>
+              <p class="text-slate-300">
+                Webfoundry is my visual builder layered on Dominant. I iterate
+                with clients in the canvas, wire state through controllers, and
+                push production-ready deploys in days, not months.
+              </p>
+              <ul class="flex flex-col gap-2 text-sm text-slate-300">
+                <li>
+                  - Visual Tailwind canvas backed by real JavaScript
+                  controllers.
+                </li>
+                <li>
+                  - `wf-` bindings keep copy, data, and actions in sync as we
+                  iterate.
+                </li>
+                <li>
+                  - Netlify-ready builds with code quality that holds up long
+                  after launch.
+                </li>
+              </ul>
+            </div>
+            <div
+              class="order-1 overflow-hidden rounded-2xl border border-slate-800 shadow-lg shadow-emerald-900/40 lg:order-2"
+            >
+              <iframe
+                src="https://webfoundry56.netlify.app/?demo"
+                title="Webfoundry demo"
+                loading="lazy"
+                class="h-[360px] w-full bg-black"
+              ></iframe>
+            </div>
+          </article>
+        </section>
+      </main>
+
+      <footer class="border-t border-slate-900/60 bg-slate-950/95 py-12">
+        <div
+          class="mx-auto flex max-w-5xl flex-col gap-6 px-6 text-center text-sm text-slate-400 lg:px-10"
+        >
+          <p class="text-base font-medium text-white">
+            I help founders and product teams ship polished software at a
+            fraction of traditional agency cost. Bring an idea or a backlog and
+            I will move it into production quickly.
+          </p>
+          <div
+            class="flex flex-wrap justify-center gap-4 text-xs uppercase tracking-[0.3em] text-slate-500"
+          >
+            <span>Discovery</span>
+            <span>Design</span>
+            <span>Build</span>
+            <span>Coach</span>
+          </div>
+          <p>
+            Reach me directly at
+            <a
+              class="text-indigo-300 hover:text-indigo-200"
+              href="mailto:hello@vessel.software"
+              >hello@vessel.software</a
+            >
+            and let's scope your build.
+          </p>
+        </div>
+      </footer>
+    </div>
+  </body>
+</html>
