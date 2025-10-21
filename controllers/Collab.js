@@ -152,7 +152,7 @@ export default class Collab {
       state.designer.frameWidth = ev.frameWidth;
       state.designer.frameHeight = ev.frameHeight;
       if (state.designer.open && state.designer.current.preview !== ev.preview) await post('designer.togglePreview');
-      let applyHtmlUpdate = async html => state.designer.current?.el?.contentWindow?.postMessage?.({ type: 'update', html }, new URL(frame.el.src).origin);
+      let applyHtmlUpdate = async html => state.designer.current?.el?.contentWindow?.postMessage?.({ type: 'update', html }, new URL(state.designer.current.el.src).origin);
       if (ev.contents) {
         await applyHtmlUpdate(ev.contents);
         this.state.lastSnap = ev.contents;
@@ -163,12 +163,15 @@ export default class Collab {
         this.state.lastSnap = patched;
       }
       if (state.designer.open) {
+        // FIXME
+        /*
         if (JSON.stringify(ev.cursors[state.collab.uid]) !== JSON.stringify(state.designer.current.cursors[state.collab.uid]) && ev.cursors[state.collab.uid].length) {
           let first = state.designer.current.map.get(ev.cursors[state.collab.uid][0]);
           let rect = first.getBoundingClientRect();
           let visible = rect.top >= 20 && rect.bottom <= innerHeight - 20;
           !visible && first.scrollIntoView({ block: rect.height <= innerHeight ? 'center' : 'nearest', inline: rect.width <= innerWidth ? 'center' : 'nearest' });
         }
+        */
         state.designer.current.cursors = ev.cursors;
         await post('designer.toggleMobileKeyboard');
       }

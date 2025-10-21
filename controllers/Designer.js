@@ -130,7 +130,7 @@ export default class Designer {
             this.state.current.snap = ev.data.snap;
             let doc = this.state.current.doc = new DOMParser().parseFromString(ev.data.snap, 'text/html');
             this.state.current.map = htmlsnap(doc.documentElement, { idtrack: true, map: this.state.current.map })[1];
-            //await post('designer.save');
+            state.collab.uid === 'master' && await post('designer.save');
             await post('designer.sync');
             break;
           }
@@ -298,6 +298,27 @@ export default class Designer {
       ++frame.ihistory[cur];
     },
 
-    reset: async () => { this.state.list = []; /*await post('designer.toggleMobileKeyboard')*/ },
+    save: debounce(async () => {
+      let project = state.projects.current;
+      let frame = this.state.current;
+      let body = frame.body.cloneNode(true);
+      body.querySelectorAll('.wf-cursor').forEach(x => x.remove());
+      body.querySelectorAll('*').forEach(x => x.removeAttribute('data-htmlsnap'));
+      body.removeAttribute('data-htmlsnap');
+      body.style.display = 'none';
+      let betterscroll = true;
+      let html = `<!doctype html><html>${defaultHead({ title: frame.head.querySelector('title')?.textContent })}${body.outerHTML}</html>`;
+      if (frame.lastSavedHtml === html) return;
+      frame.lastSavedHtml = html;
+      clearTimeout(frame.saveTimeout);
+      frame.saveTimeout = setTimeout(() => frame.saveTimeout = null, 5000);
+      await rfiles.save(project, frame.path, new Blob([html], { type: 'text/html' }));
+      let phtml = (await prettier(html, { parser: 'html' })).replace(/\{\{[\s\S]*?\}\}/g, m => m .replace(/[\r\n]+/g, ' ').replace(/\s{2,}/g, ' ').replace(/\{\{\s*/g, '{{').replace(/\s*\}\}/g, '}}'));
+      if (phtml === html) return state.event.bus.emit('designer:save:ready', { project, path: frame.path });
+      await rfiles.save(project, frame.path, new Blob([phtml], { type: 'text/html' }));
+      state.event.bus.emit('designer:save:ready', { project, path: frame.path });
+    }, 200),
+
+    reset: async () => { this.state.list = []; await post('designer.toggleMobileKeyboard') },
   };
 };

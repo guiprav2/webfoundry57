@@ -2815,8 +2815,8 @@
                   wf-class="{{state.designer.frameVisible(x.path) &amp;&amp; 'Designer-activeFrame'}}"
                   wf-src="state.designer.src(x.path)"
                   wf-onattach="post('designer.frameAttach', x.path, _1)"
-                  wf-onload="post('designer.frameReady', x.path)"
-                  wf-onerror="post('designer.frameReady', x.path, event)"
+                  wf-onload="post('designer.frameLoaded', x.path)"
+                  wf-onerror="post('designer.frameLoaded', x.path, event)"
                 ></iframe>
               </div>
             </div>
