@@ -5,7 +5,7 @@ import htmlsnap from 'https://esm.sh/@camilaprav/htmlsnap@0.0.14';
 import morphdom from 'https://esm.sh/morphdom';
 
 window.state = { map: new BiMap(), cursors: {}, overlays: {} };
-let wforigin = `${location.protocol}//${location.hostname.split('.').slice(1).join('.')}`;
+let wforigin = new URL(location.href).searchParams.get('isolate') != null ? `${location.protocol}//${location.hostname.split('.').slice(1).join('.')}` : location.origin;
 addEventListener('message', async ev => {
   let { type, ...rest } = ev.data;
   if (type !== 'state' || ev.origin !== wforigin) return;
@@ -13,7 +13,9 @@ addEventListener('message', async ev => {
 });
 addEventListener('message', async ev => {
   if (ev.data.type !== 'update' || ev.origin !== wforigin) return;
-  morphdom(document.documentElement, ev.data.html);
+  let doc = new DOMParser().parseFromString(ev.data.html, 'text/html')
+  morphdom(document.head, doc.head);
+  morphdom(document.body.firstElementChild, doc.body.firstElementChild);
 });
 addEventListener('message', async ev => {
   if (ev.data.type !== 'eval' || ev.origin !== wforigin) return;
