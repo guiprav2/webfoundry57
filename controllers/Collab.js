@@ -152,19 +152,7 @@ export default class Collab {
       state.designer.frameWidth = ev.frameWidth;
       state.designer.frameHeight = ev.frameHeight;
       if (state.designer.open && state.designer.current.preview !== ev.preview) await post('designer.togglePreview');
-      let applyHtmlUpdate = async html => {
-        let frame = state.designer.current;
-        if (!frame) return;
-        if (frame.html) morphdom(frame.html, html);
-        if (frame.el?.contentWindow) {
-          try {
-            let origin = new URL(frame.el.src).origin;
-            frame.el.contentWindow.postMessage({ type: 'update', html }, origin);
-          } catch (err) {
-            console.error('Failed to post HTML update to iframe', err);
-          }
-        }
-      };
+      let applyHtmlUpdate = async html => state.designer.current?.el?.contentWindow?.postMessage?.({ type: 'update', html }, new URL(frame.el.src).origin);
       if (ev.contents) {
         await applyHtmlUpdate(ev.contents);
         this.state.lastSnap = ev.contents;

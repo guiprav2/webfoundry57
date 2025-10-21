@@ -26,7 +26,7 @@ export default class App {
       })();
       await post('event.init');
       await post('broadcast.init');
-      //await post('collab.init');
+      await post('collab.init');
       await post('settings.init');
       if (!location.pathname.startsWith('/collab.html')) {
         await post('projects.init');
