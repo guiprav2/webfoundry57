@@ -5,6 +5,7 @@ export let defaultHead = ({ title } = {}) =>`<head>
   <title>${esc(title)}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
   <script>window.rootPrefix = /^\\/(files|preview)\\//.test(location.pathname) ? location.pathname.split('/').slice(0, 4).join('/') : '/'</script>
+  <script type="module" src="../webfoundry/ifdesigner.js"></script>
   <script src="../webfoundry/head.js"></script>
 </head>`;
 

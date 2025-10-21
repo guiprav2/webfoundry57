@@ -64,6 +64,7 @@ export default class Projects {
           'index.html',
           'webfoundry/wf.config.js',
           'webfoundry/app.js',
+          'webfoundry/ifdesigner.js',
           'webfoundry/head.js',
           'webfoundry/dominant.js',
           'webfoundry/tailplay4.dafuq.js',
