@@ -62,11 +62,11 @@ let components = Object.fromEntries(
   ).flat(),
 );
 
-window.renderTemplate = x => {
+window.renderTemplate = (x, component) => {
   let templ = templates[x];
   let templDoc = new DOMParser().parseFromString(templ, 'text/html');
   let templRoot = document.createElement('div');
-  templRoot.innerHTML = templDoc.body.innerHTML;
+  templRoot.innerHTML = component ? templDoc.body.innerHTML : templDoc.body.firstElementChild.innerHTML;
   return compile(templRoot.firstElementChild);
 };
 
@@ -74,7 +74,7 @@ window.renderComponent = (x, props = {}) => {
   x = `components/${x}.html`;
   let Component = components[x.replace('.html', '.js')];
   Component.prototype.render = function () {
-    this.root = renderTemplate(x);
+    this.root = renderTemplate(x, true);
     this.root.ctx ??= {};
     this.root.ctx.this = this;
     return this.root;
@@ -188,10 +188,10 @@ class App {
       }
       let templDoc = new DOMParser().parseFromString(templ, 'text/html');
       let templRoot = document.createElement('div');
-      for (let x of templDoc.body.attributes) {
+      for (let x of templDoc.body.firstElementChild.attributes) {
         templRoot.setAttribute(x.name, x.value);
       }
-      templRoot.innerHTML = templDoc.body.innerHTML;
+      templRoot.innerHTML = templDoc.body.firstElementChild.innerHTML;
       this.content = compile(templRoot);
       for (let x of document.querySelectorAll('dialog')) {
         x.remove();
@@ -260,10 +260,10 @@ class App {
     }
     let templDoc = new DOMParser().parseFromString(templ, 'text/html');
     let templRoot = document.createElement('div');
-    for (let x of templDoc.body.attributes) {
+    for (let x of templDoc.body.firstElementChild.attributes) {
       templRoot.setAttribute(x.name, x.value);
     }
-    templRoot.innerHTML = templDoc.body.innerHTML;
+    templRoot.innerHTML = templDoc.body.firstElementChild.innerHTML;
     this.content = compile(templRoot);
     let title = templDoc.querySelector('head > title')?.textContent;
     if (title) {

@@ -12,9 +12,11 @@ export let defaultHead = ({ title } = {}) =>`<head>
 export let defaultHtml = opt =>`<!doctype html>
 <html>
   ${defaultHead(opt)}
-  <body style="display: none; min-height: 100vh">
-    <div class="bu box tw m-8">
-      <div class="tw p-16 text-center font-sm italic">Component intentionally left blank.</div>
+  <body class="flex flex-col [&>div:first-child]:flex-1 min-h-screen" style="display: none">
+    <div>
+      <div class="bu box tw m-8">
+        <div class="tw p-16 text-center font-sm italic">Component intentionally left blank.</div>
+      </div>
     </div>
   </body>
 </html>

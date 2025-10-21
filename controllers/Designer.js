@@ -8,8 +8,29 @@ import rfiles from '../repos/rfiles.js';
 import { arrayify, debounce } from '../other/util.js';
 import { defaultHead } from '../other/templates.js';
 
+let TAILWIND_HUES = ['red', 'orange', 'amber', 'yellow', 'lime', 'green', 'emerald', 'teal', 'cyan', 'sky', 'blue', 'indigo', 'violet', 'purple', 'fuchsia', 'pink', 'rose', 'slate', 'gray', 'zinc', 'neutral', 'stone'];
+let TAILWIND_SHADES = ['50', '100', '200', '300', '400', '500', '600', '700', '800', '900', '950'];
+let TAILWIND_HUE_SET = new Set(TAILWIND_HUES);
+let TAILWIND_SHADE_SET = new Set(TAILWIND_SHADES);
+let TEXT_COLOR_RE = new RegExp(`^text-(${TAILWIND_HUES.join('|')})-(${TAILWIND_SHADES.join('|')})$`);
+let BG_COLOR_RE = new RegExp(`^bg-(${TAILWIND_HUES.join('|')})-(${TAILWIND_SHADES.join('|')})$`);
+let DEFAULT_SHADE = '500';
+
+let parseHueArgs = (args, fallbackCur) => {
+  if (!args.length) return { cur: fallbackCur, hue: null };
+  if (args.length === 1) return { cur: fallbackCur, hue: args[0] };
+  return { cur: args[0] ?? fallbackCur, hue: args[1] };
+};
+
+let parseShadeArgs = (args, fallbackCur) => {
+  if (!args.length) return { cur: fallbackCur, shade: null };
+  if (args.length === 1) return { cur: fallbackCur, shade: args[0] };
+  return { cur: args[0] ?? fallbackCur, shade: args[1] };
+};
+
 export default class Designer {
   state = {
+    toolbar: 'manipulation',
     list: [],
 
     frameVisible(path) {
@@ -32,6 +53,29 @@ export default class Designer {
     frameWidth: 'calc(100% - 1rem)',
     frameHeight: '100%',
     clipboards: {},
+
+    get tagLabel() {
+      let s = this.current.cursors[state.collab.uid];
+      if (s?.length !== 1) return 'Tag';
+      return `<${this.current.map.get(s[0]).tagName.toLowerCase()}>`;
+    },
+
+    selClass: cls => (this.state.current.cursors[state.collab.uid] || []).filter(x => {
+      x = this.state.current.map.get(x);
+      if (typeof cls === 'string') return x.classList.contains(cls);
+      for (let y of x.classList) if (cls.test(y)) return true;
+      return false;
+    }).length,
+
+    get selHue() {
+      let ss = (this.current.cursors[state.collab.uid] || []).map(x => this.current.map.get(x));
+      for (let s of ss) for (let cls of s.classList) { let match = cls.match(TEXT_COLOR_RE); if (match) return match[1] }
+    },
+
+    get selBgHue() {
+      let ss = (this.current.cursors[state.collab.uid] || []).map(x => this.current.map.get(x));
+      for (let s of ss) for (let cls of s.classList) { let match = cls.match(BG_COLOR_RE); if (match) return match[1] }
+    },
   };
 
   actions = {
@@ -107,6 +151,7 @@ export default class Designer {
         get html() { return this.doc?.documentElement },
         get head() { return this.doc?.head },
         get body() { return this.doc?.body },
+        get root() { return this.body?.firstElementChild },
         preview: false,
         mutobs: null,
         snap: null,
@@ -208,6 +253,22 @@ export default class Designer {
         input.setSelectionRange?.(input.value.length, input.value.length);
       }
     },
+
+    toolbar: async (k, params) => {
+      if (/^(manipulation|tailwind)$/.test(k)) { this.state.toolbar = k; return }
+      await actions[k].handler({ cur: state.collab.uid, ...params });
+    },
+
+    gfontCategory: x => { this.state.gfontCategory = x; this.state.gfonts = []; document.querySelector('#GFontFocus')?.focus?.() },
+
+    gfontKeyUp: ev => {
+      let q = ev.target.value.trim().toLowerCase();
+      let list = this.state.gfontsreg[this.state.gfontCategory] || [];
+      this.state.gfonts = list.filter(x => x.toLowerCase().includes(q)).map(x => ({ name: x }));
+      d.update();
+    },
+
+    gfontSample: (x, fnt) => setTimeout(() => x.classList.add(`gfont-[${fnt.replaceAll(' ', '_')}]`), [...x.parentElement.children].indexOf(x) * 200),
 
     keydown: async ev => {
       let activeEl = document.activeElement;

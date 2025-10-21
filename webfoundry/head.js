@@ -89,7 +89,7 @@ observer.observe(document, { attributes: true, childList: true, subtree: true })
   {
     let preflight = document.createElement('style');
     preflight.className = 'wf-preflight';
-    preflight.textContent = `[hidden] { display: none !important } body { display: flow-root } dialog { margin: auto } :empty { min-height: 1rem }`;
+    preflight.textContent = `[hidden] { display: none !important } dialog { margin: auto } :empty { min-height: 1rem }`;
     let ppreflight = Promise.withResolvers();
     preflight.onload = () => ppreflight.resolve('preflight');
     preflight.onerror = err => ppreflight.reject(err);
@@ -98,5 +98,5 @@ observer.observe(document, { attributes: true, childList: true, subtree: true })
   }
   await Promise.all(promises);
   let div = document.createElement('div'); document.body.append(div); div.remove();
-  document.body.style.display = 'flow-root';
+  document.body.style.display = '';
 })();

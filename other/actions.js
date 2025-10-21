@@ -50,7 +50,7 @@ let actions = {
     handler: async ({ cur = 'master', s } = {}) => {
       if (state.collab.uid !== 'master') return state.collab.rtc.send({ type: 'cmd', k: 'changeSelection', cur, s });
       let frame = state.designer.current;
-      s = [...new Set(s.map(x => frame.map.get(x)).filter(x => frame.body.contains(x)).map(x => frame.map.getKey(x)).filter(Boolean))];
+      s = [...new Set(s.map(x => frame.map.get(x)).filter(x => frame.root.contains(x)).map(x => frame.map.getKey(x)).filter(Boolean))];
       if (!s.length) frame.lastCursors[cur] = frame.cursors[cur];
       frame.cursors[cur] = s;
       d.update();
@@ -111,7 +111,7 @@ let actions = {
       if (frame.cursors[cur].length !== 1) return;
       while (i-- > 0) {
         let s = frame.map.get(frame.cursors[cur][0]);
-        s[k] && frame.body.contains(s[k]) && await actions.changeSelection.handler({ cur, s: [frame.map.getKey(s[k])] });
+        s[k] && frame.root.contains(s[k]) && await actions.changeSelection.handler({ cur, s: [frame.map.getKey(s[k])] });
       }
     },
   },
@@ -136,7 +136,7 @@ let actions = {
       if (frame.cursors[cur].length !== 1) return;
       while (i-- > 0) {
         let s = frame.map.get(frame.cursors[cur][0]);
-        s[k] && frame.body.contains(s[k]) && await actions.changeSelection.handler({ cur, s: [frame.map.getKey(s[k])] });
+        s[k] && frame.root.contains(s[k]) && await actions.changeSelection.handler({ cur, s: [frame.map.getKey(s[k])] });
       }
     },
   },
@@ -161,7 +161,7 @@ let actions = {
       if (frame.cursors[cur].length !== 1) return;
       while (i-- > 0) {
         let s = frame.map.get(frame.cursors[cur][0]);
-        s[k] && frame.body.contains(s[k]) && await actions.changeSelection.handler({ cur, s: [frame.map.getKey(s[k])] });
+        s[k] && frame.root.contains(s[k]) && await actions.changeSelection.handler({ cur, s: [frame.map.getKey(s[k])] });
       }
     },
   },
@@ -186,7 +186,7 @@ let actions = {
       if (frame.cursors[cur].length !== 1) return;
       while (i-- > 0) {
         let s = frame.map.get(frame.cursors[cur][0]);
-        s[k] && frame.body.contains(s[k]) && await actions.changeSelection.handler({ cur, s: [frame.map.getKey(s[k])] });
+        s[k] && frame.root.contains(s[k]) && await actions.changeSelection.handler({ cur, s: [frame.map.getKey(s[k])] });
       }
     },
   },
@@ -211,7 +211,7 @@ let actions = {
       if (frame.cursors[cur].length !== 1) return;
       while (i-- > 0) {
         let s = frame.map.get(frame.cursors[cur][0]);
-        s[k] && frame.body.contains(s[k]) && await actions.changeSelection.handler({ cur, s: [frame.map.getKey(s[k])] });
+        s[k] && frame.root.contains(s[k]) && await actions.changeSelection.handler({ cur, s: [frame.map.getKey(s[k])] });
       }
     },
   },
@@ -232,7 +232,7 @@ let actions = {
       let frame = state.designer.current;
       if (frame.cursors[cur].length !== 1) return;
       let ref = frame.map.get(frame.cursors[cur][0]);
-      if (!ref || ref.tagName === 'BODY') return;
+      if (!ref || ref === frame.root) return;
       let refKey = frame.map.getKey(ref);
       let createdKeys = [];
 
@@ -285,7 +285,7 @@ let actions = {
       let frame = state.designer.current;
       if (frame.cursors[cur].length !== 1) return;
       let ref = frame.map.get(frame.cursors[cur][0]);
-      if (!ref || ref.tagName === 'BODY') return;
+      if (!ref || ref === frame.root) return;
       let refKey = frame.map.getKey(ref);
       let createdKeys = [];
 
@@ -597,7 +597,7 @@ let actions = {
       await actions.copySelected.handler({ cur });
       while (i-- > 0) {
         let cursors = frame.cursors[cur];
-        let ss = cursors.map(x => frame.map.get(x)).filter(x => x && x !== frame.root && x !== frame.body && x !== frame.head);
+        let ss = cursors.map(x => frame.map.get(x)).filter(x => x && x !== frame.root && x !== frame.root && x !== frame.head);
         if (!ss.length) return;
         let removedKeys = ss.map(x => frame.map.getKey(x));
         let parentKeys = ss.map(x => frame.map.getKey(x.parentElement));
