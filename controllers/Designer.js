@@ -2,7 +2,7 @@ import BiMap from '../other/bimap.js';
 import Boo from 'https://esm.sh/@camilaprav/boo@1.0.6';
 import actions from '../other/actions.js';
 import htmlsnap from 'https://esm.sh/@camilaprav/htmlsnap@0.0.14';
-import morph from 'https://esm.sh/nanomorph';
+import morphdom from 'https://esm.sh/morphdom';
 import prettier from '../other/prettier.js';
 import rfiles from '../repos/rfiles.js';
 import { arrayify, debounce } from '../other/util.js';
@@ -128,8 +128,13 @@ export default class Designer {
             break;
           case 'htmlsnap': {
             this.state.current.snap = ev.data.snap;
-            let doc = this.state.current.doc = new DOMParser().parseFromString(ev.data.snap, 'text/html');
-            this.state.current.map = htmlsnap(doc.documentElement, { idtrack: true, map: this.state.current.map })[1];
+            let doc = new DOMParser().parseFromString(ev.data.snap, 'text/html');
+            if (!this.state.current.doc) this.state.current.doc = doc;
+            else {
+              morphdom(this.state.current.doc.head, doc.head);
+              morphdom(this.state.current.doc.body.firstElementChild, doc.body.firstElementChild);
+            }
+            this.state.current.map = htmlsnap(this.state.current.doc.documentElement, { idtrack: true, map: this.state.current.map })[1];
             state.collab.uid === 'master' && await post('designer.save');
             await post('designer.sync');
             break;

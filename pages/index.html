@@ -16,11 +16,12 @@
   </head>
   <body
     style="display: none"
-    class="overflow-hidden bg-[#060a0f] h-screen"
+    class="overflow-hidden h-screen"
     wf-class="{{replaces bg-[#060a0f]: !state.settings.opt?.wallpaper &amp;&amp; 'bg-[#060a0f]'}}"
   >
     <div
-      class="App flex relative w-screen overflow-hidden h-[100dvh]"
+      class="App flex relative w-screen overflow-hidden h-[100dvh] bg-[#060a0f]"
+      wf-class="{{replaces bg-[#060a0f]: !state.settings.opt.wallpaper &amp;&amp; 'bg-[#060a0f]'}}"
       wf-onattach="post('app.init')"
     >
       <style>

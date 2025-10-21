@@ -975,7 +975,10 @@ let actions = {
     disabled: ({ cur = 'master' }) => [!state.designer.open && `Designer closed.`, state.designer.open && !state.designer.current.cursors[cur]?.length && `No elements selected.`],
     parameters: {
       type: 'object',
-      properties: { cur: { type: 'string', description: `Whose selection to use (defaults to master)` }, cls: { type: 'array', items: { type: 'string' } } },
+      properties: {
+        cur: { type: 'string', description: `Whose selection to use (defaults to master)` },
+        cls: { type: 'array', items: { type: 'string' } },
+      },
       required: ['cls'],
     },
     handler: async ({ cur = 'master', cls } = {}) => {
@@ -983,8 +986,11 @@ let actions = {
       let frame = state.designer.current;
       let targets = frame.cursors[cur].map(x => frame.map.get(x)).filter(Boolean);
       if (!targets.length) return;
+      if (Array.isArray(cls)) cls = cls.join(' ');
       if (typeof cls === 'string') cls = cls.trim();
-      let tokens = []; let re = /{{(?:[^{}]|{{[^}]*}})*}}|[^\s]+/g; let m;
+      let tokens = [];
+      let re = /{{(?:[^{}]|{{[^}]*}})*}}|[^\s]+/g;
+      let m;
       while (m = re.exec(cls)) tokens.push(m[0]);
       let exprs = tokens.filter(c => c.startsWith('{{') && c.endsWith('}}'));
       let normal = tokens.filter(c => !(c.startsWith('{{') && c.endsWith('}}')));
@@ -1031,6 +1037,7 @@ let actions = {
     handler: async ({ cur = 'master', cls } = {}) => {
       if (state.collab.uid !== 'master') return state.collab.rtc.send({ type: 'cmd', k: 'removeCssClasses', cur, cls });
       let frame = state.designer.current; let targets = frame.cursors[cur].map(x => frame.map.get(x)).filter(Boolean); if (!targets.length) return;
+      if (Array.isArray(cls)) cls = cls.join(' ');
       if (typeof cls === 'string') cls = cls.trim();
       let tokens = []; let re = /{{(?:[^{}]|{{[^}]*}})*}}|[^\s]+/g; let m; while (m = re.exec(cls)) tokens.push(m[0]);
       let exprs = tokens.filter(c => c.startsWith('{{') && c.endsWith('}}')); let normal = tokens.filter(c => !(c.startsWith('{{') && c.endsWith('}}')));
@@ -1087,6 +1094,7 @@ let actions = {
       let frame = state.designer.current;
       let targets = frame.cursors[cur].map(x => frame.map.get(x)).filter(Boolean);
       if (!targets.length) return;
+      if (Array.isArray(cls)) cls = cls.join(' ');
       if (typeof cls === 'string') cls = cls.trim();
       let tokens = [];
       let re = /{{(?:[^{}]|{{[^}]*}})*}}|[^\s]+/g;
