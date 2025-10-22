@@ -1,7 +1,7 @@
 import BiMap from '../other/bimap.js';
 import Boo from 'https://esm.sh/@camilaprav/boo@1.0.6';
 import actions from '../other/actions.js';
-import htmlsnap from 'https://esm.sh/@camilaprav/htmlsnap@0.0.14';
+import htmlsnap from 'https://esm.sh/@camilaprav/htmlsnap@0.0.16';
 import morphdom from 'https://esm.sh/morphdom';
 import prettier from '../other/prettier.js';
 import rfiles from '../repos/rfiles.js';
@@ -118,6 +118,7 @@ export default class Designer {
           let name = parts[0];
           if (domain !== location.hostname || !state.projects.current.startsWith(`${name}:`)) return; // FIXME: Also check path.
         }
+        let project = state.projects.current;
         let frame = this.state.list.find(x => x.path === ev.data.path);
         switch (ev.data.type) {
           case 'ready':
@@ -137,6 +138,7 @@ export default class Designer {
             htmlsnap(frame.doc.documentElement, { idtrack: true, map: frame.map });
             state.collab.uid === 'master' && await post('designer.save', frame);
             await post('designer.sync', frame);
+            state.event.bus.emit('designer:htmlsnap:ready', { project, frame });
             break;
           }
           case 'keydown': await post('designer.keydown', ev.data); break;

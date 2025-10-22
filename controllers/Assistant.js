@@ -1,5 +1,5 @@
 import actions from '../other/actions.js';
-import autoassist from 'https://esm.sh/@camilaprav/kittygpt@0.0.62/autoassist.js';
+import autoassist from 'https://esm.sh/@camilaprav/kittygpt@0.0.64/autoassist.js';
 import morphdom from 'https://esm.sh/morphdom';
 import { arrayify, resolve } from '../other/util.js';
 
@@ -7,9 +7,9 @@ export default class Assistant {
   actions = {
     init: async () => {
       this.state.doc = new DOMParser().parseFromString('<!doctype html><head></head><body><div></div></body>', 'text/html');
-      state.event.bus.on('designer:save:ready', () => {
-        this.state.doc.head.innerHTML = state.designer.current.head.innerHTML;
-        this.state.doc.body.firstElementChild.outerHTML = state.designer.current.body.firstElementChild.outerHTML;
+      state.event.bus.on('designer:htmlsnap:ready', ({ frame }) => {
+        this.state.doc.head.innerHTML = frame.head.innerHTML;
+        this.state.doc.body.firstElementChild.outerHTML = frame.body.firstElementChild.outerHTML;
       });
     },
 
