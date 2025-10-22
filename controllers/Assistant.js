@@ -1,9 +1,18 @@
 import actions from '../other/actions.js';
 import autoassist from 'https://esm.sh/@camilaprav/kittygpt@0.0.59/autoassist.js';
+import morphdom from 'https://esm.sh/morphdom';
 import { arrayify, resolve } from '../other/util.js';
 
 export default class Assistant {
   actions = {
+    init: async () => {
+      this.state.doc = new DOMParser().parseFromString('<!doctype html><head></head><body><div></div></body>', 'text/html');
+      state.event.bus.on('designer:save:ready', () => {
+        morphdom(this.state.doc.head, state.designer.current.head.cloneNode(true));
+        morphdom(this.state.doc.body.firstElementChild, state.designer.current.body.firstElementChild.cloneNode(true));
+      });
+    },
+
     start: async () => {
       try {
         this.state.initializing = true;
@@ -13,8 +22,7 @@ export default class Assistant {
           navdisable: true,
           idtrack: true,
           removeInvisible: false,
-          scope: state.designer.current?.body,
-          map: () => state.designer.current?.map,
+          scope: this.state.doc.documentElement,
           pushToSpeak: state.settings.opt.shiftToSpeak && 'Shift',
         });
         let fns = Object.fromEntries([...Object.entries(actions)].map(([k, v]) => [k, {

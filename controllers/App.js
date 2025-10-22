@@ -37,6 +37,7 @@ export default class App {
       //await post('codeEditor.init');
       await post('styles.init');
       await post('designer.init');
+      await post('assistant.init');
       await post('app.brandCanvasMonitor');
       (!this.state.demo && state.collab.uid === 'master') && await post('app.selectPanel', 'projects');
       state.event.bus.on('designer:togglePreview:ready', async ({ preview }) => preview && this.state.panel === 'styles' && await post('app.selectPanel', null));
