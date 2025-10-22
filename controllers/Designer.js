@@ -317,5 +317,13 @@ export default class Designer {
     }, 200),
 
     reset: async () => { this.state.list = []; await post('designer.toggleMobileKeyboard') },
+
+    refresh: async () => {
+      let frame = this.state.current;
+      let p = Promise.withResolvers();
+      Object.assign(frame, { ready: false, resolve: p.resolve, reject: p.reject });
+      d.update();
+      await loadman.run('designer.refresh', async () => { frame.el.src = frame.el.src; await p.promise });
+    },
   };
 };
