@@ -61,7 +61,7 @@ let actions = {
         let visible = rect.top >= 20 && rect.bottom <= innerHeight - 20;
         !visible && first.scrollIntoView({ block: rect.height <= innerHeight ? 'center' : 'nearest', inline: rect.width <= innerWidth ? 'center' : 'nearest' });
       }
-      await post('designer.sync');
+      await post('designer.sync', state.designer.current);
       await post('collab.sync');
     },
   },

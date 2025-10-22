@@ -118,25 +118,25 @@ export default class Designer {
           let name = parts[0];
           if (domain !== location.hostname || !state.projects.current.startsWith(`${name}:`)) return; // FIXME: Also check path.
         }
-        let frame = this.state.current;
+        let frame = this.state.list.find(x => x.path === ev.data.path);
         switch (ev.data.type) {
           case 'ready':
             if (ev.data.status !== 200) return frame.reject(ev.data.error);
             frame.ready = true;
             frame.resolve();
-            await post('designer.sync');
+            await post('designer.sync', frame);
             break;
           case 'htmlsnap': {
             this.state.current.snap = ev.data.snap;
             let doc = new DOMParser().parseFromString(ev.data.snap, 'text/html');
-            if (!this.state.current.doc) this.state.current.doc = doc;
+            if (!frame.doc) frame.doc = doc;
             else {
-              morphdom(this.state.current.doc.head, doc.head);
-              morphdom(this.state.current.doc.body.firstElementChild, doc.body.firstElementChild);
+              morphdom(frame.doc.head, doc.head);
+              morphdom(frame.doc.body.firstElementChild, doc.body.firstElementChild);
             }
-            this.state.current.map = htmlsnap(this.state.current.doc.documentElement, { idtrack: true, map: this.state.current.map })[1];
-            state.collab.uid === 'master' && await post('designer.save');
-            await post('designer.sync');
+            htmlsnap(frame.doc.documentElement, { idtrack: true, map: frame.map });
+            state.collab.uid === 'master' && await post('designer.save', frame);
+            await post('designer.sync', frame);
             break;
           }
           case 'keydown': await post('designer.keydown', ev.data); break;
@@ -191,24 +191,15 @@ export default class Designer {
       if (!frame.el) return; // ???
       let { bus } = state.event;
       if (err) { frame.reject(err); bus.emit('designer:frame:error', { frame, err }); return }
-      /*
-      if (!frame.preview) {
-        if (frame.html) {
-          frame.html.addEventListener('mousedown', async ev => await post('designer.mousedown', ev), true);
-          frame.html.addEventListener('click', ev => ev.preventDefault(), true);
-          frame.html.addEventListener('dblclick', async ev => await post('designer.dblclick', ev), true);
-        }
-      }
-      */
       if (!frame.heightHooked) { d.el(frame.el, { style: { height: () => this.state.frameHeight } }); frame.heightHooked = true }
       bus.emit('designer:frameLoaded:ready', { frame });
     },
 
-    sync: () => this.state.current?.el?.contentWindow?.postMessage?.({
+    sync: frame => frame.el?.contentWindow?.postMessage?.({
       type: 'state',
       collab: { uid: state.collab.uid, rtc: { presence: state.collab.rtc?.presence } },
-      cursors: this.state.current.cursors,
-    }, new URL(this.state.current.el.src).origin),
+      cursors: frame.cursors,
+    }, new URL(frame.el.src).origin),
 
     resize: ev => {
       ev.target.setPointerCapture(ev.pointerId);
@@ -303,9 +294,8 @@ export default class Designer {
       ++frame.ihistory[cur];
     },
 
-    save: debounce(async () => {
+    save: debounce(async frame => {
       let project = state.projects.current;
-      let frame = this.state.current;
       let body = frame.body.cloneNode(true);
       body.querySelectorAll('.wf-cursor').forEach(x => x.remove());
       body.querySelectorAll('*').forEach(x => x.removeAttribute('data-htmlsnap'));
