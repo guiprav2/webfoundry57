@@ -2956,9 +2956,9 @@
 
                 <label
                   class="w-full text-left px-3 py-2 flex justify-between items-center rounded hover:bg-black/50 outline-none cursor-pointer"
-                  wf-if="state.projects.current"
+                  wf-if="!state.collab.rtc"
                 >
-                  <div class="shrink-0">Cross-origin Designer</div>
+                  <div class="shrink-0">Cross-origin isolation</div>
                   <div class="relative inline-flex items-center cursor-pointer">
                     <input
                       type="checkbox"
@@ -3072,7 +3072,7 @@
                   class="w-full text-left px-3 py-2 flex justify-between items-center rounded hover:bg-black/50 outline-none"
                   wf-disabled="loadman.busy()"
                   wf-onclick="event.preventDefault(), post('collab.setup')"
-                  wf-if="!state.collab.rtc &amp;&amp; state.projects.current &amp;&amp; !state.app.demo"
+                  wf-if="state.settings.opt.isolate &amp;&amp; !state.collab.rtc &amp;&amp; state.projects.current &amp;&amp; !state.app.demo"
                 >
                   <div>Collaborate</div>
                 </button>
