@@ -216,6 +216,22 @@ export { greet };
       return '<span class="' + className + '">' + escapeHtml(text) + '</span>';
     }
 
+    let requestFrame = typeof window.requestAnimationFrame === 'function'
+      ? function (callback) {
+        return window.requestAnimationFrame(callback);
+      }
+      : function (callback) {
+        return setTimeout(callback, 16);
+      };
+
+    let cancelFrame = typeof window.cancelAnimationFrame === 'function'
+      ? function (handle) {
+        window.cancelAnimationFrame(handle);
+      }
+      : function (handle) {
+        clearTimeout(handle);
+      };
+
     function insertTextAtSelection(doc, inserted, options) {
       let textarea = doc.textarea;
       let start = textarea.selectionStart;
@@ -431,6 +447,27 @@ export { greet };
         start: newStart,
         end: newEnd
       };
+    }
+
+    function cancelKeydownRefresh(doc) {
+      if (!doc.keydownRefreshScheduled) {
+        return;
+      }
+      if (doc.keydownRefreshHandle !== null) {
+        cancelFrame(doc.keydownRefreshHandle);
+        doc.keydownRefreshHandle = null;
+      }
+      doc.keydownRefreshScheduled = false;
+    }
+
+    function scheduleKeydownRefresh(doc) {
+      cancelKeydownRefresh(doc);
+      doc.keydownRefreshScheduled = true;
+      doc.keydownRefreshHandle = requestFrame(function () {
+        doc.keydownRefreshScheduled = false;
+        doc.keydownRefreshHandle = null;
+        applyText(doc, doc.textarea.value);
+      });
     }
 
     function detectInitialMode(value) {
@@ -1532,7 +1569,9 @@ export { greet };
         tabString: tabString,
         convertTabsToSpaces: convertTabsToSpaces,
         autoIndent: autoIndent,
-        config: config
+        config: config,
+        keydownRefreshScheduled: false,
+        keydownRefreshHandle: null
       };
 
       syncMetrics(doc);
@@ -1545,37 +1584,52 @@ export { greet };
       }
 
       let handleKeyDown = function (event) {
-        if (event.defaultPrevented) {
-          return;
-        }
+        let updatedDuringKeydown = false;
+
         if (event.key === 'Tab' && !event.altKey && !event.ctrlKey && !event.metaKey) {
-          if (!doc.convertTabsToSpaces) {
-            return;
+          if (doc.convertTabsToSpaces) {
+            event.preventDefault();
+            if (event.shiftKey) {
+              unindentSelection(doc, doc.tabString);
+            } else {
+              indentSelection(doc, doc.tabString);
+            }
+            handleInput();
+            updatedDuringKeydown = true;
           }
-          event.preventDefault();
-          if (event.shiftKey) {
-            unindentSelection(doc, doc.tabString);
-          } else {
-            indentSelection(doc, doc.tabString);
+          if (!updatedDuringKeydown) {
+            scheduleKeydownRefresh(doc);
           }
-          handleInput();
           return;
         }
+
         if (event.key === 'Enter' && !event.altKey && !event.ctrlKey && !event.metaKey) {
-          if (!doc.autoIndent) {
-            return;
+          if (doc.autoIndent) {
+            event.preventDefault();
+            let value = textarea.value;
+            let caret = textarea.selectionStart;
+            let indent = getLineIndentation(value, caret, doc.tabString);
+            let insertion = '\n' + indent;
+            insertTextAtSelection(doc, insertion);
+            handleInput();
+            updatedDuringKeydown = true;
           }
-          event.preventDefault();
-          let value = textarea.value;
-          let caret = textarea.selectionStart;
-          let indent = getLineIndentation(value, caret, doc.tabString);
-          let insertion = '\n' + indent;
-          insertTextAtSelection(doc, insertion);
-          handleInput();
+          if (!updatedDuringKeydown) {
+            scheduleKeydownRefresh(doc);
+          }
+          return;
         }
+
+        if (event.defaultPrevented) {
+          scheduleKeydownRefresh(doc);
+          return;
+        }
+
+        scheduleKeydownRefresh(doc);
       };
 
       let handleInput = function () {
+        cancelKeydownRefresh(doc);
         applyText(doc, textarea.value);
       };
 
