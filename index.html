@@ -37,21 +37,24 @@
           let register = () => navigator.serviceWorker.controller.postMessage({ type:'webfoundry-register-tab', tabId });
           navigator.serviceWorker.addEventListener('controllerchange', register);
           register();
-          let project = parts[2];
-          let path = parts.slice(3).join('/');
-          if (path !== 'index.html') {
-            let handler = async ev => {
-              let data = ev.data || {};
-              if (data.type !== 'fetch:res' || data.project !== project || data.path !== path) return;
-              removeEventListener('message', handler);
-              document.open();
-              document.write(await data.data.text());
-              document.close();
-            };
-            addEventListener('message', handler);
-            parent.postMessage({ type: 'fetch', project, path }, wforigin);
-            return;
+          if (!location.pathname.startsWith('/preview/')) {
+            let project = parts[2];
+            let path = parts.slice(3).join('/');
+            if (path !== 'index.html') {
+              let handler = async ev => {
+                let data = ev.data || {};
+                if (data.type !== 'fetch:res' || data.project !== project || data.path !== path) return;
+                removeEventListener('message', handler);
+                document.open();
+                document.write(await data.data.text());
+                document.close();
+              };
+              addEventListener('message', handler);
+              parent.postMessage({ type: 'fetch', project, path }, wforigin);
+              return;
+            }
           }
+          await new Promise(pres => setTimeout(pres, 100));
         }
         if (location.pathname.includes('/files/')) return;
         let [, md, mapp] = await Promise.all([
@@ -60,6 +63,10 @@
           import(`${rootPrefix}/webfoundry/app.js`),
         ]);
         document.body.append(md.default.el(mapp.default));
+        parent.postMessage(
+          { path: `pages/${location.pathname.slice(1).split('/').slice(3).join('/')}`, type: 'ready', status: 200 },
+          new URL(location.href).searchParams.get('isolate') != null ? `${location.protocol}//${location.hostname.split('.').slice(1).join('.')}` : location.origin,
+        );
       })();
     </script>
   </body>

@@ -172,7 +172,7 @@ export default class Designer {
         reject: p.reject,
       });
       d.update();
-      setTimeout(() => p.reject(new Error(`Frame wait timeout`)), 5000);
+      setTimeout(() => p.reject(new Error(`Frame wait timeout`)), 15000);
       await loadman.run('designer.select', async () => {
         try { await p.promise; bus.emit('designer:select:ready', { project, path }) }
         catch (err) { console.error(err); this.state.list = this.state.list.filter(x => x.path !== path); bus.emit('designer:select:error', { project, path, err }) }
@@ -315,6 +315,18 @@ export default class Designer {
       await rfiles.save(project, frame.path, new Blob([phtml], { type: 'text/html' }));
       state.event.bus.emit('designer:save:ready', { project, path: frame.path });
     }, 200),
+
+    togglePreview: async () => {
+      let frame = this.state.current;
+      let p = Promise.withResolvers();
+      Object.assign(frame, { ready: false, resolve: p.resolve, reject: p.reject, preview: !frame.preview });
+      d.update();
+      setTimeout(() => p.reject(new Error(`Frame wait timeout`)), 15000);
+      await loadman.run('designer.togglePreview', async () => {
+        await p.promise;
+        state.event.bus.emit('designer:togglePreview:ready', { preview: frame.preview });
+      });
+    },
 
     reset: async () => { this.state.list = []; await post('designer.toggleMobileKeyboard') },
 
