@@ -109,6 +109,7 @@
       border-radius: inherit;
     }
   </style>
+  <script src="other/textarea-vim.js"></script>
 </head>
 <body>
   <main>
@@ -213,6 +214,223 @@ export { greet };
         return '';
       }
       return '<span class="' + className + '">' + escapeHtml(text) + '</span>';
+    }
+
+    function insertTextAtSelection(doc, inserted, options) {
+      let textarea = doc.textarea;
+      let start = textarea.selectionStart;
+      let end = textarea.selectionEnd;
+      let value = textarea.value;
+      let before = value.slice(0, start);
+      let after = value.slice(end);
+      textarea.value = before + inserted + after;
+      let caretStart = start + inserted.length;
+      let caretEnd = caretStart;
+      if (options && options.selectionStart !== undefined) {
+        caretStart = start + options.selectionStart;
+      }
+      if (options && options.selectionEnd !== undefined) {
+        caretEnd = start + options.selectionEnd;
+      } else {
+        caretEnd = caretStart;
+      }
+      textarea.selectionStart = caretStart;
+      textarea.selectionEnd = caretEnd;
+      return {
+        start: caretStart,
+        end: caretEnd
+      };
+    }
+
+    function getLineIndentation(value, caretIndex, tabString) {
+      let index = caretIndex != null ? caretIndex : value.length;
+      let lineStart = value.lastIndexOf('\n', index - 1);
+      if (lineStart === -1) {
+        lineStart = 0;
+      } else {
+        lineStart += 1;
+      }
+      let cursor = lineStart;
+      let indent = '';
+      while (cursor < value.length) {
+        let ch = value.charAt(cursor);
+        if (ch === ' ') {
+          indent += ' ';
+          cursor += 1;
+          continue;
+        }
+        if (ch === '\t') {
+          indent += tabString;
+          cursor += 1;
+          continue;
+        }
+        break;
+      }
+      return indent;
+    }
+
+    function indentSelection(doc, tabString) {
+      let textarea = doc.textarea;
+      let start = textarea.selectionStart;
+      let end = textarea.selectionEnd;
+      if (start === end) {
+        insertTextAtSelection(doc, tabString);
+        return {
+          start: textarea.selectionStart,
+          end: textarea.selectionEnd
+        };
+      }
+      let value = textarea.value;
+      let lineStart = value.lastIndexOf('\n', start - 1);
+      if (lineStart === -1) {
+        lineStart = 0;
+      } else {
+        lineStart += 1;
+      }
+      let lastIndex = end > 0 ? end - 1 : end;
+      let lineEnd = value.indexOf('\n', lastIndex);
+      if (lineEnd === -1) {
+        lineEnd = value.length;
+      }
+      let block = value.slice(lineStart, lineEnd);
+      let lines = block.split('\n');
+      let transformed = lines.map(function (line) {
+        return tabString + line;
+      }).join('\n');
+      textarea.value = value.slice(0, lineStart) + transformed + value.slice(lineEnd);
+      let lineCount = lines.length;
+      let newStart = start + tabString.length;
+      let newEnd = end + tabString.length * lineCount;
+      textarea.selectionStart = newStart;
+      textarea.selectionEnd = newEnd;
+      return {
+        start: newStart,
+        end: newEnd
+      };
+    }
+
+    function unindentSelection(doc, tabString) {
+      let textarea = doc.textarea;
+      let start = textarea.selectionStart;
+      let end = textarea.selectionEnd;
+      let value = textarea.value;
+      let lineStart = value.lastIndexOf('\n', start - 1);
+      if (lineStart === -1) {
+        lineStart = 0;
+      } else {
+        lineStart += 1;
+      }
+      let lastIndex = end > 0 ? end - 1 : end;
+      let lineEnd = value.indexOf('\n', lastIndex);
+      if (lineEnd === -1) {
+        lineEnd = value.length;
+      }
+      let block = value.slice(lineStart, lineEnd);
+      let lines = block.split('\n');
+      let originalLengths = [];
+      let removedCounts = [];
+      let newLines = [];
+      for (let i = 0; i < lines.length; i += 1) {
+        let originalLine = lines[i];
+        originalLengths.push(originalLine.length);
+        let removed = 0;
+        let updatedLine = originalLine;
+        if (updatedLine.startsWith(tabString)) {
+          removed = tabString.length;
+          updatedLine = updatedLine.slice(tabString.length);
+        } else if (updatedLine.startsWith('\t')) {
+          removed = 1;
+          updatedLine = updatedLine.slice(1);
+        } else {
+          let spaces = 0;
+          while (spaces < tabString.length && updatedLine.charAt(spaces) === ' ') {
+            spaces += 1;
+          }
+          if (spaces > 0) {
+            removed = spaces;
+            updatedLine = updatedLine.slice(spaces);
+          }
+        }
+        removedCounts.push(removed);
+        newLines.push(updatedLine);
+      }
+      let transformed = newLines.join('\n');
+
+      let blockLength = block.length;
+      let relativeStart = start - lineStart;
+      if (relativeStart < 0) {
+        relativeStart = 0;
+      }
+      if (relativeStart > blockLength) {
+        relativeStart = blockLength;
+      }
+      let adjustedEnd = end;
+      if (adjustedEnd > lineEnd) {
+        adjustedEnd = lineEnd;
+      }
+      let relativeEnd = adjustedEnd - lineStart;
+      if (relativeEnd < 0) {
+        relativeEnd = 0;
+      }
+      if (relativeEnd > blockLength) {
+        relativeEnd = blockLength;
+      }
+
+      let computeRemovalBefore = function (relative) {
+        // Walk the original lines and accumulate the indentation removed before
+        // the given offset so we can adjust caret and selection anchors.
+        let total = 0;
+        let running = 0;
+        for (let i = 0; i < lines.length; i += 1) {
+          if (i > 0) {
+            running += 1;
+          }
+          let lineLength = originalLengths[i];
+          let lineStartOffset = running;
+          let lineEndOffset = running + lineLength;
+          let removal = removedCounts[i];
+          if (relative <= lineStartOffset) {
+            break;
+          }
+          if (relative >= lineEndOffset) {
+            total += removal;
+          } else {
+            let offsetInLine = relative - lineStartOffset;
+            total += Math.min(removal, offsetInLine);
+            break;
+          }
+          running = lineEndOffset;
+        }
+        return total;
+      };
+
+      let removalBeforeStart = computeRemovalBefore(relativeStart);
+      let removalBeforeEnd = computeRemovalBefore(relativeEnd);
+      let totalRemoval = 0;
+      for (let i = 0; i < removedCounts.length; i += 1) {
+        totalRemoval += removedCounts[i];
+      }
+      if (end > lineEnd) {
+        removalBeforeEnd = totalRemoval;
+      }
+
+      textarea.value = value.slice(0, lineStart) + transformed + value.slice(lineEnd);
+
+      let newStart = start - removalBeforeStart;
+      if (newStart < lineStart) {
+        newStart = lineStart;
+      }
+      let newEnd = end - removalBeforeEnd;
+      if (newEnd < newStart) {
+        newEnd = newStart;
+      }
+
+      textarea.selectionStart = newStart;
+      textarea.selectionEnd = newEnd;
+      return {
+        start: newStart,
+        end: newEnd
+      };
     }
 
     function detectInitialMode(value) {
@@ -1198,7 +1416,7 @@ export { greet };
       doc.overlayHost.style.borderRadius = styles.borderRadius;
     }
 
-    function lighted(textarea) {
+    function lighted(textarea, options) {
       if (!(textarea instanceof HTMLTextAreaElement)) {
         throw new Error('lighted() expects a textarea element');
       }
@@ -1207,6 +1425,19 @@ export { greet };
       if (!parent) {
         throw new Error('Textarea must be attached to the DOM before calling lighted()');
       }
+
+      let config = options && typeof options === 'object' ? options : {};
+      let tabSize = typeof config.tabSize === 'number' && config.tabSize > 0 ? Math.floor(config.tabSize) : 2;
+      if (!isFinite(tabSize) || tabSize < 1) {
+        tabSize = 2;
+      }
+      let defaultTabString = typeof ''.repeat === 'function' ? ' '.repeat(tabSize) : Array(tabSize + 1).join(' ');
+      let tabString = typeof config.tabString === 'string' && config.tabString.length ? config.tabString : defaultTabString;
+      if (!tabString.length) {
+        tabString = '  ';
+      }
+      let convertTabsToSpaces = config.convertTabsToSpaces !== undefined ? !!config.convertTabsToSpaces : true;
+      let autoIndent = config.autoIndent !== undefined ? !!config.autoIndent : true;
 
       let container = document.createElement('div');
       container.className = 'lighted';
@@ -1297,7 +1528,11 @@ export { greet };
         scheduled: false,
         pendingHandle: null,
         pendingType: '',
-        initialMode: initialMode
+        initialMode: initialMode,
+        tabString: tabString,
+        convertTabsToSpaces: convertTabsToSpaces,
+        autoIndent: autoIndent,
+        config: config
       };
 
       syncMetrics(doc);
@@ -1309,10 +1544,42 @@ export { greet };
         doc.resizeObserver = observer;
       }
 
+      let handleKeyDown = function (event) {
+        if (event.defaultPrevented) {
+          return;
+        }
+        if (event.key === 'Tab' && !event.altKey && !event.ctrlKey && !event.metaKey) {
+          if (!doc.convertTabsToSpaces) {
+            return;
+          }
+          event.preventDefault();
+          if (event.shiftKey) {
+            unindentSelection(doc, doc.tabString);
+          } else {
+            indentSelection(doc, doc.tabString);
+          }
+          handleInput();
+          return;
+        }
+        if (event.key === 'Enter' && !event.altKey && !event.ctrlKey && !event.metaKey) {
+          if (!doc.autoIndent) {
+            return;
+          }
+          event.preventDefault();
+          let value = textarea.value;
+          let caret = textarea.selectionStart;
+          let indent = getLineIndentation(value, caret, doc.tabString);
+          let insertion = '\n' + indent;
+          insertTextAtSelection(doc, insertion);
+          handleInput();
+        }
+      };
+
       let handleInput = function () {
         applyText(doc, textarea.value);
       };
 
+      textarea.addEventListener('keydown', handleKeyDown);
       textarea.addEventListener('input', handleInput);
       textarea.addEventListener('scroll', function () {
         syncScroll(doc);
@@ -1328,6 +1595,7 @@ export { greet };
     }
 
     let textarea = document.querySelector('#editor');
+    new Vim(textarea, document.createElement('div'), document.createElement('div'), document.createElement('div'));
     let editorRoot = lighted(textarea);
     console.log('Lighted editor ready', editorRoot);
   </script>
