@@ -55,12 +55,6 @@ let actions = {
       frame.cursors[cur] = s;
       d.update();
       if (state.collab.uid === cur) await post('designer.toggleMobileKeyboard');
-      if (state.collab.uid === cur && s.length) {
-        let first = frame.map.get(s[0]);
-        let rect = first.getBoundingClientRect();
-        let visible = rect.top >= 20 && rect.bottom <= innerHeight - 20;
-        !visible && first.scrollIntoView({ block: rect.height <= innerHeight ? 'center' : 'nearest', inline: rect.width <= innerWidth ? 'center' : 'nearest' });
-      }
       await post('designer.sync', state.designer.current);
       await post('collab.sync');
     },
