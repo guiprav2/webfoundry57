@@ -16,6 +16,15 @@
       --token-keyword: #c586c0;
       --token-builtin: #4fc1ff;
       --token-punct: #dcdcdc;
+      --token-tag: #4ec9b0;
+      --token-attr: #9cdcfe;
+      --token-attr-value: #d7ba7d;
+      --token-entity: #dcdcaa;
+      --token-css-ident: #9cdcfe;
+      --token-css-keyword: #c586c0;
+      --token-css-number: #b5cea8;
+      --token-css-color: #d7ba7d;
+      --token-regex: #d16969;
     }
 
     * {
@@ -133,11 +142,17 @@ items.forEach(function (entry) {
 export { greet };
 </textarea>
   </main>
+  
   <script type="module">
     let KEYWORDS = new Set([
       'break', 'case', 'catch', 'class', 'continue', 'debugger', 'default', 'delete', 'do', 'else', 'export',
       'extends', 'finally', 'for', 'function', 'if', 'import', 'in', 'instanceof', 'let', 'new', 'return', 'super',
       'switch', 'this', 'throw', 'try', 'typeof', 'var', 'void', 'while', 'with', 'yield', 'await', 'static', 'of'
+    ]);
+
+    let KEYWORDS_EXPECT_EXPR = new Set([
+      'return', 'throw', 'case', 'yield', 'await', 'typeof', 'delete', 'void', 'new', 'instanceof', 'in', 'of',
+      'do', 'else', 'if', 'for', 'while', 'switch', 'with', 'catch', 'class', 'extends', 'import', 'export'
     ]);
 
     let BUILTINS = new Set([
@@ -148,7 +163,20 @@ export { greet };
     let WHITESPACE_RE = /\s+/y;
     let NUMBER_RE = /(?:0[xX][0-9a-fA-F]+|0[bB][01]+|0[oO][0-7]+|\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)/y;
     let IDENT_RE = /[A-Za-z_$][\w$]*/y;
-    let PUNCT_RE = /==|===|!=|!==|=>|<=|>=|\+\+|--|\+=|-=|\*=|\/=|&&|\|\||[%+\-*/&|^~<>!?:=.,;()[\]{}]/y;
+    let PUNCT_RE = /\.\.\.|==|===|!=|!==|=>|<=|>=|\+\+|--|\+=|-=|\*=|\/=|&&|\|\||[%+\-*/&|^~<>!?:=.,;()[\]{}]/y;
+
+    let TAG_NAME_RE = /[A-Za-z][\w:-]*/y;
+    let ATTR_NAME_RE = /[A-Za-z_:][\w:.-]*/y;
+    let CSS_IDENTIFIER_RE = /-?(?:[A-Za-z_]|-)[\w-]*/y;
+    let CSS_NUMBER_RE = /(?:0[xX][0-9a-fA-F]+|0[bB][01]+|0[oO][0-7]+|\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)/y;
+    let CSS_COLOR_RE = /#[0-9a-fA-F]{3,8}/y;
+
+    let CSS_KEYWORDS = new Set([
+      'important', 'inherit', 'initial', 'unset', 'revert', 'auto', 'none', 'flex', 'grid', 'block', 'inline',
+      'inline-block', 'inline-flex', 'inline-grid', 'relative', 'absolute', 'sticky', 'fixed', 'solid', 'dashed',
+      'dotted', 'hidden', 'visible', 'collapse', 'uppercase', 'lowercase', 'capitalize', 'bold', 'italic', 'normal',
+      'center', 'left', 'right', 'justify', 'space-between', 'space-around', 'space-evenly'
+    ]);
 
     let HTML_ESCAPES = {
       '&': '&amp;',
@@ -159,7 +187,7 @@ export { greet };
     };
 
     function normalizeText(value) {
-      return value.replace(/\r\n/g, '\n');
+      return value.replace(/\r?\n/g, '\n');
     }
 
     function matchAt(regex, text, index) {
@@ -181,13 +209,50 @@ export { greet };
     }
 
     function wrapToken(className, text) {
+      if (!text) {
+        return '';
+      }
       return '<span class="' + className + '">' + escapeHtml(text) + '</span>';
     }
 
-    function createState(mode, delimiter) {
+    function detectInitialMode(value) {
+      let sample = (value || '').slice(0, 400).trimStart();
+      if (!sample) {
+        return 'html-data';
+      }
+      if (sample.charAt(0) === '<') {
+        return 'html-data';
+      }
+      return 'script';
+    }
+
+    function createState(mode, options) {
+      let opts = options || {};
       return {
-        mode: mode || 'base',
-        delimiter: delimiter || ''
+        mode: mode || 'html-data',
+        delimiter: opts.delimiter || '',
+        tagName: opts.tagName || '',
+        attrQuote: opts.attrQuote || '',
+        nextMode: opts.nextMode || '',
+        expectExpr: opts.expectExpr !== undefined ? opts.expectExpr : true,
+        lastType: opts.lastType || 'operator',
+        tagClosing: !!opts.tagClosing
+      };
+    }
+
+    function cloneState(state, fallbackMode) {
+      if (!state) {
+        return createState(fallbackMode || 'html-data');
+      }
+      return {
+        mode: state.mode || (fallbackMode || 'html-data'),
+        delimiter: state.delimiter || '',
+        tagName: state.tagName || '',
+        attrQuote: state.attrQuote || '',
+        nextMode: state.nextMode || '',
+        expectExpr: state.expectExpr !== undefined ? state.expectExpr : true,
+        lastType: state.lastType || 'operator',
+        tagClosing: !!state.tagClosing
       };
     }
 
@@ -198,33 +263,402 @@ export { greet };
       if (!a || !b) {
         return false;
       }
-      return a.mode === b.mode && a.delimiter === b.delimiter;
+      return a.mode === b.mode && a.delimiter === b.delimiter && a.tagName === b.tagName &&
+        a.attrQuote === b.attrQuote && a.nextMode === b.nextMode && a.expectExpr === b.expectExpr &&
+        a.lastType === b.lastType && a.tagClosing === b.tagClosing;
     }
 
-    function tokenizeLine(text, state) {
-      let mode = state && state.mode ? state.mode : 'base';
-      let delimiter = state && state.delimiter ? state.delimiter : '';
+    function readStringLiteral(text, start, delimiter) {
+      let index = start + 1;
+      let length = text.length;
+      let closed = false;
+
+      while (index < length) {
+        let ch = text.charAt(index);
+        if (ch === '\\') {
+          index += 2;
+          continue;
+        }
+        if (ch === delimiter) {
+          index += 1;
+          closed = true;
+          break;
+        }
+        index += 1;
+      }
+
+      return {
+        value: text.slice(start, index),
+        end: index,
+        closed: closed
+      };
+    }
+
+    function readRegexLiteral(text, start) {
+      let index = start + 1;
+      let length = text.length;
+      let inClass = false;
+
+      while (index < length) {
+        let ch = text.charAt(index);
+        if (ch === '\\') {
+          index += 2;
+          continue;
+        }
+        if (ch === '[') {
+          inClass = true;
+        } else if (ch === ']' && inClass) {
+          inClass = false;
+        } else if (ch === '/' && !inClass) {
+          index += 1;
+          while (index < length) {
+            let flag = text.charAt(index);
+            if (!/[a-zA-Z]/.test(flag)) {
+              break;
+            }
+            index += 1;
+          }
+          return {
+            value: text.slice(start, index),
+            end: index,
+            closed: true
+          };
+        } else if (ch === '\r' || ch === '\n') {
+          break;
+        }
+        index += 1;
+      }
+
+      return {
+        value: text.slice(start),
+        end: length,
+        closed: false
+      };
+    }
+
+    function consumeEntity(text, index) {
+      let length = text.length;
+      let end = index + 1;
+      while (end < length) {
+        let ch = text.charAt(end);
+        let isAlpha = (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z');
+        let isDigit = ch >= '0' && ch <= '9';
+        if (ch === ';') {
+          end += 1;
+          break;
+        }
+        if (!(isAlpha || isDigit || ch === '#' || ch === 'x' || ch === 'X')) {
+          break;
+        }
+        end += 1;
+      }
+      if (end > index + 1 && end <= length && text.charAt(end - 1) === ';') {
+        return {
+          entity: text.slice(index, end),
+          end: end
+        };
+      }
+      return {
+        entity: text.charAt(index),
+        end: index + 1
+      };
+    }
+
+    function startsWithIgnoreCase(text, index, match) {
+      let end = index + match.length;
+      if (end > text.length) {
+        return false;
+      }
+      return text.slice(index, end).toLowerCase() === match.toLowerCase();
+    }
+
+    function markValue(state) {
+      state.lastType = 'value';
+      state.expectExpr = false;
+    }
+
+    function markOperator(state) {
+      state.lastType = 'operator';
+      state.expectExpr = true;
+    }
+
+    function markAfterKeyword(state, keyword) {
+      if (KEYWORDS_EXPECT_EXPR.has(keyword)) {
+        markOperator(state);
+      } else {
+        markValue(state);
+      }
+    }
+
+    function tokenizeLine(text, prevState) {
+      let state = cloneState(prevState, 'html-data');
       let htmlParts = [];
       let index = 0;
       let length = text.length;
 
       while (index < length) {
-        if (mode === 'block-comment') {
-          let endIndex = text.indexOf('*/', index);
+        if (state.mode === 'html-comment') {
+          let endIndex = text.indexOf('-->', index);
           if (endIndex === -1) {
             htmlParts.push(wrapToken('token-comment', text.slice(index)));
             index = length;
             break;
-          } else {
-            htmlParts.push(wrapToken('token-comment', text.slice(index, endIndex + 2)));
-            index = endIndex + 2;
-            mode = 'base';
-            delimiter = '';
-            continue;
           }
+          htmlParts.push(wrapToken('token-comment', text.slice(index, endIndex + 3)));
+          index = endIndex + 3;
+          state.mode = 'html-data';
+          continue;
         }
 
-        if (mode === 'string') {
+        if (state.mode === 'html-attr-value') {
+          let quote = state.attrQuote || state.delimiter || '"';
+          let start = index;
+          let closed = false;
+          while (index < length) {
+            let ch = text.charAt(index);
+            if (ch === '\\') {
+              index += 2;
+              continue;
+            }
+            if (ch === quote) {
+              let content = text.slice(start, index);
+              if (content) {
+                htmlParts.push(wrapToken('token-attr-value', content));
+              }
+              htmlParts.push(wrapToken('token-punct', quote));
+              index += 1;
+              closed = true;
+              break;
+            }
+            index += 1;
+          }
+          if (!closed) {
+            let content = text.slice(start);
+            if (content) {
+              htmlParts.push(wrapToken('token-attr-value', content));
+            }
+            index = length;
+          } else {
+            state.mode = 'html-tag';
+            state.attrQuote = '';
+            state.delimiter = '';
+          }
+          continue;
+        }
+
+        if (state.mode === 'html-tag') {
+          if (index >= length) {
+            break;
+          }
+          let ch = text.charAt(index);
+
+          if (ch === '>' ) {
+            htmlParts.push(wrapToken('token-punct', '>'));
+            index += 1;
+            if (state.tagClosing) {
+              state.mode = 'html-data';
+            } else if (state.nextMode) {
+              let transition = state.nextMode;
+              state.nextMode = '';
+              state.mode = transition;
+              if (transition === 'script') {
+                state.expectExpr = true;
+                state.lastType = 'operator';
+              } else if (transition === 'style') {
+                state.lastType = 'operator';
+              } else {
+                state.mode = 'html-data';
+              }
+            } else {
+              state.mode = 'html-data';
+            }
+            state.tagName = '';
+            state.tagClosing = false;
+            continue;
+          }
+
+          if (ch === '/' && text.charAt(index + 1) === '>') {
+            htmlParts.push(wrapToken('token-punct', '/>'));
+            index += 2;
+            state.mode = 'html-data';
+            state.tagName = '';
+            state.tagClosing = false;
+            state.nextMode = '';
+            continue;
+          }
+
+          let whitespace = matchAt(WHITESPACE_RE, text, index);
+          if (whitespace) {
+            htmlParts.push(escapeHtml(whitespace));
+            index += whitespace.length;
+            continue;
+          }
+
+          if (ch === '"' || ch === '\'') {
+            let quote = ch;
+            htmlParts.push(wrapToken('token-punct', quote));
+            index += 1;
+            let valueStart = index;
+            while (index < length) {
+              let inner = text.charAt(index);
+              if (inner === '\\') {
+                index += 2;
+                continue;
+              }
+              if (inner === quote) {
+                break;
+              }
+              index += 1;
+            }
+            let content = text.slice(valueStart, Math.min(index, length));
+            if (content) {
+              htmlParts.push(wrapToken('token-attr-value', content));
+            }
+            if (index < length && text.charAt(index) === quote) {
+              htmlParts.push(wrapToken('token-punct', quote));
+              index += 1;
+            } else {
+              state.mode = 'html-attr-value';
+              state.attrQuote = quote;
+              state.delimiter = quote;
+              index = length;
+            }
+            continue;
+          }
+
+          if (ch === '=') {
+            htmlParts.push(wrapToken('token-punct', '='));
+            index += 1;
+            continue;
+          }
+
+          if (ch === '&') {
+            let entityInfo = consumeEntity(text, index);
+            htmlParts.push(wrapToken('token-entity', entityInfo.entity));
+            index = entityInfo.end;
+            continue;
+          }
+
+          let attrName = matchAt(ATTR_NAME_RE, text, index);
+          if (attrName) {
+            htmlParts.push(wrapToken('token-attr', attrName));
+            index += attrName.length;
+            continue;
+          }
+
+          let start = index;
+          while (index < length) {
+            let c = text.charAt(index);
+            if (c === '>' || (c === '/' && text.charAt(index + 1) === '>') || /\s/.test(c)) {
+              break;
+            }
+            index += 1;
+          }
+          let chunk = text.slice(start, index);
+          if (chunk) {
+            htmlParts.push(wrapToken('token-attr-value', chunk));
+          }
+          continue;
+        }
+
+        if (state.mode === 'html-data') {
+          if (index >= length) {
+            break;
+          }
+
+          let nextLt = text.indexOf('<', index);
+          let nextAmp = text.indexOf('&', index);
+          let nextSpecial = length;
+          if (nextLt !== -1 && nextLt < nextSpecial) {
+            nextSpecial = nextLt;
+          }
+          if (nextAmp !== -1 && nextAmp < nextSpecial) {
+            nextSpecial = nextAmp;
+          }
+          if (nextSpecial > index) {
+            htmlParts.push(escapeHtml(text.slice(index, nextSpecial)));
+            index = nextSpecial;
+            continue;
+          }
+
+          if (text.startsWith('<!--', index)) {
+            let endIndex = text.indexOf('-->', index + 4);
+            if (endIndex === -1) {
+              htmlParts.push(wrapToken('token-comment', text.slice(index)));
+              state.mode = 'html-comment';
+              index = length;
+            } else {
+              htmlParts.push(wrapToken('token-comment', text.slice(index, endIndex + 3)));
+              index = endIndex + 3;
+            }
+            continue;
+          }
+
+          if (text.startsWith('<![CDATA[', index) || text.startsWith('<?', index) || text.startsWith('<!', index)) {
+            let endIndex = text.indexOf('>', index + 2);
+            if (endIndex === -1) {
+              htmlParts.push(wrapToken('token-comment', text.slice(index)));
+              index = length;
+              continue;
+            }
+            htmlParts.push(wrapToken('token-comment', text.slice(index, endIndex + 1)));
+            index = endIndex + 1;
+            continue;
+          }
+
+          let ch = text.charAt(index);
+          if (ch === '&') {
+            let entityInfo = consumeEntity(text, index);
+            htmlParts.push(wrapToken('token-entity', entityInfo.entity));
+            index = entityInfo.end;
+            continue;
+          }
+
+          if (ch === '<') {
+            let start = index + 1;
+            let closing = false;
+            if (text.charAt(start) === '/') {
+              closing = true;
+              start += 1;
+            }
+            let tagName = matchAt(TAG_NAME_RE, text, start);
+            if (!tagName) {
+              htmlParts.push(escapeHtml('<'));
+              index += 1;
+              continue;
+            }
+            if (closing) {
+              htmlParts.push(wrapToken('token-punct', '</'));
+            } else {
+              htmlParts.push(wrapToken('token-punct', '<'));
+            }
+            htmlParts.push(wrapToken('token-tag', tagName));
+            index = start + tagName.length;
+            state.tagName = tagName;
+            state.tagClosing = closing;
+            if (!closing) {
+              let lower = tagName.toLowerCase();
+              if (lower === 'script') {
+                state.nextMode = 'script';
+              } else if (lower === 'style') {
+                state.nextMode = 'style';
+              } else {
+                state.nextMode = '';
+              }
+            } else {
+              state.nextMode = '';
+            }
+            state.mode = 'html-tag';
+            continue;
+          }
+
+          htmlParts.push(escapeHtml(ch));
+          index += 1;
+          continue;
+        }
+
+        if (state.mode === 'script-string') {
+          let delimiter = state.delimiter || '"';
           let stopIndex = index;
           let closed = false;
           while (stopIndex < length) {
@@ -241,52 +675,157 @@ export { greet };
             stopIndex += 1;
           }
           let chunk = text.slice(index, stopIndex);
-          htmlParts.push(wrapToken('token-string', chunk));
+          if (chunk) {
+            htmlParts.push(wrapToken('token-string', chunk));
+          }
           index = stopIndex;
           if (closed) {
-            mode = 'base';
-            delimiter = '';
-          } else {
-            index = length;
+            state.mode = 'script';
+            state.delimiter = '';
+            markValue(state);
           }
           continue;
         }
 
-        let ch = text.charAt(index);
-
-        if (ch === '/' && index + 1 < length) {
-          let next = text.charAt(index + 1);
-          if (next === '/') {
+        if (state.mode === 'script-block-comment') {
+          let endIndex = text.indexOf('*/', index);
+          if (endIndex === -1) {
             htmlParts.push(wrapToken('token-comment', text.slice(index)));
             index = length;
             break;
           }
-          if (next === '*') {
-            let endIndex = text.indexOf('*/', index + 2);
-            if (endIndex === -1) {
+          htmlParts.push(wrapToken('token-comment', text.slice(index, endIndex + 2)));
+          index = endIndex + 2;
+          state.mode = 'script';
+          continue;
+        }
+
+        if (state.mode === 'script') {
+          if (index >= length) {
+            break;
+          }
+
+          let ch = text.charAt(index);
+          if (ch === '<' && startsWithIgnoreCase(text, index, '</script')) {
+            state.mode = 'html-data';
+            state.tagName = '';
+            state.tagClosing = true;
+            state.nextMode = '';
+            continue;
+          }
+
+          if (ch === '/' && index + 1 < length) {
+            let next = text.charAt(index + 1);
+            if (next === '/') {
               htmlParts.push(wrapToken('token-comment', text.slice(index)));
-              mode = 'block-comment';
-              delimiter = '';
               index = length;
               break;
-            } else {
+            }
+            if (next === '*') {
+              let endIndex = text.indexOf('*/', index + 2);
+              if (endIndex === -1) {
+                htmlParts.push(wrapToken('token-comment', text.slice(index)));
+                state.mode = 'script-block-comment';
+                index = length;
+                break;
+              }
               htmlParts.push(wrapToken('token-comment', text.slice(index, endIndex + 2)));
               index = endIndex + 2;
               continue;
             }
+            if (state.expectExpr) {
+              let regexInfo = readRegexLiteral(text, index);
+              htmlParts.push(wrapToken('token-regex', regexInfo.value));
+              index = regexInfo.end;
+              markValue(state);
+              continue;
+            }
           }
+
+          if (ch === '"' || ch === '\'' || ch === '`') {
+            let stringInfo = readStringLiteral(text, index, ch);
+            htmlParts.push(wrapToken('token-string', stringInfo.value));
+            index = stringInfo.end;
+            markValue(state);
+            if (!stringInfo.closed) {
+              state.mode = 'script-string';
+              state.delimiter = ch;
+              break;
+            }
+            continue;
+          }
+
+          let whitespace = matchAt(WHITESPACE_RE, text, index);
+          if (whitespace) {
+            htmlParts.push(escapeHtml(whitespace));
+            index += whitespace.length;
+            continue;
+          }
+
+          let numberValue = matchAt(NUMBER_RE, text, index);
+          if (numberValue) {
+            htmlParts.push(wrapToken('token-number', numberValue));
+            index += numberValue.length;
+            markValue(state);
+            continue;
+          }
+
+          let ident = matchAt(IDENT_RE, text, index);
+          if (ident) {
+            if (KEYWORDS.has(ident)) {
+              htmlParts.push(wrapToken('token-keyword', ident));
+              markAfterKeyword(state, ident);
+            } else if (BUILTINS.has(ident)) {
+              htmlParts.push(wrapToken('token-builtin', ident));
+              markValue(state);
+            } else {
+              htmlParts.push(escapeHtml(ident));
+              markValue(state);
+            }
+            index += ident.length;
+            continue;
+          }
+
+          if (ch === '&') {
+            let entityInfo = consumeEntity(text, index);
+            htmlParts.push(wrapToken('token-entity', entityInfo.entity));
+            index = entityInfo.end;
+            continue;
+          }
+
+          let punct = matchAt(PUNCT_RE, text, index);
+          if (punct) {
+            htmlParts.push(wrapToken('token-punct', punct));
+            index += punct.length;
+            if (punct === ')' || punct === ']' || punct === '}') {
+              markValue(state);
+            } else if (punct === '.' ) {
+              state.lastType = 'operator';
+              state.expectExpr = false;
+            } else if ((punct === '++' || punct === '--') && state.lastType === 'value') {
+              markValue(state);
+            } else {
+              markOperator(state);
+            }
+            continue;
+          }
+
+          htmlParts.push(escapeHtml(ch));
+          index += 1;
+          continue;
         }
 
-        if (ch === '"' || ch === '\'' || ch === '`') {
-          let stopIndex = index + 1;
+        if (state.mode === 'style-string') {
+          let delimiter = state.delimiter || '"';
+          let stopIndex = index;
           let closed = false;
           while (stopIndex < length) {
-            let inner = text.charAt(stopIndex);
-            if (inner === '\\') {
+            let ch = text.charAt(stopIndex);
+            if (ch === '\\') {
               stopIndex += 2;
               continue;
             }
-            if (inner === ch) {
+            if (ch === delimiter) {
               stopIndex += 1;
               closed = true;
               break;
@@ -294,57 +833,145 @@ export { greet };
             stopIndex += 1;
           }
           let chunk = text.slice(index, stopIndex);
-          htmlParts.push(wrapToken('token-string', chunk));
+          if (chunk) {
+            htmlParts.push(wrapToken('token-string', chunk));
+          }
           index = stopIndex;
-          if (!closed) {
-            mode = 'string';
-            delimiter = ch;
+          if (closed) {
+            state.mode = 'style';
+            state.delimiter = '';
+          }
+          continue;
+        }
+
+        if (state.mode === 'style-comment') {
+          let endIndex = text.indexOf('*/', index);
+          if (endIndex === -1) {
+            htmlParts.push(wrapToken('token-comment', text.slice(index)));
             index = length;
+            break;
           }
+          htmlParts.push(wrapToken('token-comment', text.slice(index, endIndex + 2)));
+          index = endIndex + 2;
+          state.mode = 'style';
           continue;
         }
 
-        let whitespace = matchAt(WHITESPACE_RE, text, index);
-        if (whitespace) {
-          htmlParts.push(escapeHtml(whitespace));
-          index += whitespace.length;
-          continue;
-        }
-
-        let numberValue = matchAt(NUMBER_RE, text, index);
-        if (numberValue) {
-          htmlParts.push(wrapToken('token-number', numberValue));
-          index += numberValue.length;
-          continue;
-        }
-
-        let ident = matchAt(IDENT_RE, text, index);
-        if (ident) {
-          if (KEYWORDS.has(ident)) {
-            htmlParts.push(wrapToken('token-keyword', ident));
-          } else if (BUILTINS.has(ident)) {
-            htmlParts.push(wrapToken('token-builtin', ident));
-          } else {
-            htmlParts.push(escapeHtml(ident));
+        if (state.mode === 'style') {
+          if (index >= length) {
+            break;
           }
-          index += ident.length;
+
+          let ch = text.charAt(index);
+          if (ch === '<' && startsWithIgnoreCase(text, index, '</style')) {
+            state.mode = 'html-data';
+            state.tagName = '';
+            state.tagClosing = true;
+            state.nextMode = '';
+            continue;
+          }
+
+          if (ch === '/' && text.charAt(index + 1) === '*') {
+            let endIndex = text.indexOf('*/', index + 2);
+            if (endIndex === -1) {
+              htmlParts.push(wrapToken('token-comment', text.slice(index)));
+              state.mode = 'style-comment';
+              index = length;
+              break;
+            }
+            htmlParts.push(wrapToken('token-comment', text.slice(index, endIndex + 2)));
+            index = endIndex + 2;
+            continue;
+          }
+
+          if (ch === '"' || ch === '\'') {
+            let stringInfo = readStringLiteral(text, index, ch);
+            htmlParts.push(wrapToken('token-string', stringInfo.value));
+            index = stringInfo.end;
+            if (!stringInfo.closed) {
+              state.mode = 'style-string';
+              state.delimiter = ch;
+              break;
+            }
+            continue;
+          }
+
+          let whitespace = matchAt(WHITESPACE_RE, text, index);
+          if (whitespace) {
+            htmlParts.push(escapeHtml(whitespace));
+            index += whitespace.length;
+            continue;
+          }
+
+          if (ch === '#') {
+            let color = matchAt(CSS_COLOR_RE, text, index);
+            if (color) {
+              htmlParts.push(wrapToken('token-css-color', color));
+              index += color.length;
+              continue;
+            }
+          }
+
+          if (ch === '@') {
+            let ident = matchAt(CSS_IDENTIFIER_RE, text, index + 1);
+            let token = ident ? '@' + ident : '@';
+            htmlParts.push(wrapToken('token-css-keyword', token));
+            index += token.length;
+            continue;
+          }
+
+          let numberValue = matchAt(CSS_NUMBER_RE, text, index);
+          if (numberValue) {
+            htmlParts.push(wrapToken('token-css-number', numberValue));
+            index += numberValue.length;
+            continue;
+          }
+
+          let ident = matchAt(CSS_IDENTIFIER_RE, text, index);
+          if (ident) {
+            let lower = ident.toLowerCase();
+            if (CSS_KEYWORDS.has(lower)) {
+              htmlParts.push(wrapToken('token-css-keyword', ident));
+            } else {
+              htmlParts.push(wrapToken('token-css-ident', ident));
+            }
+            index += ident.length;
+            continue;
+          }
+
+          if (ch === '&') {
+            let entityInfo = consumeEntity(text, index);
+            htmlParts.push(wrapToken('token-entity', entityInfo.entity));
+            index = entityInfo.end;
+            continue;
+          }
+
+          let punct = matchAt(PUNCT_RE, text, index);
+          if (punct) {
+            htmlParts.push(wrapToken('token-punct', punct));
+            index += punct.length;
+            continue;
+          }
+
+          htmlParts.push(escapeHtml(ch));
+          index += 1;
           continue;
         }
 
-        let punct = matchAt(PUNCT_RE, text, index);
-        if (punct) {
-          htmlParts.push(wrapToken('token-punct', punct));
-          index += punct.length;
-          continue;
-        }
-
-        htmlParts.push(escapeHtml(ch));
-        index += 1;
+        state.mode = 'html-data';
       }
 
       return {
         html: htmlParts.join(''),
-        state: createState(mode, delimiter)
+        state: createState(state.mode, {
+          delimiter: state.delimiter,
+          tagName: state.tagName,
+          attrQuote: state.attrQuote,
+          nextMode: state.nextMode,
+          expectExpr: state.expectExpr,
+          lastType: state.lastType,
+          tagClosing: state.tagClosing
+        })
       };
     }
 
@@ -378,9 +1005,12 @@ export { greet };
         doc.lineStates.length = size;
       }
       while (doc.lineStates.length < size) {
-        doc.lineStates.push(createState('base'));
+        doc.lineStates.push(createState('html-data'));
       }
-      doc.lineStates[0] = createState('base');
+      doc.lineStates[0] = createState(doc.initialMode, {
+        expectExpr: doc.initialMode === 'script',
+        lastType: 'operator'
+      });
     }
 
     function scheduleWork(doc) {
@@ -458,7 +1088,7 @@ export { greet };
         let index = doc.nextProcessLine;
         let priorState = doc.lineStates[index];
         if (!priorState) {
-          priorState = createState('base');
+          priorState = createState('html-data');
           doc.lineStates[index] = priorState;
         }
 
@@ -505,6 +1135,13 @@ export { greet };
       let normalized = normalizeText(value);
       let nextLines = normalized.split('\n');
       let oldLines = doc.lines;
+      let newInitialMode = detectInitialMode(normalized);
+      let initialChanged = newInitialMode !== doc.initialMode;
+
+      if (initialChanged) {
+        doc.initialMode = newInitialMode;
+        oldLines = [];
+      }
 
       doc.lines = nextLines;
       adjustLineHtml(doc, nextLines.length);
@@ -517,19 +1154,19 @@ export { greet };
         start += 1;
       }
 
-      if (start === oldLines.length && start === nextLines.length) {
+      if (!initialChanged && start === oldLines.length && start === nextLines.length) {
         return;
       }
 
       let oldTail = oldLines.length;
       let newTail = nextLines.length;
-      while (oldTail > start && newTail > start && oldLines[oldTail - 1] === nextLines[newTail - 1]) {
+      while (!initialChanged && oldTail > start && newTail > start && oldLines[oldTail - 1] === nextLines[newTail - 1]) {
         oldTail -= 1;
         newTail -= 1;
       }
 
-      let dirtyStart = Math.max(0, start - 1);
-      let dirtyEnd = Math.min(nextLines.length, newTail + 1);
+      let dirtyStart = initialChanged ? 0 : Math.max(0, start - 1);
+      let dirtyEnd = initialChanged ? nextLines.length : Math.min(nextLines.length, newTail + 1);
 
       if (doc.nextProcessLine > dirtyStart) {
         doc.nextProcessLine = dirtyStart;
@@ -537,6 +1174,7 @@ export { greet };
       doc.targetLine = Math.max(doc.targetLine, dirtyEnd);
       scheduleWork(doc);
     }
+
 
     function syncScroll(doc) {
       let top = doc.textarea.scrollTop;
@@ -611,7 +1249,16 @@ export { greet };
         '.token-number { color: var(--token-number); }',
         '.token-keyword { color: var(--token-keyword); }',
         '.token-builtin { color: var(--token-builtin); }',
-        '.token-punct { color: var(--token-punct); }'
+        '.token-punct { color: var(--token-punct); }',
+        '.token-tag { color: var(--token-tag); }',
+        '.token-attr { color: var(--token-attr); }',
+        '.token-attr-value { color: var(--token-attr-value); }',
+        '.token-entity { color: var(--token-entity); }',
+        '.token-css-ident { color: var(--token-css-ident); }',
+        '.token-css-keyword { color: var(--token-css-keyword); }',
+        '.token-css-number { color: var(--token-css-number); }',
+        '.token-css-color { color: var(--token-css-color); }',
+        '.token-regex { color: var(--token-regex); }'
       ].join('\n');
 
       let overlayPre = document.createElement('pre');
@@ -634,6 +1281,8 @@ export { greet };
       textarea.style.whiteSpace = 'pre';
       textarea.setAttribute('wrap', 'off');
 
+      let initialMode = detectInitialMode(textarea.value);
+
       let doc = {
         textarea: textarea,
         container: container,
@@ -641,13 +1290,14 @@ export { greet };
         overlayPre: overlayPre,
         lines: [],
         lineHtml: [],
-        lineStates: [createState('base')],
+        lineStates: [createState(initialMode, { expectExpr: initialMode === 'script', lastType: 'operator' })],
         lineElements: [],
         nextProcessLine: 0,
         targetLine: 0,
         scheduled: false,
         pendingHandle: null,
-        pendingType: ''
+        pendingType: '',
+        initialMode: initialMode
       };
 
       syncMetrics(doc);
@@ -681,5 +1331,6 @@ export { greet };
     let editorRoot = lighted(textarea);
     console.log('Lighted editor ready', editorRoot);
   </script>
+
 </body>
 </html>
