@@ -204,25 +204,20 @@ function redoStack(where, repeats, vim) {
 function newLineAfter(where, vim, dr) {
     dr = dr === undefined ? 0 : dr;
 
-    const [rows_] = getCursorPosition(where, vim);
+    const [currentRow] = getCursorPosition(where, vim);
     const lines = where.value.split(/\n/g);
-    const rows = rows_ + dr;
 
-    const previousLines = lines.splice(0, rows);
-    let content = "";
-    for (let i = 0; i < previousLines.length; i++) {
-        content += previousLines[i] + "\n";
-    }
+    const insertIndex = Math.max(0, Math.min(lines.length, currentRow + dr));
+    const referenceIndex = Math.max(0, Math.min(lines.length - 1, currentRow - 1));
+    const referenceLine = lines[referenceIndex] || "";
+    const indentMatch = referenceLine.match(/^[ \t]*/);
+    const indent = indentMatch ? indentMatch[0] : "";
 
-    content += "\n";
+    lines.splice(insertIndex, 0, indent);
 
-    for (let i = 0; i < lines.length; i++) {
-        content += lines[i] + "\n";
-    }
-
-    where.value = content;
+    where.value = lines.join("\n");
     setMode(vim, MODE_INSERT);
-    setCursorPosition(where, rows + 1, 0, vim, undefined, true);
+    setCursorPosition(where, insertIndex + 1, indent.length, vim, undefined, true);
 }
 
 function insertAtCursor(where, value, vim) {
@@ -236,7 +231,9 @@ function insertAtCursor(where, value, vim) {
 
 const LEFT = "LEFT";
 const RIGHT = "RIGHT";
-function processDelete(where, repeats, vim, mRepeats, mKey) {
+function processDelete(where, repeats, vim, mRepeats, mKey, options) {
+    options = options || {};
+    const isChangeOperation = !!options.isChange;
     if (vim.mode === MODE_VISUAL || vim.mode === MODE_VISUAL_LINE) {
         const selectionStart = where.selectionStart;
         const selectionEnd = where.selectionEnd;
@@ -312,7 +309,9 @@ function processDelete(where, repeats, vim, mRepeats, mKey) {
     if (mKey === "w" || mKey === "W" || mKey === "e" || mKey === "E") {
         const isEnd = mKey.toLowerCase() === "e";
         const isWORD = mKey.toUpperCase() === mKey;
-        const wordPosition = getWordPosition(where, mRepeats, vim, isWORD, isEnd) + (isEnd ? 1 : 0);
+        const treatAsEnd = isEnd || (isChangeOperation && (mKey === "w" || mKey === "W"));
+        const wordPosition =
+            getWordPosition(where, mRepeats, vim, isWORD, treatAsEnd) + (treatAsEnd ? 1 : 0);
 
         copy(where.value.substring(where.selectionStart, wordPosition));
 
@@ -540,7 +539,13 @@ function getWordPosition(where, repeats, vim, isWORD, toEnd) {
 
     repeats--;
 
-    return words[index + repeats].index + (toEnd ? words[index + repeats][0].length - 1 : 0);
+    const targetIndex = Math.min(words.length - 1, index + repeats);
+    const targetWord = words[targetIndex];
+    if (!targetWord) {
+        return where.value.length;
+    }
+
+    return targetWord.index + (toEnd ? targetWord[0].length - 1 : 0);
 }
 
 function moveWord(where, repeats, vim, isWORD, toEnd) {
@@ -613,7 +618,7 @@ function changeCaps(where, repeats, vim) {
 }
 
 function processChange(where, repeats, vim, mRepeats, mKey) {
-    const direction = processDelete(where, repeats, vim, mRepeats, mKey);
+    const direction = processDelete(where, repeats, vim, mRepeats, mKey, { isChange: true });
     setMode(vim, MODE_INSERT);
     if (direction === RIGHT) {
         moveCursor(where, 0, 1, vim, true, true);
