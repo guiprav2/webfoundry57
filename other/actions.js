@@ -2,6 +2,8 @@ import completion from 'https://esm.sh/@camilaprav/kittygpt@0.0.65/completion.js
 import { loadman } from '../other/util.js';
 import { lookup as mimeLookup } from 'https://esm.sh/mrmime';
 
+let PEXELS_API_KEY = 'TvQp9hqct3J5XlyGjBUtt0TlgqiCd1UtDuJlvhl4HzfOt53BrvwuCq6b';
+
 let actions = window.actions = {
   undo: {
     shortcut: ['Ctrl-z', 'z'],
@@ -1200,7 +1202,7 @@ let actions = window.actions = {
             `---`,
             `User request: ${desc}`,
           ],
-        }], { endpoint: 'https://kittygpt.netlify.app/.netlify/functions/completion' })).content;
+        }], { endpoint: 'https://kittygpt.netlify.app/.netlify/functions/completion', model: 'gpt-4o-mini' })).content;
       });
 
       if (html == null) {
@@ -1333,7 +1335,7 @@ let actions = window.actions = {
             `---`,
             `User request: ${desc}`,
           ],
-        }], { endpoint: 'https://kittygpt.netlify.app/.netlify/functions/completion' })).content;
+        }], { endpoint: 'https://kittygpt.netlify.app/.netlify/functions/completion', model: 'gpt-4o-mini' })).content;
       });
       if (html == null) {
         let [btn, val] = await showModal('CodeDialog', { title: 'Change HTML (inner)', initialValue: prev.join('\n') });
@@ -1907,7 +1909,10 @@ let actions = window.actions = {
   normalizeStylesIntersect: {
     description: `Makes all selected elements have the intersection of their classes`,
     shortcut: 'Alt-U',
-    disabled: ({ cur = 'master' }) => [!state.designer.open && `Designer closed.`, state.designer.open && (state.designer.current.cursors[cur]?.length || 0) < 2 && `At least 2 elements must be selected.`],
+    disabled: ({ cur = 'master' }) => [
+      !state.designer.open && `Designer closed.`,
+      state.designer.open && (state.designer.current.cursors[cur]?.length || 0) < 2 && `At least 2 elements must be selected.`,
+    ],
     parameters: { type: 'object', properties: { cur: { type: 'string' } } },
     handler: async ({ cur = 'master' } = {}) => {
       if (state.collab.uid !== 'master') return state.collab.rtc.send({ type: 'cmd', k: 'normalizeStylesIntersect', cur });
@@ -1936,6 +1941,21 @@ let actions = window.actions = {
     handler: async () => {
       if (state.collab.uid !== 'master') return;
       await post('designer.refresh');
+    },
+  },
+
+  searchPexelsImagePlaceholders: {
+    parameters: {
+      type: 'object',
+      properties: { searchTerms: { type: 'string' } },
+      required: ['searchTerms'],
+    },
+    handler: async ({ searchTerms }) => {
+      let res = await fetch(`https://api.pexels.com/v1/search?query=${encodeURIComponent(searchTerms)}&per_page=5`, { headers: { Authorization: PEXELS_API_KEY } });
+      if (!res.ok) throw new Error(`Pexels API error: ${res.status}`);
+      let data = await res.json();
+      let urls = data.photos.map(p => p.src.medium);
+      return { success: true, urls };
     },
   },
 };
