@@ -1,3 +1,4 @@
+import completion from 'https://esm.sh/@camilaprav/kittygpt@0.0.65/completion.js';
 import { lookup as mimeLookup } from 'https://esm.sh/mrmime';
 
 let actions = {
