@@ -208,7 +208,7 @@ function newLineAfter(where, vim, dr) {
     const lines = where.value.split(/\n/g);
 
     let insertIndex = Math.max(0, Math.min(lines.length, currentRow + dr));
-    let referenceIndex = insertIndex - 1;
+    let referenceIndex = dr < 0 ? insertIndex : insertIndex - 1;
     if (referenceIndex < 0) {
         referenceIndex = Math.min(lines.length - 1, insertIndex);
     }

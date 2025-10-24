@@ -70,6 +70,51 @@
       background: rgba(6, 8, 12, 0.75);
       box-shadow: 0 38px 80px rgba(0, 0, 0, 0.45);
       overflow: hidden;
+      display: flex;
+    }
+
+    .lighted-pane {
+      position: relative;
+      flex: 1 1 auto;
+      min-width: 0;
+      border-radius: inherit;
+    }
+
+    .lighted-gutter {
+      position: relative;
+      display: flex;
+      justify-content: flex-end;
+      min-width: 3.6rem;
+      padding-left: 12px;
+      padding-right: 12px;
+      background: rgba(12, 16, 24, 0.75);
+      border-right: 1px solid rgba(255, 255, 255, 0.08);
+      color: rgba(212, 212, 212, 0.55);
+      user-select: none;
+      overflow: hidden;
+    }
+
+    .lighted-gutter .line-number {
+      display: block;
+      text-align: right;
+      white-space: nowrap;
+      padding-right: 4px;
+      line-height: inherit;
+      opacity: 0.75;
+    }
+
+    .lighted-gutter .line-number.current {
+      color: var(--lighted-foreground);
+      opacity: 1;
+    }
+
+    .lighted-gutter-inner {
+      position: absolute;
+      top: 0;
+      right: 0;
+      left: 0;
+      bottom: 0;
+      will-change: transform;
     }
 
     .lighted-input {
@@ -118,30 +163,7 @@
       The editor below keeps the original textarea for input, adds a shadow-DOM backed overlay that renders tokens,
       and incrementally retokens only the areas affected by edits.
     </p>
-    <textarea id="editor" spellcheck="false">let message = 'Hello, Webfoundry!';
-
-function greet(name) {
-  /* highlight demonstration */
-  let text = `${message} Welcome, ${name}!`;
-  if (name === 'Camila') {
-    console.log('Special handling for', name);
-  }
-  return text;
-}
-
-let items = [];
-for (let i = 0; i < 6; i += 1) {
-  items.push({ id: i, ready: i % 2 === 0 });
-}
-
-items.forEach(function (entry) {
-  if (entry.ready) {
-    console.log('Ready item', entry.id);
-  }
-});
-
-export { greet };
-</textarea>
+    <div id="editor-mount"></div>
   </main>
   
   <script type="module">
@@ -510,6 +532,7 @@ export { greet };
         doc.keydownRefreshScheduled = false;
         doc.keydownRefreshHandle = null;
         applyText(doc, doc.textarea.value);
+        updateGutterNumbers(doc);
       });
     }
 
@@ -1289,6 +1312,67 @@ export { greet };
       }
     }
 
+    function ensureGutterElements(doc, count) {
+      if (!doc.showGutter || !doc.gutterInner) {
+        return;
+      }
+      while (doc.gutterLines.length < count) {
+        let line = document.createElement('div');
+        line.className = 'line-number';
+        line.textContent = '';
+        doc.gutterInner.appendChild(line);
+        doc.gutterLines.push(line);
+      }
+      while (doc.gutterLines.length > count) {
+        let node = doc.gutterLines.pop();
+        if (node && node.parentNode) {
+          node.parentNode.removeChild(node);
+        }
+      }
+    }
+
+    function currentLineIndex(doc) {
+      let pos = doc.textarea.selectionStart;
+      let lines = doc.lines;
+      if (!lines || lines.length === 0) {
+        return 0;
+      }
+      let offset = 0;
+      for (let i = 0; i < lines.length; i += 1) {
+        let length = lines[i].length;
+        if (pos <= offset + length) {
+          return i;
+        }
+        offset += length + 1;
+      }
+      return lines.length - 1;
+    }
+
+    function updateGutterNumbers(doc) {
+      if (!doc.showGutter) {
+        return;
+      }
+      let lines = doc.lines.length;
+      ensureGutterElements(doc, lines);
+      if (!lines) {
+        return;
+      }
+      let current = currentLineIndex(doc);
+      for (let i = 0; i < lines; i += 1) {
+        let element = doc.gutterLines[i];
+        if (!element) {
+          continue;
+        }
+        let number = doc.relativeLineNumbers ? Math.abs(i - current) : i + 1;
+        element.textContent = doc.relativeLineNumbers && i === current ? '0' : String(number);
+        if (i === current) {
+          element.classList.add('current');
+        } else {
+          element.classList.remove('current');
+        }
+      }
+    }
+
     function adjustLineHtml(doc, size) {
       if (doc.lineHtml.length > size) {
         doc.lineHtml.length = size;
@@ -1427,6 +1511,9 @@ export { greet };
         doc.nextProcessLine = Math.min(doc.nextProcessLine, doc.lines.length);
         doc.targetLine = doc.nextProcessLine;
       }
+      if (doc.showGutter) {
+        updateGutterNumbers(doc);
+      }
     }
 
     function applyText(doc, value) {
@@ -1444,6 +1531,7 @@ export { greet };
       doc.lines = nextLines;
       adjustLineHtml(doc, nextLines.length);
       ensureLineElements(doc, nextLines.length);
+      ensureGutterElements(doc, nextLines.length);
       adjustStates(doc, nextLines.length + 1);
 
       let start = 0;
@@ -1478,6 +1566,9 @@ export { greet };
       let top = doc.textarea.scrollTop;
       let left = doc.textarea.scrollLeft;
       doc.overlayPre.style.transform = 'translate(' + (-left) + 'px, ' + (-top) + 'px)';
+      if (doc.showGutter && doc.gutterInner) {
+        doc.gutterInner.style.transform = 'translateY(' + (-top) + 'px)';
+      }
     }
 
     function syncMetrics(doc) {
@@ -1494,19 +1585,36 @@ export { greet };
       doc.overlayPre.style.tabSize = styles.tabSize;
       doc.overlayPre.style.boxSizing = 'border-box';
       doc.overlayHost.style.borderRadius = styles.borderRadius;
+      if (doc.showGutter && doc.gutter && doc.gutterInner) {
+        doc.gutter.style.fontFamily = styles.fontFamily;
+        doc.gutter.style.fontSize = styles.fontSize;
+        doc.gutterInner.style.lineHeight = styles.lineHeight;
+        doc.gutterInner.style.letterSpacing = styles.letterSpacing;
+        doc.gutterInner.style.wordSpacing = styles.wordSpacing;
+        doc.gutterInner.style.paddingTop = styles.paddingTop;
+        doc.gutterInner.style.paddingBottom = styles.paddingBottom;
+        doc.gutterInner.style.paddingLeft = '0px';
+        doc.gutterInner.style.paddingRight = '0px';
+      }
     }
 
-    function lighted(textarea, options) {
-      if (!(textarea instanceof HTMLTextAreaElement)) {
-        throw new Error('lighted() expects a textarea element');
-      }
+    function lighted(options) {
+      let opts = options || {};
+      let initialValue = opts.value != null ? String(opts.value) : '';
 
-      let parent = textarea.parentNode;
-      if (!parent) {
-        throw new Error('Textarea must be attached to the DOM before calling lighted()');
+      let config = {};
+      if (opts.config && typeof opts.config === 'object') {
+        Object.assign(config, opts.config);
       }
+      ['tabSize', 'tabString', 'convertTabsToSpaces', 'autoIndent'].forEach(function (key) {
+        if (Object.prototype.hasOwnProperty.call(opts, key)) {
+          config[key] = opts[key];
+        }
+      });
 
-      let config = options && typeof options === 'object' ? options : {};
+      let showGutter = opts.showGutter !== false;
+      let relativeLineNumbers = !!opts.relativeLineNumbers;
+
       let tabSize = typeof config.tabSize === 'number' && config.tabSize > 0 ? Math.floor(config.tabSize) : 2;
       if (!isFinite(tabSize) || tabSize < 1) {
         tabSize = 2;
@@ -1521,6 +1629,9 @@ export { greet };
 
       let container = document.createElement('div');
       container.className = 'lighted';
+      if (showGutter) {
+        container.classList.add('has-gutter');
+      }
       let overlayHost = document.createElement('div');
       overlayHost.className = 'overlay-host';
       overlayHost.setAttribute('aria-hidden', 'true');
@@ -1579,9 +1690,28 @@ export { greet };
       shadow.appendChild(shadowStyle);
       shadow.appendChild(overlayPre);
 
-      parent.replaceChild(container, textarea);
-      container.appendChild(overlayHost);
-      container.appendChild(textarea);
+      let textarea = document.createElement('textarea');
+      textarea.value = initialValue;
+      textarea.setAttribute('wrap', 'off');
+      textarea.spellcheck = opts.spellcheck === undefined ? false : !!opts.spellcheck;
+
+      let pane = document.createElement('div');
+      pane.className = 'lighted-pane';
+      pane.appendChild(overlayHost);
+      pane.appendChild(textarea);
+
+      let gutter = null;
+      let gutterInner = null;
+      if (showGutter) {
+        gutter = document.createElement('div');
+        gutter.className = 'lighted-gutter';
+        gutterInner = document.createElement('div');
+        gutterInner.className = 'lighted-gutter-inner';
+        gutter.appendChild(gutterInner);
+        container.appendChild(gutter);
+      }
+
+      container.appendChild(pane);
 
       textarea.classList.add('lighted-input');
       textarea.style.backgroundColor = 'transparent';
@@ -1590,7 +1720,6 @@ export { greet };
       textarea.style.position = 'relative';
       textarea.style.zIndex = '1';
       textarea.style.whiteSpace = 'pre';
-      textarea.setAttribute('wrap', 'off');
 
       let initialMode = detectInitialMode(textarea.value);
 
@@ -1599,6 +1728,9 @@ export { greet };
         container: container,
         overlayHost: overlayHost,
         overlayPre: overlayPre,
+        pane: pane,
+        gutter: gutter,
+        gutterInner: gutterInner,
         lines: [],
         lineHtml: [],
         lineStates: [createState(initialMode, { expectExpr: initialMode === 'script', lastType: 'operator' })],
@@ -1613,6 +1745,9 @@ export { greet };
         convertTabsToSpaces: convertTabsToSpaces,
         autoIndent: autoIndent,
         config: config,
+        showGutter: showGutter,
+        relativeLineNumbers: relativeLineNumbers,
+        gutterLines: [],
         keydownRefreshScheduled: false,
         keydownRefreshHandle: null
       };
@@ -1686,6 +1821,7 @@ export { greet };
       let handleInput = function () {
         cancelKeydownRefresh(doc);
         applyText(doc, textarea.value);
+        updateGutterNumbers(doc);
       };
 
       textarea.addEventListener('keydown', handleKeyDown);
@@ -1693,19 +1829,57 @@ export { greet };
       textarea.addEventListener('scroll', function () {
         syncScroll(doc);
       });
+      textarea.addEventListener('keyup', function () {
+        updateGutterNumbers(doc);
+      });
+      textarea.addEventListener('mouseup', function () {
+        updateGutterNumbers(doc);
+      });
+      textarea.addEventListener('focus', function () {
+        updateGutterNumbers(doc);
+      });
 
       applyText(doc, textarea.value);
       doc.targetLine = doc.lines.length;
       doc.nextProcessLine = 0;
       scheduleWork(doc);
       syncScroll(doc);
+      updateGutterNumbers(doc);
 
-      return container;
+      return [container, textarea];
     }
 
-    let textarea = document.querySelector('#editor');
+    let mount = document.querySelector('#editor-mount');
+    let initialValue = [
+      "let message = 'Hello, Webfoundry!';",
+      '',
+      'function greet(name) {',
+      '  /* highlight demonstration */',
+      '  let text = `${message} Welcome, ${name}!`;',
+      "  if (name === 'Camila') {",
+      "    console.log('Special handling for', name);",
+      '  }',
+      '  return text;',
+      '}',
+      '',
+      'let items = [];',
+      'for (let i = 0; i < 6; i += 1) {',
+      '  items.push({ id: i, ready: i % 2 === 0 });',
+      '}',
+      '',
+      'items.forEach(function (entry) {',
+      '  if (entry.ready) {',
+      "    console.log('Ready item', entry.id);",
+      '  }',
+      '});',
+      '',
+      'export { greet };',
+      '',
+    ].join('\n');
+
+    let [editorRoot, textarea] = lighted({ value: initialValue, relativeLineNumbers: true });
+    mount.appendChild(editorRoot);
     new Vim(textarea, document.createElement('div'), document.createElement('div'), document.createElement('div'));
-    let editorRoot = lighted(textarea);
     console.log('Lighted editor ready', editorRoot);
   </script>
 
