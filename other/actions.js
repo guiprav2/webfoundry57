@@ -1,7 +1,8 @@
 import completion from 'https://esm.sh/@camilaprav/kittygpt@0.0.65/completion.js';
+import { loadman } from '../other/util.js';
 import { lookup as mimeLookup } from 'https://esm.sh/mrmime';
 
-let actions = {
+let actions = window.actions = {
   undo: {
     shortcut: ['Ctrl-z', 'z'],
     disabled: () => [!state.designer.open && `Designer closed.`],
@@ -47,6 +48,7 @@ let actions = {
         cur: { type: 'string', description: `Whose cursor to move (defaults to master)` },
         s: { type: 'array', items: { type: 'string' }, description: `IDs to select` },
       },
+      required: ['s'],
     },
     handler: async ({ cur = 'master', s } = {}) => {
       if (state.collab.uid !== 'master') return state.collab.rtc.send({ type: 'cmd', k: 'changeSelection', cur, s });
@@ -1162,10 +1164,11 @@ let actions = {
       type: 'object',
       properties: {
         cur: { type: 'string', description: `Whose selected elements to change (defaults to master)` },
-        html: { type: 'string', description: `Keep original CSS classes and attributes unless they conflict with the requested HTML changes.` },
+        desc: { type: 'string', description: `Detailed user request decription for HTML generation model` },
       },
+      required: ['desc'],
     },
-    handler: async ({ cur = 'master', html = null } = {}) => {
+    handler: async ({ cur = 'master', desc = null, html = null } = {}) => {
       let frame = state.designer.current;
       let cursors = frame.cursors[cur];
       if (!cursors?.length) return;
@@ -1178,6 +1181,26 @@ let actions = {
       order.sort((a, b) => {
         if (a.p === b.p) return a.i - b.i;
         return a.p.compareDocumentPosition(b.p) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1;
+      });
+
+      desc && await loadman.run('actions.changeHtml.aigen', async () => {
+        html = (await completion([{
+          role: 'system',
+          content: [
+            `You're an HTML artisan. You can only use Tailwind classes, no style attributes.`,
+            `Take the page HTML, selection htmlsnap IDs, and user request`,
+            `and generate a bare replacement HTML with no Markdown code block wrappers.`,
+          ],
+        }, {
+          role: 'user',
+          content: [
+            `Page HTML: ${state.designer.current.snap}`,
+            `---`,
+            `Selection htmlsnap IDs: ${order.map(x => frame.map.getKey(x.el)).join(', ')}`,
+            `---`,
+            `User request: ${desc}`,
+          ],
+        }], { endpoint: 'https://kittygpt.netlify.app/.netlify/functions/completion' })).content;
       });
 
       if (html == null) {
@@ -1276,13 +1299,42 @@ let actions = {
   changeInnerHtml: {
     description: `Changes the inner HTML of selected elements (prompts if not provided)`,
     shortcut: 'M',
-    disabled: ({ cur = 'master' }) => [!state.designer.open && `Designer closed.`, state.designer.open && state.designer.current.cursors[cur]?.length !== 1 && `A single element must be selected.`],
-    parameters: { type: 'object', properties: { cur: { type: 'string' }, html: { type: 'string' } } },
-    handler: async ({ cur = 'master', html = null } = {}) => {
+    disabled: ({ cur = 'master' }) => [
+      !state.designer.open && `Designer closed.`,
+      state.designer.open && state.designer.current.cursors[cur]?.length !== 1 && `A single element must be selected.`,
+    ],
+    parameters: {
+      type: 'object',
+      properties: {
+        cur: { type: 'string' },
+        desc: { type: 'string', description: `Detailed user request decription for HTML generation model` },
+      },
+      required: ['desc'],
+    },
+    handler: async ({ cur = 'master', desc = null, html = null } = {}) => {
       let frame = state.designer.current;
       let targets = frame.cursors[cur].map(x => frame.map.get(x)).filter(Boolean);
       if (!targets.length) return;
       let prev = targets.map(x => x.innerHTML);
+      desc && await loadman.run('actions.changeInnerHtml.aigen', async () => {
+        html = (await completion([{
+          role: 'system',
+          content: [
+            `You're an HTML artisan. You can only use Tailwind classes, no style attributes.`,
+            `Take the page HTML, selection htmlsnap IDs, and user request`,
+            `and generate a bare *INNER* HTML replacement with no Markdown code block wrappers.`,
+          ],
+        }, {
+          role: 'user',
+          content: [
+            `Page HTML: ${state.designer.current.snap}`,
+            `---`,
+            `Selection htmlsnap IDs: ${targets.map(x => frame.map.getKey(x)).join(', ')}`,
+            `---`,
+            `User request: ${desc}`,
+          ],
+        }], { endpoint: 'https://kittygpt.netlify.app/.netlify/functions/completion' })).content;
+      });
       if (html == null) {
         let [btn, val] = await showModal('CodeDialog', { title: 'Change HTML (inner)', initialValue: prev.join('\n') });
         if (btn !== 'ok') return;
