@@ -392,9 +392,113 @@ export default class CodeEditor {
       let { bus } = state.event;
       if (!document.getElementById('LightedEditorStyles')) {
         document.head.append(d.el('style', { id: 'LightedEditorStyles' }, `
-          .lighted { height: 100%; background-color: #04060960; display: flex; flex-direction: row; }
-          .lighted-pane { flex: 1 1 auto; position: relative; }
-          .lighted-input { font-family: inherit; background-color: transparent; color: transparent; caret-color: var(--lighted-caret); outline: none; }
+          :root {
+            color-scheme: dark;
+            --lighted-foreground: #d4d4d4;
+            --lighted-background: #0f1219;
+            --lighted-caret: #ffe66d;
+            --token-comment: #6a9955;
+            --token-string: #ce9178;
+            --token-number: #b5cea8;
+            --token-keyword: #c586c0;
+            --token-builtin: #4fc1ff;
+            --token-punct: #dcdcdc;
+            --token-tag: #4ec9b0;
+            --token-attr: #9cdcfe;
+            --token-attr-value: #d7ba7d;
+            --token-entity: #dcdcaa;
+            --token-css-ident: #9cdcfe;
+            --token-css-keyword: #c586c0;
+            --token-css-number: #b5cea8;
+            --token-css-color: #d7ba7d;
+            --token-regex: #d16969;
+          }
+
+          .lighted {
+            position: relative;
+            width: 100%;
+            background: rgba(6, 8, 12, 0.75);
+            box-shadow: 0 38px 80px rgba(0, 0, 0, 0.45);
+            overflow: hidden;
+            display: flex;
+            height: 100%;
+          }
+
+          .lighted-pane {
+            position: relative;
+            flex: 1 1 auto;
+            min-width: 0;
+            border-radius: inherit;
+          }
+
+          .lighted-gutter {
+            position: relative;
+            display: flex;
+            justify-content: flex-end;
+            min-width: 3.6rem;
+            padding-left: 12px;
+            padding-right: 12px;
+            background: rgba(12, 16, 24, 0.75);
+            border-right: 1px solid rgba(255, 255, 255, 0.08);
+            color: rgba(212, 212, 212, 0.55);
+            user-select: none;
+            overflow: hidden;
+          }
+
+          .lighted-gutter .line-number {
+            display: block;
+            text-align: right;
+            white-space: nowrap;
+            padding-right: 4px;
+            line-height: inherit;
+            opacity: 0.75;
+          }
+
+          .lighted-gutter .line-number.current {
+            color: var(--lighted-foreground);
+            opacity: 1;
+          }
+
+          .lighted-gutter-inner {
+            position: absolute;
+            top: 0;
+            right: 0;
+            left: 0;
+            bottom: 0;
+            will-change: transform;
+          }
+
+          .lighted-input {
+            width: 100%;
+            height: 100%;
+            padding: 6px 24px;
+            font-size: 15px;
+            font-family: monospace;
+            line-height: 1.6;
+            background: transparent;
+            color: transparent;
+            caret-color: var(--lighted-caret);
+            resize: vertical;
+            outline: none;
+            position: relative;
+            z-index: 1;
+            white-space: pre;
+            tab-size: 2;
+            overflow: auto;
+          }
+
+          .lighted-input::selection {
+            background: rgba(86, 156, 214, 0.32);
+          }
+
+          .lighted .overlay-host {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            overflow: hidden;
+            border-radius: inherit;
+          }
+
           .lighted .decor-layer .remote-selection { border-radius: 4px; opacity: 0.75; }
           .lighted .decor-layer .remote-cursor { border-left-width: 2px; border-left-style: solid; opacity: 0.9; }
         `));
@@ -458,13 +562,7 @@ export default class CodeEditor {
       d.updateSync();
       let wrapper = document.querySelector('#CodeEditor');
       if (!wrapper) return;
-      let el = d.el('div', {
-        class: 'flex-1',
-        style: {
-          width: () => `${innerWidth - wrapper.getBoundingClientRect().left}px`,
-          height: () => `${innerHeight - wrapper.getBoundingClientRect().top}px`,
-        },
-      });
+      let el = d.el('div', { class: 'flex-1' });
       wrapper.replaceChildren(el);
       let tabSize = state.settings.opt.codeTabSize || 2;
       let lightedDoc = mountLighted(el, {
