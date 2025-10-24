@@ -207,9 +207,15 @@ function newLineAfter(where, vim, dr) {
     const [currentRow] = getCursorPosition(where, vim);
     const lines = where.value.split(/\n/g);
 
-    const insertIndex = Math.max(0, Math.min(lines.length, currentRow + dr));
-    const referenceIndex = Math.max(0, Math.min(lines.length - 1, currentRow - 1));
-    const referenceLine = lines[referenceIndex] || "";
+    let insertIndex = Math.max(0, Math.min(lines.length, currentRow + dr));
+    let referenceIndex = insertIndex - 1;
+    if (referenceIndex < 0) {
+        referenceIndex = Math.min(lines.length - 1, insertIndex);
+    }
+    let referenceLine = "";
+    if (referenceIndex >= 0 && referenceIndex < lines.length) {
+        referenceLine = lines[referenceIndex] || "";
+    }
     const indentMatch = referenceLine.match(/^[ \t]*/);
     const indent = indentMatch ? indentMatch[0] : "";
 
@@ -217,7 +223,7 @@ function newLineAfter(where, vim, dr) {
 
     where.value = lines.join("\n");
     setMode(vim, MODE_INSERT);
-    setCursorPosition(where, insertIndex + 1, indent.length, vim, undefined, true);
+    setCursorPosition(where, insertIndex + 1, indent.length, vim, true, true);
 }
 
 function insertAtCursor(where, value, vim) {
@@ -309,8 +315,8 @@ function processDelete(where, repeats, vim, mRepeats, mKey, options) {
     if (mKey === "w" || mKey === "W" || mKey === "e" || mKey === "E") {
         const isEnd = mKey.toLowerCase() === "e";
         const isWORD = mKey.toUpperCase() === mKey;
-        const treatAsEnd = isEnd || (isChangeOperation && (mKey === "w" || mKey === "W"));
-        const wordPosition =
+        let treatAsEnd = isEnd || (isChangeOperation && (mKey === "w" || mKey === "W"));
+        let wordPosition =
             getWordPosition(where, mRepeats, vim, isWORD, treatAsEnd) + (treatAsEnd ? 1 : 0);
 
         copy(where.value.substring(where.selectionStart, wordPosition));
@@ -539,8 +545,8 @@ function getWordPosition(where, repeats, vim, isWORD, toEnd) {
 
     repeats--;
 
-    const targetIndex = Math.min(words.length - 1, index + repeats);
-    const targetWord = words[targetIndex];
+    let targetIndex = Math.min(words.length - 1, index + repeats);
+    let targetWord = words[targetIndex];
     if (!targetWord) {
         return where.value.length;
     }

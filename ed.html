@@ -449,6 +449,49 @@ export { greet };
       };
     }
 
+    function deleteWordBackward(doc) {
+      let textarea = doc.textarea;
+      let start = textarea.selectionStart;
+      let end = textarea.selectionEnd;
+      if (start !== end) {
+        let value = textarea.value;
+        textarea.value = value.slice(0, start) + value.slice(end);
+        textarea.selectionStart = start;
+        textarea.selectionEnd = start;
+        return true;
+      }
+      if (start === 0) {
+        return false;
+      }
+      let value = textarea.value;
+      let lineBreakIndex = value.lastIndexOf('\n', start - 1);
+      let lineStart = lineBreakIndex === -1 ? 0 : lineBreakIndex + 1;
+      if (start === lineStart) {
+        return false;
+      }
+      let index = start;
+      while (index > lineStart) {
+        let ch = value.charAt(index - 1);
+        if (ch === ' ' || ch === '\t') {
+          index -= 1;
+          continue;
+        }
+        break;
+      }
+      while (index > lineStart) {
+        let ch = value.charAt(index - 1);
+        if (ch === ' ' || ch === '\t' || ch === '\n') {
+          break;
+        }
+        index -= 1;
+      }
+      let newValue = value.slice(0, index) + value.slice(start);
+      textarea.value = newValue;
+      textarea.selectionStart = index;
+      textarea.selectionEnd = index;
+      return true;
+    }
+
     function cancelKeydownRefresh(doc) {
       if (!doc.keydownRefreshScheduled) {
         return;
@@ -1585,6 +1628,18 @@ export { greet };
 
       let handleKeyDown = function (event) {
         let updatedDuringKeydown = false;
+
+        if (event.key === 'Backspace' && event.ctrlKey && !event.shiftKey && !event.altKey && !event.metaKey) {
+          let handled = deleteWordBackward(doc);
+          if (handled) {
+            event.preventDefault();
+            handleInput();
+            updatedDuringKeydown = true;
+          } else {
+            scheduleKeydownRefresh(doc);
+          }
+          return;
+        }
 
         if (event.key === 'Tab' && !event.altKey && !event.ctrlKey && !event.metaKey) {
           if (doc.convertTabsToSpaces) {
