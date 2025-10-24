@@ -190,7 +190,7 @@ export default class Collab {
           for (let z of y.msgbuf || []) y.term.write(simpleunb64(z));
         }
       }
-      await post('designer.sync', state.designer.current);
+      state.designer.open && await post('designer.sync', state.designer.current);
       state.event.bus.emit('collab:apply:ready');
     },
 
