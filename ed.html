@@ -49,6 +49,19 @@
       width: min(960px, 100%);
     }
 
+    .editor-grid {
+      display: grid;
+      gap: 32px;
+      grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+      align-items: stretch;
+    }
+
+    .editor-host {
+      height: 520px;
+      display: flex;
+      flex-direction: column;
+    }
+
     h1 {
       margin: 0 0 16px;
       font-size: 1.35rem;
@@ -71,6 +84,7 @@
       box-shadow: 0 38px 80px rgba(0, 0, 0, 0.45);
       overflow: hidden;
       display: flex;
+      height: 100%;
     }
 
     .lighted-pane {
@@ -163,10 +177,18 @@
       The editor below keeps the original textarea for input, adds a shadow-DOM backed overlay that renders tokens,
       and incrementally retokens only the areas affected by edits.
     </p>
-    <div id="editor-mount"></div>
+    <div class="editor-grid">
+      <div class="editor-host">
+        <div id="editor-one"></div>
+      </div>
+      <div class="editor-host">
+        <div id="editor-two"></div>
+      </div>
+    </div>
   </main>
   
   <script type="module">
+    import { Doc } from 'https://cdn.skypack.dev/yjs?min';
     let KEYWORDS = new Set([
       'break', 'case', 'catch', 'class', 'continue', 'debugger', 'default', 'delete', 'do', 'else', 'export',
       'extends', 'finally', 'for', 'function', 'if', 'import', 'in', 'instanceof', 'let', 'new', 'return', 'super',
@@ -514,6 +536,78 @@
       return true;
     }
 
+    function emitSyntheticInput(doc) {
+      let textarea = doc.textarea;
+      let event;
+      try {
+        event = new InputEvent('input', { bubbles: true });
+      } catch (err) {
+        event = new Event('input', { bubbles: true });
+      }
+      textarea.dispatchEvent(event);
+    }
+
+    class FallbackTextAreaBinding {
+      constructor(yText, doc) {
+        this.yText = yText;
+        this.doc = doc;
+        this.textarea = doc.textarea;
+        this._applying = false;
+        this._onDomInput = this._onDomInput.bind(this);
+        this._onYTextChange = this._onYTextChange.bind(this);
+        this.textarea.addEventListener('input', this._onDomInput);
+        this.yText.observe(this._onYTextChange);
+        this._onYTextChange();
+      }
+
+      _onDomInput() {
+        if (this._applying) {
+          return;
+        }
+        let text = this.textarea.value;
+        if (text === this.yText.toString()) {
+          return;
+        }
+        this._applying = true;
+        let doc = this.yText.doc;
+        if (doc) {
+          doc.transact(() => {
+            this.yText.delete(0, this.yText.length);
+            this.yText.insert(0, text);
+          });
+        } else {
+          this.yText.delete(0, this.yText.length);
+          this.yText.insert(0, text);
+        }
+        this._applying = false;
+      }
+
+      _onYTextChange() {
+        let text = this.yText.toString();
+        if (this.textarea.value === text) {
+          return;
+        }
+        this._applying = true;
+        let textarea = this.textarea;
+        let start = textarea.selectionStart;
+        let end = textarea.selectionEnd;
+        textarea.value = text;
+        let length = text.length;
+        textarea.selectionStart = Math.min(start, length);
+        textarea.selectionEnd = Math.min(end, length);
+        applyText(this.doc, text);
+        if (this.doc.showGutter) {
+          updateGutterNumbers(this.doc);
+        }
+        this._applying = false;
+      }
+
+      destroy() {
+        this.textarea.removeEventListener('input', this._onDomInput);
+        this.yText.unobserve(this._onYTextChange);
+      }
+    }
+
     function cancelKeydownRefresh(doc) {
       if (!doc.keydownRefreshScheduled) {
         return;
@@ -528,6 +622,7 @@
     function scheduleKeydownRefresh(doc) {
       cancelKeydownRefresh(doc);
       doc.keydownRefreshScheduled = true;
+      doc.pendingSync = true;
       doc.keydownRefreshHandle = requestFrame(function () {
         doc.keydownRefreshScheduled = false;
         doc.keydownRefreshHandle = null;
@@ -1510,6 +1605,10 @@
       } else {
         doc.nextProcessLine = Math.min(doc.nextProcessLine, doc.lines.length);
         doc.targetLine = doc.nextProcessLine;
+        if (doc.pendingSync) {
+          doc.pendingSync = false;
+          emitSyntheticInput(doc);
+        }
       }
       if (doc.showGutter) {
         updateGutterNumbers(doc);
@@ -1559,6 +1658,9 @@
       }
       doc.targetLine = Math.max(doc.targetLine, dirtyEnd);
       scheduleWork(doc);
+      if (doc.showGutter) {
+        updateGutterNumbers(doc);
+      }
     }
 
 
@@ -1752,6 +1854,8 @@
         keydownRefreshHandle: null
       };
 
+      textarea.__lightedDoc = doc;
+
       syncMetrics(doc);
       if (typeof ResizeObserver === 'function') {
         let observer = new ResizeObserver(function () {
@@ -1768,7 +1872,7 @@
           let handled = deleteWordBackward(doc);
           if (handled) {
             event.preventDefault();
-            handleInput();
+            emitSyntheticInput(doc);
             updatedDuringKeydown = true;
           } else {
             scheduleKeydownRefresh(doc);
@@ -1784,7 +1888,7 @@
             } else {
               indentSelection(doc, doc.tabString);
             }
-            handleInput();
+            emitSyntheticInput(doc);
             updatedDuringKeydown = true;
           }
           if (!updatedDuringKeydown) {
@@ -1801,7 +1905,7 @@
             let indent = getLineIndentation(value, caret, doc.tabString);
             let insertion = '\n' + indent;
             insertTextAtSelection(doc, insertion);
-            handleInput();
+            emitSyntheticInput(doc);
             updatedDuringKeydown = true;
           }
           if (!updatedDuringKeydown) {
@@ -1849,7 +1953,14 @@
       return [container, textarea];
     }
 
-    let mount = document.querySelector('#editor-mount');
+    let TextAreaBinding;
+    try {
+      ({ TextAreaBinding } = await import('https://cdn.skypack.dev/y-textarea?min'));
+    } catch (error) {
+      console.warn('Falling back to internal TextAreaBinding implementation', error);
+      TextAreaBinding = FallbackTextAreaBinding;
+    }
+
     let initialValue = [
       "let message = 'Hello, Webfoundry!';",
       '',
@@ -1877,10 +1988,51 @@
       '',
     ].join('\n');
 
-    let [editorRoot, textarea] = lighted({ value: initialValue, relativeLineNumbers: true });
-    mount.appendChild(editorRoot);
-    new Vim(textarea, document.createElement('div'), document.createElement('div'), document.createElement('div'));
-    console.log('Lighted editor ready', editorRoot);
+    let ydoc = new Doc();
+    let yText = ydoc.getText('shared');
+    if (yText.length === 0) {
+      yText.insert(0, initialValue);
+    }
+
+    let mountOne = document.querySelector('#editor-one');
+    let mountTwo = document.querySelector('#editor-two');
+
+    let [rootOne, textareaOne] = lighted({ value: yText.toString(), relativeLineNumbers: true });
+    let [rootTwo, textareaTwo] = lighted({ value: yText.toString(), relativeLineNumbers: false });
+
+    mountOne.appendChild(rootOne);
+    mountTwo.appendChild(rootTwo);
+
+    let docOne = textareaOne.__lightedDoc;
+    let docTwo = textareaTwo.__lightedDoc;
+    let bindingOne;
+    let bindingTwo;
+    if (TextAreaBinding === FallbackTextAreaBinding) {
+      bindingOne = new TextAreaBinding(yText, docOne);
+      bindingTwo = new TextAreaBinding(yText, docTwo);
+    } else {
+      bindingOne = new TextAreaBinding(yText, textareaOne);
+      bindingTwo = new TextAreaBinding(yText, textareaTwo);
+      yText.observe(function () {
+        requestAnimationFrame(function () {
+          applyText(docOne, textareaOne.value);
+          if (docOne.showGutter) {
+            updateGutterNumbers(docOne);
+          }
+          applyText(docTwo, textareaTwo.value);
+          if (docTwo.showGutter) {
+            updateGutterNumbers(docTwo);
+          }
+        });
+      });
+    }
+    docOne.binding = bindingOne;
+    docTwo.binding = bindingTwo;
+
+    new Vim(textareaOne, document.createElement('div'), document.createElement('div'), document.createElement('div'));
+    new Vim(textareaTwo, document.createElement('div'), document.createElement('div'), document.createElement('div'));
+
+    console.log('Lighted editors ready', rootOne, rootTwo);
   </script>
 
 </body>
