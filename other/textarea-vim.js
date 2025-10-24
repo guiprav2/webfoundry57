@@ -159,45 +159,67 @@ function removeLine(where, repeats, vim) {
     setCursorPosition(where, rows, cols, vim);
 }
 
-const stack = [];
-const MAX_STACK_SIZE = 80;
+let MAX_STACK_SIZE = 80;
+
+let editorStacks = new WeakMap();
+
+function getEditorStacks(where) {
+    let stacks = editorStacks.get(where);
+    if (!stacks) {
+        stacks = { undo: [], redo: [] };
+        editorStacks.set(where, stacks);
+    }
+    return stacks;
+}
 
 function pushStack(where, vim) {
-    while (stack.length >= MAX_STACK_SIZE) {
-        stack.splice(0, 1);
+    let stacks = getEditorStacks(where);
+    let undo = stacks.undo;
+    while (undo.length >= MAX_STACK_SIZE) {
+        undo.splice(0, 1);
     }
-
-    const [rows, cols] = getCursorPosition(where, vim);
-    stack.push([where.value, rows, cols]);
+    let [rows, cols] = getCursorPosition(where, vim);
+    undo.push([where.value, rows, cols]);
+    stacks.redo.length = 0;
 }
 
 function popStack(where, repeats, vim) {
     repeats = repeats === undefined ? 1 : repeats;
+    let stacks = getEditorStacks(where);
+    let undo = stacks.undo;
+    let redo = stacks.redo;
 
     for (let i = 0; i < repeats; i++) {
-        if (stack.length === 0) {
+        if (undo.length === 0) {
             break;
         }
 
-        const [oRows, oCols] = getCursorPosition(where, vim);
-        backStack.push([where.value, oRows, oCols]);
+        let [oRows, oCols] = getCursorPosition(where, vim);
+        redo.push([where.value, oRows, oCols]);
 
-        const [value, rows, cols] = stack.pop();
+        let [value, rows, cols] = undo.pop();
         where.value = value;
         setCursorPosition(where, rows, cols, vim);
     }
 }
 
-const backStack = [];
 function redoStack(where, repeats, vim) {
+    repeats = repeats === undefined ? 1 : repeats;
+    let stacks = getEditorStacks(where);
+    let undo = stacks.undo;
+    let redo = stacks.redo;
+
     for (let i = 0; i < repeats; i++) {
-        if (backStack.length === 0) {
+        if (redo.length === 0) {
             break;
         }
 
-        const [value, rows, cols] = backStack.pop();
+        let [rows, cols] = getCursorPosition(where, vim);
+        undo.push([where.value, rows, cols]);
+
+        let [value, nRows, nCols] = redo.pop();
         where.value = value;
-        setCursorPosition(where, rows, cols, vim);
+        setCursorPosition(where, nRows, nCols, vim);
     }
 }
 

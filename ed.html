@@ -280,10 +280,9 @@
       let textarea = doc.textarea;
       let start = textarea.selectionStart;
       let end = textarea.selectionEnd;
-      let value = textarea.value;
-      let before = value.slice(0, start);
-      let after = value.slice(end);
-      textarea.value = before + inserted + after;
+      let scrollTop = textarea.scrollTop;
+      let scrollLeft = textarea.scrollLeft;
+      textarea.setRangeText(inserted, start, end, 'end');
       let caretStart = start + inserted.length;
       let caretEnd = caretStart;
       if (options && options.selectionStart !== undefined) {
@@ -291,11 +290,11 @@
       }
       if (options && options.selectionEnd !== undefined) {
         caretEnd = start + options.selectionEnd;
-      } else {
-        caretEnd = caretStart;
       }
       textarea.selectionStart = caretStart;
       textarea.selectionEnd = caretEnd;
+      textarea.scrollTop = scrollTop;
+      textarea.scrollLeft = scrollLeft;
       return {
         start: caretStart,
         end: caretEnd
@@ -357,12 +356,16 @@
       let transformed = lines.map(function (line) {
         return tabString + line;
       }).join('\n');
-      textarea.value = value.slice(0, lineStart) + transformed + value.slice(lineEnd);
+      let scrollTop = textarea.scrollTop;
+      let scrollLeft = textarea.scrollLeft;
+      textarea.setRangeText(transformed, lineStart, lineEnd, 'end');
       let lineCount = lines.length;
       let newStart = start + tabString.length;
       let newEnd = end + tabString.length * lineCount;
       textarea.selectionStart = newStart;
       textarea.selectionEnd = newEnd;
+      textarea.scrollTop = scrollTop;
+      textarea.scrollLeft = scrollLeft;
       return {
         start: newStart,
         end: newEnd
@@ -474,7 +477,9 @@
         removalBeforeEnd = totalRemoval;
       }
 
-      textarea.value = value.slice(0, lineStart) + transformed + value.slice(lineEnd);
+      let scrollTop = textarea.scrollTop;
+      let scrollLeft = textarea.scrollLeft;
+      textarea.setRangeText(transformed, lineStart, lineEnd, 'end');
 
       let newStart = start - removalBeforeStart;
       if (newStart < lineStart) {
@@ -487,6 +492,8 @@
 
       textarea.selectionStart = newStart;
       textarea.selectionEnd = newEnd;
+      textarea.scrollTop = scrollTop;
+      textarea.scrollLeft = scrollLeft;
       return {
         start: newStart,
         end: newEnd
@@ -498,10 +505,13 @@
       let start = textarea.selectionStart;
       let end = textarea.selectionEnd;
       if (start !== end) {
-        let value = textarea.value;
-        textarea.value = value.slice(0, start) + value.slice(end);
+        let scrollTop = textarea.scrollTop;
+        let scrollLeft = textarea.scrollLeft;
+        textarea.setRangeText('', start, end, 'end');
         textarea.selectionStart = start;
         textarea.selectionEnd = start;
+        textarea.scrollTop = scrollTop;
+        textarea.scrollLeft = scrollLeft;
         return true;
       }
       if (start === 0) {
@@ -529,10 +539,13 @@
         }
         index -= 1;
       }
-      let newValue = value.slice(0, index) + value.slice(start);
-      textarea.value = newValue;
+      let scrollTop = textarea.scrollTop;
+      let scrollLeft = textarea.scrollLeft;
+      textarea.setRangeText('', index, start, 'end');
       textarea.selectionStart = index;
       textarea.selectionEnd = index;
+      textarea.scrollTop = scrollTop;
+      textarea.scrollLeft = scrollLeft;
       return true;
     }
 
@@ -545,6 +558,55 @@
         event = new Event('input', { bubbles: true });
       }
       textarea.dispatchEvent(event);
+    }
+
+    const textareaValueDescriptor = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value');
+
+    function installValueInterceptor(textarea) {
+      if (textarea.__lightedValueInterceptor) {
+        return;
+      }
+      let { get, set } = textareaValueDescriptor;
+      let lock = false;
+      Object.defineProperty(textarea, 'value', {
+        configurable: true,
+        get() {
+          return get.call(this);
+        },
+        set(newValue) {
+          if (lock) {
+            set.call(this, newValue);
+            return;
+          }
+          let oldValue = get.call(this);
+          if (oldValue === newValue) {
+            return;
+          }
+          lock = true;
+          let scrollTop = this.scrollTop;
+          let scrollLeft = this.scrollLeft;
+          let minLength = Math.min(oldValue.length, newValue.length);
+          let prefix = 0;
+          while (prefix < minLength && oldValue.charCodeAt(prefix) === newValue.charCodeAt(prefix)) {
+            prefix += 1;
+          }
+          let oldSuffix = oldValue.length;
+          let newSuffix = newValue.length;
+          while (oldSuffix > prefix && newSuffix > prefix && oldValue.charCodeAt(oldSuffix - 1) === newValue.charCodeAt(newSuffix - 1)) {
+            oldSuffix -= 1;
+            newSuffix -= 1;
+          }
+          let replacement = newValue.slice(prefix, newSuffix);
+          this.setRangeText(replacement, prefix, oldSuffix, 'end');
+          if (get.call(this) !== newValue) {
+            set.call(this, newValue);
+          }
+          this.scrollTop = scrollTop;
+          this.scrollLeft = scrollLeft;
+          lock = false;
+        }
+      });
+      textarea.__lightedValueInterceptor = true;
     }
 
     class FallbackTextAreaBinding {
@@ -1793,7 +1855,6 @@
       shadow.appendChild(overlayPre);
 
       let textarea = document.createElement('textarea');
-      textarea.value = initialValue;
       textarea.setAttribute('wrap', 'off');
       textarea.spellcheck = opts.spellcheck === undefined ? false : !!opts.spellcheck;
 
@@ -1801,6 +1862,9 @@
       pane.className = 'lighted-pane';
       pane.appendChild(overlayHost);
       pane.appendChild(textarea);
+
+      installValueInterceptor(textarea);
+      textarea.value = initialValue;
 
       let gutter = null;
       let gutterInner = null;
@@ -1851,7 +1915,8 @@
         relativeLineNumbers: relativeLineNumbers,
         gutterLines: [],
         keydownRefreshScheduled: false,
-        keydownRefreshHandle: null
+        keydownRefreshHandle: null,
+        pendingSync: false
       };
 
       textarea.__lightedDoc = doc;
