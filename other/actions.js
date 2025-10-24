@@ -1174,17 +1174,13 @@ let actions = window.actions = {
       let frame = state.designer.current;
       let cursors = frame.cursors[cur];
       if (!cursors?.length) return;
-
       let replaced = cursors.map(id => frame.map.get(id)).filter(Boolean);
       let parents = replaced.map(x => x.parentElement);
-      let idxs = replaced.map(x => [...x.parentElement.children].indexOf(x));
-
-      let order = replaced.map((el, n) => ({ el, p: parents[n], i: idxs[n], n }));
+      let order = replaced.map((el, n) => ({ el, p: parents[n], n }));
       order.sort((a, b) => {
         if (a.p === b.p) return a.i - b.i;
         return a.p.compareDocumentPosition(b.p) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1;
       });
-
       desc && await loadman.run('actions.changeHtml.aigen', async () => {
         html = (await completion([{
           role: 'system',
@@ -1204,7 +1200,6 @@ let actions = window.actions = {
           ],
         }], { endpoint: 'https://kittygpt.netlify.app/.netlify/functions/completion', model: 'gpt-4o-mini' })).content;
       });
-
       if (html == null) {
         let combined = order.map(o => {
           let clone = o.el.cloneNode(true);
@@ -1216,13 +1211,9 @@ let actions = window.actions = {
         if (btn !== 'ok') return;
         html = val;
       }
-
       if (state.collab.uid !== 'master') return state.collab.rtc.send({ type: 'cmd', k: 'changeHtml', cur, html });
-
+      let orderKeys = order.map(x => frame.map.getKey(x.el));
       let addedKeys = [];
-      let replacedKeys = replaced.map(x => frame.map.getKey(x));
-      let parentKeys = parents.map(x => frame.map.getKey(x));
-
       await post('designer.pushHistory', cur, async apply => {
         if (apply && !addedKeys.length) {
           addedKeys = await ifeval(async ({ args }) => {
@@ -1230,69 +1221,23 @@ let actions = window.actions = {
             template.innerHTML = args.html;
             let newEls = [...template.content.children];
             let added = [];
-
-            for (let n = 0; n < args.replaced.length; n++) {
-              let el = state.map.get(args.replaced[n]);
-              let p = state.map.get(args.parents[n]);
-              let idx = args.idxs[n];
-              if (!el || !p) continue;
-
+            for (let n = 0; n < args.order.length; n++) {
+              let el = state.map.get(args.order[n]);
               let newEl = newEls[n];
-              if (!newEl) { el.remove(); continue; }
-
-              if (['BODY','HTML','HEAD'].includes(el.tagName)) {
-                for (let attr of [...newEl.attributes]) el.setAttribute(attr.name, attr.value);
-                for (let attr of [...el.attributes]) if (!newEl.hasAttribute(attr.name)) el.removeAttribute(attr.name);
-                while (el.firstChild) el.removeChild(el.firstChild);
-                for (let child of [...newEl.childNodes]) el.appendChild(child.cloneNode(true));
-              } else {
-                p.replaceChild(newEl, el);
-                added.push(newEl);
-              }
+              if (!newEl) { el.remove(); continue }
+              el.replaceWith(newEl);
+              added.push(newEl);
             }
-
             await new Promise(pres => setTimeout(pres));
             return added.map(x => state.map.getKey(x));
-          }, { html, replaced: replacedKeys, parents: parentKeys, idxs });
+          }, { html, order: order.map(x => frame.map.getKey(x.el)) });
           await actions.changeSelection.handler({ cur, s: addedKeys });
         } else if (apply) {
-          await ifeval(({ args }) => {
-            for (let n = 0; n < args.replaced.length; n++) {
-              let p = state.map.get(args.parents[n]);
-              let idx = args.idxs[n];
-              let newEl = state.map.get(args.added[n]);
-              if (!p || !newEl) continue;
-              let current = p.children[idx];
-              if (current && current !== newEl) current.replaceWith(newEl);
-              else if (!newEl.isConnected) {
-                let prev = p.children[idx - 1];
-                if (prev) prev.after(newEl);
-                else p.insertBefore(newEl, p.firstChild);
-              }
-            }
-          }, { replaced: replacedKeys, parents: parentKeys, idxs, added: addedKeys });
+          await ifeval(({ args }) => { for (let n = 0; n < args.order.length; n++) state.map.get(args.order[n]).replaceWith(state.map.get(args.added[n])) }, { order: orderKeys, added: addedKeys });
           await actions.changeSelection.handler({ cur, s: addedKeys });
         } else {
-          await ifeval(({ args }) => {
-            for (let n = 0; n < args.added.length; n++) {
-              let newEl = state.map.get(args.added[n]);
-              if (newEl) newEl.remove();
-            }
-            for (let n = 0; n < args.replaced.length; n++) {
-              let p = state.map.get(args.parents[n]);
-              let el = state.map.get(args.replaced[n]);
-              let idx = args.idxs[n];
-              if (!p || !el) continue;
-              let current = p.children[idx];
-              if (current) current.replaceWith(el);
-              else {
-                let prev = p.children[idx - 1];
-                if (prev) prev.after(el);
-                else p.insertBefore(el, p.firstChild);
-              }
-            }
-          }, { replaced: replacedKeys, parents: parentKeys, idxs, added: addedKeys });
-          await actions.changeSelection.handler({ cur, s: replacedKeys });
+          await ifeval(({ args }) => { for (let n = 0; n < args.added.length; n++) state.map.get(args.added[n]).replaceWith(state.map.get(args.order[n])) }, { order: orderKeys, added: addedKeys });
+          await actions.changeSelection.handler({ cur, s: orderKeys });
         }
       });
     },
