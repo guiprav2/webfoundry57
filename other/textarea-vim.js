@@ -1179,3 +1179,5 @@ class Vim {
         }
     }
 }
+
+export { Vim };

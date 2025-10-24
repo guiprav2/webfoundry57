@@ -1,10 +1,11 @@
 import * as Y from 'https://esm.sh/yjs@13.6.12?target=es2022';
-import { CodemirrorBinding } from 'https://esm.sh/y-codemirror?target=es2022&deps=codemirror@5.65.16,yjs@13.6.12';
+import { FallbackTextAreaBinding } from '../other/lighted.js';
 
-const TEXT_FIELD = 'codemirror';
+let TEXT_FIELD = 'lighted';
 
-export function createYjsBackend({
-  editor,
+export async function createYjsBackend({
+  doc: lightedDoc,
+  textarea: explicitTextarea,
   project,
   path,
   initialValue,
@@ -13,18 +14,51 @@ export function createYjsBackend({
   getRTC = () => null,
   bus = null,
 } = {}) {
-  if (!editor) throw new Error('createYjsBackend requires a CodeMirror editor instance');
+  let textarea = explicitTextarea || lightedDoc?.textarea || null;
+  if (!textarea) throw new Error('createYjsBackend requires a Lighted doc or textarea');
   if (!project || !path) throw new Error('createYjsBackend requires project and path');
 
   let doc = new Y.Doc();
   let yText = doc.getText(TEXT_FIELD);
-  let binding = new CodemirrorBinding(yText, editor);
+  let binding = null;
+  let bindingObserver = null;
+  let bindingModule = null;
+  try {
+    bindingModule = await import('https://cdn.skypack.dev/y-textarea?min');
+  } catch (err) {
+    console.warn('Failed to load y-textarea, falling back to internal binding', err);
+  }
+
+  if (bindingModule && bindingModule.TextAreaBinding) {
+    binding = new bindingModule.TextAreaBinding(yText, textarea);
+    if (lightedDoc) {
+      bindingObserver = function () {
+        requestAnimationFrame(function () {
+          lightedDoc.refresh();
+          lightedDoc.requestMeasure();
+        });
+      };
+      yText.observe(bindingObserver);
+    }
+  } else {
+    let targetDoc = lightedDoc || { textarea };
+    binding = new FallbackTextAreaBinding(yText, targetDoc);
+  }
 
   if (typeof initialValue === 'string') {
     doc.transact(() => {
       yText.delete(0, yText.length);
       yText.insert(0, initialValue);
     }, 'initial-load');
+    if (lightedDoc) {
+      lightedDoc.setValue(initialValue, { preserveSelection: false });
+      lightedDoc.requestMeasure();
+    } else if (textarea.value !== initialValue) {
+      textarea.value = initialValue;
+    }
+  } else if (lightedDoc) {
+    lightedDoc.refresh();
+    lightedDoc.requestMeasure();
   }
 
   let provider = new TrysteroYProvider({
@@ -43,6 +77,12 @@ export function createYjsBackend({
     provider,
     destroy() {
       provider.destroy();
+      if (bindingObserver) {
+        try {
+          yText.unobserve(bindingObserver);
+        } catch (err) {}
+        bindingObserver = null;
+      }
       binding.destroy?.();
       doc.destroy();
     },

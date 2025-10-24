@@ -1,6 +1,6 @@
 import rfiles from '../repos/rfiles.js';
 import { debounce, isMedia } from '../other/util.js';
-import { loadCodeMirrorBase, mountCodeMirror } from '../other/codemirror.js';
+import { mountLighted } from '../other/lighted.js';
 import { createYjsBackend } from '../components/CodeEditor.js';
 import { lookup as mimeLookup } from 'https://esm.sh/mrmime';
 
@@ -17,17 +17,18 @@ export default class CodeEditor {
     currentProject: null,
     pendingSelection: null,
     ready: false,
-    cursorStyleHandler: null,
-    syncLocalCursorStyles: null,
+    selectionHandler: null,
     remoteCursorMarkers: new Map(),
     cursorRTC: null,
     cursorRTCHandler: null,
     lastCursorBroadcast: 0,
     cursorBroadcastTimeout: null,
     presenceListener: null,
+    vimBinding: null,
   };
 
   peerClassCache = new Map();
+  colorCache = new Map();
 
   getPeerClass = peer => {
     if (!peer) return 'peer-unknown';
@@ -38,7 +39,118 @@ export default class CodeEditor {
     return sanitized;
   };
 
+  reflowRemoteCursors = () => {
+    if (!this.state.remoteCursorMarkers.size) return;
+    let entries = Array.from(this.state.remoteCursorMarkers.entries());
+    for (let [peer, data] of entries) {
+      if (!data?.ranges?.length) continue;
+      this.renderRemoteCursor(peer, data.ranges);
+    }
+  };
+
+  updateEditorFontSize = size => {
+    let doc = this.state.editorHandle?.doc;
+    if (!doc?.textarea) return;
+    let value = typeof size === 'number' ? `${size}px` : size || '16px';
+    doc.textarea.style.fontSize = value;
+    doc.refreshMetrics?.();
+    doc.requestMeasure?.();
+    this.reflowRemoteCursors();
+  };
+
+  updateEditorTabSize = size => {
+    let doc = this.state.editorHandle?.doc;
+    if (!doc?.textarea) return;
+    let tabSize = Number(size) || 2;
+    doc.config = doc.config || {};
+    doc.config.tabSize = tabSize;
+    doc.tabString = ' '.repeat(Math.max(1, tabSize));
+    doc.textarea.style.tabSize = String(tabSize);
+    if (doc.overlayPre) doc.overlayPre.style.tabSize = String(tabSize);
+    doc.refresh?.();
+    doc.requestMeasure?.();
+    this.reflowRemoteCursors();
+  };
+
+  setEditorTheme = async theme => {
+    let doc = this.state.editorHandle?.doc;
+    if (!doc?.container) return;
+    let value = theme || '';
+    doc.container.dataset.codeTheme = value;
+  };
+
+  setEditorKeyMap = async keyMap => {
+    let doc = this.state.editorHandle?.doc;
+    if (!doc?.textarea) return;
+    let mode = keyMap ? String(keyMap).toLowerCase() : 'default';
+    if (mode !== 'vim') {
+      if (this.state.vimBinding) {
+        try {
+          this.state.vimBinding.remove?.();
+        } catch (err) {
+          console.warn('Failed to release Vim binding', err);
+        }
+        this.state.vimBinding = null;
+      }
+      return;
+    }
+    if (this.state.vimBinding) return;
+    try {
+      let mod = await import('../other/textarea-vim.js');
+      let VimClass = mod?.Vim;
+      if (!VimClass) return;
+      let textarea = doc.textarea;
+      let listeners = [];
+      let originalAdd = textarea.addEventListener;
+      textarea.addEventListener = function (type, handler, options) {
+        if ((type === 'keydown' || type === 'keyup') && handler) {
+          listeners.push({ type, handler, options });
+        }
+        return originalAdd.call(this, type, handler, options);
+      };
+      let vimInstance;
+      try {
+        vimInstance = new VimClass(textarea, document.createElement('div'), document.createElement('div'), document.createElement('div'));
+      } finally {
+        textarea.addEventListener = originalAdd;
+      }
+      this.state.vimBinding = {
+        instance: vimInstance,
+        remove: () => {
+          for (let entry of listeners) {
+            try {
+              textarea.removeEventListener(entry.type, entry.handler, entry.options);
+            } catch {}
+          }
+          listeners.length = 0;
+        },
+      };
+    } catch (err) {
+      console.warn('Failed to enable Vim mode', err);
+    }
+  };
+
   getPeerColor = peer => state.collab.rtc?.presence?.find?.(x => x.user === peer)?.color || null;
+
+  resolveColor = name => {
+    let key = name || FALLBACK_CURSOR_COLOR;
+    if (this.colorCache.has(key)) return this.colorCache.get(key);
+    let probe = document.createElement('div');
+    probe.style.position = 'absolute';
+    probe.style.opacity = '0';
+    probe.style.pointerEvents = 'none';
+    probe.className = `bg-${key}`;
+    document.body.append(probe);
+    let computed = window.getComputedStyle(probe).backgroundColor;
+    probe.remove();
+    let match = computed && computed.match(/\d+\.?\d*/g);
+    let rgb = { r: 125, g: 211, b: 252 };
+    if (match && match.length >= 3) {
+      rgb = { r: Number(match[0]), g: Number(match[1]), b: Number(match[2]) };
+    }
+    this.colorCache.set(key, rgb);
+    return rgb;
+  };
 
   attachCursorRTC = rtc => {
     if (this.state.cursorRTC === rtc) return;
@@ -71,16 +183,15 @@ export default class CodeEditor {
       this.clearRemoteCursor(message.peer);
       return;
     }
-    if (!this.state.editorHandle?.editor) return;
+    if (!this.state.editorHandle?.doc) return;
     this.renderRemoteCursor(message.peer, message.ranges);
   };
 
   broadcastCursor = (force = false) => {
-    let editor = this.state.editorHandle?.editor;
+    let doc = this.state.editorHandle?.doc;
     let rtc = state.collab.rtc;
-    if (!editor || !rtc || !this.state.currentProject || !this.state.currentPath) return;
-    let doc = editor.getDoc?.();
-    if (!doc?.listSelections) return;
+    if (!doc || !rtc || !this.state.currentProject || !this.state.currentPath) return;
+    if (typeof doc.listSelections !== 'function') return;
     let now = performance.now();
     let elapsed = now - this.state.lastCursorBroadcast;
     if (!force && elapsed < CURSOR_BROADCAST_MIN_INTERVAL) {
@@ -117,17 +228,16 @@ export default class CodeEditor {
   clearRemoteCursor = peer => {
     let data = this.state.remoteCursorMarkers.get(peer);
     if (!data) return;
-    let editor = this.state.editorHandle?.editor;
-    let clearMarks = () => {
-      for (let mark of data.selections || []) {
-        try { mark?.clear?.(); } catch {}
-      }
-      for (let mark of data.cursors || []) {
-        try { mark?.clear?.(); } catch {}
-      }
-    };
-    if (editor) editor.operation(clearMarks);
-    else clearMarks();
+    for (let node of data.selections || []) {
+      try {
+        node.remove();
+      } catch {}
+    }
+    for (let node of data.cursors || []) {
+      try {
+        node.remove();
+      } catch {}
+    }
     this.state.remoteCursorMarkers.delete(peer);
   };
 
@@ -137,83 +247,115 @@ export default class CodeEditor {
   };
 
   renderRemoteCursor = (peer, ranges = []) => {
-    let editor = this.state.editorHandle?.editor;
-    if (!editor) return;
-    let doc = editor.getDoc?.();
-    if (!doc) return;
-    let normalized = [];
+    let lightedDoc = this.state.editorHandle?.doc;
+    if (!lightedDoc) return;
+    let overlay = lightedDoc.overlayDecor;
+    if (!overlay) return;
+    let metrics = lightedDoc.metrics || {};
+    if (!metrics.charWidth || metrics.charWidth <= 0) {
+      lightedDoc.requestMeasure();
+      metrics = lightedDoc.metrics || {};
+    }
+    let charWidth = metrics.charWidth && metrics.charWidth > 0 ? metrics.charWidth : 8;
+    let lineHeight = metrics.lineHeight && metrics.lineHeight > 0 ? metrics.lineHeight : 16;
+    let paddingTop = metrics.paddingTop || 0;
+    let paddingLeft = metrics.paddingLeft || 0;
+    let lines = lightedDoc.lines || [];
+    this.clearRemoteCursor(peer);
+    if (!Array.isArray(ranges) || !ranges.length) return;
+    let ownerDoc = overlay.ownerDocument || document;
+    let selectionNodes = [];
+    let cursorNodes = [];
+    let peerCls = this.getPeerClass(peer);
+    let storedRanges = [];
     for (let range of ranges) {
       if (!range) continue;
-      let anchor = range.anchor || {};
-      let head = range.head || {};
-      try {
-        let anchorPos = doc.clipPos?.({ line: anchor.line ?? 0, ch: anchor.ch ?? 0 }) ?? { line: anchor.line ?? 0, ch: anchor.ch ?? 0 };
-        let headPos = doc.clipPos?.({ line: head.line ?? 0, ch: head.ch ?? 0 }) ?? { line: head.line ?? 0, ch: head.ch ?? 0 };
-        let anchorIndex = doc.indexFromPos?.(anchorPos);
-        let headIndex = doc.indexFromPos?.(headPos);
-        if (anchorIndex == null || headIndex == null) continue;
-        let from = anchorIndex <= headIndex ? anchorPos : headPos;
-        let to = anchorIndex <= headIndex ? headPos : anchorPos;
-        normalized.push({ anchor: anchorPos, head: headPos, from, to, collapsed: anchorIndex === headIndex });
-      } catch {}
-    }
-    this.clearRemoteCursor(peer);
-    if (!normalized.length) return;
-    let selectionMarkers = [];
-    let cursorMarkers = [];
-    let color = this.getPeerColor(peer) || FALLBACK_CURSOR_COLOR;
-    let peerCls = this.getPeerClass(peer);
-    editor.operation(() => {
-      for (let { from, to, head, collapsed } of normalized) {
-        if (!collapsed) {
-          let mark = doc.markText(from, to, {
-            className: `CodeMirror-remote-selection ${peerCls ? `CodeMirror-remote-selection-${peerCls}` : ''}`.trim(),
-            inclusiveLeft: true,
-            inclusiveRight: true,
-          });
-          selectionMarkers.push(mark);
-        }
-        try {
-          let widget = this.createRemoteCursorWidget(peer);
-          let bookmark = doc.setBookmark(head, { widget, insertLeft: true });
-          cursorMarkers.push(bookmark);
-        } catch (err) {
-          console.error('CodeEditor remote cursor widget error', err);
+      let anchor = lightedDoc.clipPos?.(range.anchor || {}) || { line: range.anchor?.line || 0, ch: range.anchor?.ch || 0 };
+      let head = lightedDoc.clipPos?.(range.head || {}) || { line: range.head?.line || 0, ch: range.head?.ch || 0 };
+      let anchorIndex = lightedDoc.indexFromPos ? lightedDoc.indexFromPos(anchor) : null;
+      let headIndex = lightedDoc.indexFromPos ? lightedDoc.indexFromPos(head) : null;
+      if (anchorIndex == null || headIndex == null) continue;
+      let from = anchorIndex <= headIndex ? anchor : head;
+      let to = anchorIndex <= headIndex ? head : anchor;
+      if (anchorIndex !== headIndex) {
+        let startLine = from.line || 0;
+        let endLine = to.line || 0;
+        for (let line = startLine; line <= endLine; line += 1) {
+          let lineText = lines[line] || '';
+          let segmentStart = line === startLine ? (from.ch || 0) : 0;
+          let segmentEnd = line === endLine ? (to.ch || 0) : lineText.length;
+          if (segmentEnd < segmentStart) {
+            let tmp = segmentStart;
+            segmentStart = segmentEnd;
+            segmentEnd = tmp;
+          }
+          if (segmentStart === segmentEnd) continue;
+          let width = Math.max(charWidth * 0.1, (segmentEnd - segmentStart) * charWidth);
+          let left = paddingLeft + segmentStart * charWidth;
+          let top = paddingTop + line * lineHeight;
+          let node = ownerDoc.createElement('div');
+          let selectionClass = `Lighted-remote-selection ${peerCls ? `Lighted-remote-selection-${peerCls}` : ''}`.trim();
+          node.className = `remote-selection ${selectionClass}`.trim();
+          node.dataset.peer = peer;
+          node.style.left = `${left}px`;
+          node.style.top = `${top}px`;
+          node.style.width = `${width}px`;
+          node.style.height = `${lineHeight}px`;
+          node.style.pointerEvents = 'none';
+          node.style.boxSizing = 'border-box';
+          overlay.appendChild(node);
+          selectionNodes.push(node);
         }
       }
-    });
-    let storedRanges = normalized.map(({ anchor, head }) => ({ anchor: { line: anchor.line, ch: anchor.ch }, head: { line: head.line, ch: head.ch } }));
-    this.state.remoteCursorMarkers.set(peer, { selections: selectionMarkers, cursors: cursorMarkers, color, ranges: storedRanges });
-    this.applyRemoteCursorColor(peer, color);
+      let cursorNode = ownerDoc.createElement('div');
+      let cursorClass = `Lighted-remote-cursor ${peerCls ? `Lighted-remote-cursor-${peerCls}` : ''}`.trim();
+      cursorNode.className = `remote-cursor ${cursorClass}`.trim();
+      cursorNode.dataset.peer = peer;
+      let cursorTop = paddingTop + (head.line || 0) * lineHeight;
+      let cursorLeft = paddingLeft + (head.ch || 0) * charWidth;
+      cursorNode.style.left = `${cursorLeft}px`;
+      cursorNode.style.top = `${cursorTop}px`;
+      cursorNode.style.height = `${lineHeight}px`;
+      cursorNode.style.borderLeftWidth = cursorNode.style.borderLeftWidth || '2px';
+      cursorNode.style.borderLeftStyle = cursorNode.style.borderLeftStyle || 'solid';
+      cursorNode.style.marginLeft = '-1px';
+      cursorNode.style.pointerEvents = 'none';
+      cursorNode.style.boxSizing = 'border-box';
+      overlay.appendChild(cursorNode);
+      cursorNodes.push(cursorNode);
+      storedRanges.push({
+        anchor: { line: anchor.line || 0, ch: anchor.ch || 0 },
+        head: { line: head.line || 0, ch: head.ch || 0 }
+      });
+    }
+    if (!selectionNodes.length && !cursorNodes.length) {
+      return;
+    }
+    this.state.remoteCursorMarkers.set(peer, { selections: selectionNodes, cursors: cursorNodes, ranges: storedRanges });
+    this.applyRemoteCursorColor(peer, this.getPeerColor(peer) || FALLBACK_CURSOR_COLOR);
   };
 
   applyRemoteCursorColor = (peer, color) => {
-    let editor = this.state.editorHandle?.editor;
-    if (!editor) return;
-    let wrap = editor.getWrapperElement?.();
-    if (!wrap) return;
+    let overlay = this.state.editorHandle?.doc?.overlayDecor;
+    if (!overlay) return;
     let peerCls = this.getPeerClass(peer);
-    let selectionNodes = wrap.querySelectorAll(`.CodeMirror-remote-selection-${peerCls}`);
-    let cursorNodes = wrap.querySelectorAll(`.CodeMirror-remote-cursor-${peerCls}`);
+    let selectionNodes = overlay.querySelectorAll(`.Lighted-remote-selection-${peerCls}`);
+    let cursorNodes = overlay.querySelectorAll(`.Lighted-remote-cursor-${peerCls}`);
     let selectionColor = color || FALLBACK_CURSOR_COLOR;
+    let rgb = this.resolveColor(selectionColor);
     for (let node of selectionNodes) {
-      for (let cls of [...node.classList]) if (/^bg-.*!$/.test(cls)) node.classList.remove(cls);
-      node.classList.add(`bg-${selectionColor}/30!`);
       node.dataset.peer = peer;
+      node.style.backgroundColor = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.3)`;
+      node.style.borderRadius = node.style.borderRadius || '3px';
     }
-    let lineHeight = editor.defaultTextHeight?.() ?? 16;
     for (let node of cursorNodes) {
-      for (let cls of [...node.classList]) {
-        if (/^border-.*!$/.test(cls)) node.classList.remove(cls);
-      }
-      node.classList.add(`border-${selectionColor}!`);
       node.dataset.peer = peer;
+      node.style.borderLeftColor = `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`;
       node.style.borderLeftWidth = node.style.borderLeftWidth || '2px';
       node.style.borderLeftStyle = node.style.borderLeftStyle || 'solid';
       node.style.marginLeft = node.style.marginLeft || '-1px';
       node.style.pointerEvents = 'none';
       node.style.width = node.style.width || '0px';
-      node.style.height = `${lineHeight}px`;
       node.style.display = node.style.display || 'inline-block';
       node.style.boxSizing = node.style.boxSizing || 'border-box';
       node.style.opacity = node.style.opacity || '0.9';
@@ -242,43 +384,19 @@ export default class CodeEditor {
     this.attachCursorRTC(state.collab.rtc);
     this.removeStaleRemoteCursors();
     this.refreshRemoteCursorColors();
-    this.state.syncLocalCursorStyles?.();
     this.broadcastCursor(true);
-  };
-
-  createRemoteCursorWidget = peer => {
-    let el = document.createElement('span');
-    let peerCls = this.getPeerClass(peer);
-    el.className = `CodeMirror-remote-cursor ${peerCls ? `CodeMirror-remote-cursor-${peerCls}` : ''}`.trim();
-    el.dataset.peer = peer;
-    let lineHeight = this.state.editorHandle?.editor?.defaultTextHeight?.() ?? 16;
-    el.style.borderLeftWidth = '2px';
-    el.style.borderLeftStyle = 'solid';
-    el.style.marginLeft = '-1px';
-    el.style.pointerEvents = 'none';
-    el.style.width = '0px';
-    el.style.height = `${lineHeight}px`;
-    el.style.display = 'inline-block';
-    el.style.boxSizing = 'border-box';
-    el.style.opacity = '0.9';
-    el.textContent = '\u200b';
-    return el;
   };
 
   actions = {
     init: () => {
       let { bus } = state.event;
-      if (!document.getElementById('CodeEditorStyles')) {
-        document.head.append(d.el('style', { id: 'CodeEditorStyles' }, `
-          .CodeMirror { height: 100%; background-color: #04060960 !important }
-          dialog .CodeMirror-scroll { min-height: calc(var(--spacing) * 96); max-height: 80vh }
-          .CodeMirror-gutters { background-color: transparent !important; }
-          .CodeMirror-gutter { background-color: #060a0fb0 !important; }
-          .CodeMirror-activeline-background { background-color: #0009 !important; }
-          .CodeMirror-activeline .CodeMirror-gutter-elt { background-color: #0009 !important; }
-          .CodeMirror-code { position: absolute; top: 0 }
-          .CodeMirror-cursor { margin-top: -16px }
-          .CodeMirror-remote-cursor { position: relative; top: 2px }
+      if (!document.getElementById('LightedEditorStyles')) {
+        document.head.append(d.el('style', { id: 'LightedEditorStyles' }, `
+          .lighted { height: 100%; background-color: #04060960; display: flex; flex-direction: row; }
+          .lighted-pane { flex: 1 1 auto; position: relative; }
+          .lighted-input { font-family: inherit; background-color: transparent; color: transparent; caret-color: var(--lighted-caret); outline: none; }
+          .lighted .decor-layer .remote-selection { border-radius: 4px; opacity: 0.75; }
+          .lighted .decor-layer .remote-cursor { border-left-width: 2px; border-left-style: solid; opacity: 0.9; }
         `));
       }
       this.attachCursorRTC(state.collab.rtc);
@@ -292,40 +410,30 @@ export default class CodeEditor {
         if (!state.files.current) return;
         await post('codeEditor.open');
       });
-      loadCodeMirrorBase()
-        .then(async () => {
-          this.state.ready = true;
-          if (this.state.pendingSelection) {
-            this.state.pendingSelection = null;
-            await this.actions.open();
-          }
-          bus.emit('codeEditor:init:ready');
-        })
-        .catch(err => bus.emit('codeEditor:script:error', { error: err }));
+      this.state.ready = true;
+      if (this.state.pendingSelection) {
+        this.state.pendingSelection = null;
+        queueMicrotask(() => this.actions.open());
+      }
+      bus.emit('codeEditor:init:ready');
       bus.on('settings:global:option:ready', async ({ k, v }) => {
         switch (k) {
           case 'vim':
-            await this.state.editorHandle?.setKeyMap?.(v ? 'vim' : 'default');
+            await this.setEditorKeyMap(v ? 'vim' : 'default');
             break;
           case 'codeTheme': {
             let theme = v || state.settings.opt.codeTheme || 'monokai';
-            await this.state.editorHandle?.setTheme?.(theme);
+            await this.setEditorTheme(theme);
             break;
           }
           case 'codeFontSize': {
             let size = state.settings.opt.codeFontSize || v || '16px';
-            let wrap = this.state.editorHandle?.editor?.getWrapperElement?.();
-            if (wrap) {
-              wrap.style.fontSize = typeof size === 'number' ? `${size}px` : size;
-              this.state.editorHandle.editor.refresh();
-              this.refreshRemoteCursorColors();
-            }
+            this.updateEditorFontSize(size);
             break;
           }
           case 'codeTabSize': {
             let size = Number(v ?? state.settings.opt.codeTabSize) || 2;
-            this.state.editorHandle?.editor?.setOption?.('tabSize', size);
-            this.state.editorHandle?.editor?.setOption?.('indentUnit', size);
+            this.updateEditorTabSize(size);
             break;
           }
           default:
@@ -352,21 +460,61 @@ export default class CodeEditor {
       if (!wrapper) return;
       let el = d.el('div', {
         class: 'flex-1',
-        style: { width: () => `${innerWidth - wrapper.getBoundingClientRect().left}px`, height: () => `${innerHeight - wrapper.getBoundingClientRect().top}px` },
+        style: {
+          width: () => `${innerWidth - wrapper.getBoundingClientRect().left}px`,
+          height: () => `${innerHeight - wrapper.getBoundingClientRect().top}px`,
+        },
       });
       wrapper.replaceChildren(el);
       let tabSize = state.settings.opt.codeTabSize || 2;
-      let fontSize = state.settings.opt.codeFontSize || '16px';
-      let modeKey = { html: 'html', css: 'css', js: 'javascript', md: 'markdown' }[path.split('.').pop()?.toLowerCase?.()] ?? null;
-      let { editor, destroy, setTheme, setKeyMap, setMode } = await mountCodeMirror(el, {
-        mode: modeKey,
-        theme: state.settings.opt.codeTheme || 'monokai',
-        keyMap: state.settings.opt.vim ? 'vim' : 'default',
+      let lightedDoc = mountLighted(el, {
+        value: '',
         tabSize,
-        fontSize,
-        lineWrapping: false,
+        convertTabsToSpaces: true,
+        autoIndent: true,
+        showGutter: true,
+        relativeLineNumbers: true,
       });
-      this.state.editorHandle = { editor, destroy, setTheme, setKeyMap, setMode };
+      if (!lightedDoc) return;
+      lightedDoc.container.classList.add('w-full', 'h-full');
+      if (typeof lightedDoc.refresh === 'function') {
+        let originalRefresh = lightedDoc.refresh.bind(lightedDoc);
+        lightedDoc.refresh = (...args) => {
+          let result = originalRefresh(...args);
+          this.reflowRemoteCursors();
+          return result;
+        };
+      }
+      if (typeof lightedDoc.setValue === 'function') {
+        let originalSetValue = lightedDoc.setValue.bind(lightedDoc);
+        lightedDoc.setValue = (...args) => {
+          let result = originalSetValue(...args);
+          this.reflowRemoteCursors();
+          return result;
+        };
+      }
+      if (typeof lightedDoc.refreshMetrics === 'function') {
+        let originalRefreshMetrics = lightedDoc.refreshMetrics.bind(lightedDoc);
+        lightedDoc.refreshMetrics = (...args) => {
+          let result = originalRefreshMetrics(...args);
+          this.reflowRemoteCursors();
+          return result;
+        };
+      }
+      if (typeof lightedDoc.requestMeasure === 'function') {
+        let originalRequestMeasure = lightedDoc.requestMeasure.bind(lightedDoc);
+        lightedDoc.requestMeasure = (...args) => {
+          let result = originalRequestMeasure(...args);
+          requestAnimationFrame(() => this.reflowRemoteCursors());
+          return result;
+        };
+      }
+      this.state.editorHandle = {
+        doc: lightedDoc,
+        destroy: () => {
+          lightedDoc.destroy();
+        },
+      };
       this.state.currentPath = path;
       this.state.currentProject = project;
       let initialText = '';
@@ -375,8 +523,8 @@ export default class CodeEditor {
         initialText = blob ? await blob.text() : '';
       }
       this.state.yBackend?.destroy?.();
-      this.state.yBackend = createYjsBackend({
-        editor,
+      this.state.yBackend = await createYjsBackend({
+        doc: lightedDoc,
         project,
         path,
         initialValue: initialText,
@@ -385,49 +533,44 @@ export default class CodeEditor {
         getRTC: () => state.collab.rtc,
         bus: state.event?.bus,
       });
-      editor.getWrapperElement?.().classList?.add?.('w-full', 'h-full');
-      editor.getDoc?.().clearHistory?.();
-      let syncCursorSelectionClasses = () => {
-        let wrap = editor.getWrapperElement?.();
-        if (!wrap) return;
-        let color = state.collab.rtc?.presence?.find?.(x => x.user === state.collab.uid)?.color || null;
-        let cursor = wrap.querySelector('.CodeMirror-cursor');
-        if (cursor) {
-          for (let cls of [...cursor.classList]) if (/^border-.*!$/.test(cls)) cursor.classList.remove(cls);
-        }
-        wrap.querySelectorAll('.CodeMirror-selected').forEach(sel => {
-          for (let cls of [...sel.classList]) if (/^bg-.*!$/.test(cls)) sel.classList.remove(cls);
-        });
-        if (!color) return;
-        if (cursor) cursor.classList.add(`border-${color}!`);
-        wrap.querySelectorAll('.CodeMirror-selected').forEach(sel => { sel.classList.add(`bg-${color}/30!`) });
-      };
-      this.state.syncLocalCursorStyles = syncCursorSelectionClasses;
-      let handleCursorActivity = () => {
-        queueMicrotask(syncCursorSelectionClasses);
-        this.broadcastCursor();
-      };
-      editor.on('cursorActivity', handleCursorActivity);
-      this.state.cursorStyleHandler = handleCursorActivity;
-      queueMicrotask(syncCursorSelectionClasses);
-      this.attachCursorRTC(state.collab.rtc);
-      this.broadcastCursor(true);
+      lightedDoc.refreshMetrics();
+      lightedDoc.requestMeasure();
+      this.updateEditorTabSize(tabSize);
+      this.updateEditorFontSize(state.settings.opt.codeFontSize || '16px');
+      await this.setEditorKeyMap(state.settings.opt.vim ? 'vim' : 'default');
+      await this.setEditorTheme(state.settings.opt.codeTheme || 'monokai');
       let changeHandler = async () => {
-        if (!this.state.editorHandle?.editor) return;
+        if (!this.state.editorHandle?.doc) return;
+        this.reflowRemoteCursors();
         if (state.collab.uid !== 'master') return;
         await post('codeEditor.change');
       };
-      editor.on('change', changeHandler);
+      lightedDoc.textarea.addEventListener('input', changeHandler);
       this.state.changeHandler = changeHandler;
-      editor.focus();
+      let selectionHandler = () => {
+        queueMicrotask(() => {
+          this.broadcastCursor();
+        });
+      };
+      lightedDoc.textarea.addEventListener('select', selectionHandler);
+      lightedDoc.textarea.addEventListener('keyup', selectionHandler);
+      lightedDoc.textarea.addEventListener('mouseup', selectionHandler);
+      this.state.selectionHandler = selectionHandler;
+      this.attachCursorRTC(state.collab.rtc);
+      this.broadcastCursor(true);
+      this.reflowRemoteCursors();
+      lightedDoc.focus();
     },
 
     reset: async () => {
-      if (this.state.editorHandle?.editor && this.state.changeHandler) {
-        this.state.editorHandle.editor.off('change', this.state.changeHandler);
+      let textarea = this.state.editorHandle?.doc?.textarea;
+      if (textarea && this.state.changeHandler) {
+        textarea.removeEventListener('input', this.state.changeHandler);
       }
-      if (this.state.editorHandle?.editor && this.state.cursorStyleHandler) {
-        this.state.editorHandle.editor.off('cursorActivity', this.state.cursorStyleHandler);
+      if (textarea && this.state.selectionHandler) {
+        textarea.removeEventListener('select', this.state.selectionHandler);
+        textarea.removeEventListener('keyup', this.state.selectionHandler);
+        textarea.removeEventListener('mouseup', this.state.selectionHandler);
       }
       if (this.state.cursorBroadcastTimeout) {
         clearTimeout(this.state.cursorBroadcastTimeout);
@@ -448,11 +591,16 @@ export default class CodeEditor {
       this.clearAllRemoteCursors();
       this.state.yBackend?.destroy?.();
       this.state.yBackend = null;
+      if (this.state.vimBinding) {
+        try {
+          this.state.vimBinding.remove?.();
+        } catch {}
+        this.state.vimBinding = null;
+      }
       this.state.editorHandle?.destroy?.();
       this.state.editorHandle = null;
       this.state.changeHandler = null;
-      this.state.cursorStyleHandler = null;
-      this.state.syncLocalCursorStyles = null;
+      this.state.selectionHandler = null;
       this.state.lastCursorBroadcast = 0;
       this.state.currentPath = null;
       this.state.currentProject = null;
@@ -461,9 +609,10 @@ export default class CodeEditor {
     },
 
     change: debounce(async () => {
-      if (!this.state.editorHandle?.editor || !state.files.current) return;
+      if (!this.state.editorHandle?.doc || !state.files.current) return;
       let type = mimeLookup(state.files.current);
-      await rfiles.save(state.projects.current, state.files.current, new Blob([this.state.editorHandle.editor.getValue()], { type }));
+      let value = this.state.editorHandle.doc.getValue?.() ?? '';
+      await rfiles.save(state.projects.current, state.files.current, new Blob([value], { type }));
     }, 200),
   };
 }
