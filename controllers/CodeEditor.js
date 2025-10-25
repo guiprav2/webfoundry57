@@ -398,6 +398,12 @@ export default class CodeEditor {
       if (this.state.ready) {
         return;
       }
+      document.head.append(d.el('style', `
+        .CodeMirror-cursors { position: absolute !important }
+        .CodeMirror-measure { display: none }
+        .CodeMirror-lines > [role="presentation"] > :nth-child(3) { position: absolute !important; pointer-events: none }
+        .CodeMirror-line { padding-left: 3rem !important }
+      `));
       bus.on('files:select:ready', async ({ path }) => {
         if (!path) {
           await post('codeEditor.reset');
