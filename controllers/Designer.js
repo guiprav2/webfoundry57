@@ -44,7 +44,7 @@ export default class Designer {
       if (frame.preview) path = path.slice('pages/'.length);
       let fullpath = `/${frame.preview ? 'preview' : 'files'}/${sessionStorage.webfoundryTabId}/${name}:${uuid}/${path}`;
       return state.settings.opt.isolate
-        ? `${location.protocol}//${(name || '').toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')}.${location.hostname}:8846${fullpath}?isolate`
+        ? `${location.protocol}//${(name || '').toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')}.${location.hostname.replace(/^www\./, '')}${fullpath}?isolate`
         : fullpath;
     },
 
