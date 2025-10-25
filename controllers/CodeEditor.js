@@ -1,4 +1,4 @@
-import { isMedia } from '../other/util.js';
+import { isMedia, debounce } from '../other/util.js';
 import { mountCodeMirror } from '../other/codemirror.js';
 import rfiles from '../repos/rfiles.js';
 import { lookup as mimeLookup } from 'https://cdn.skypack.dev/mrmime';
@@ -17,11 +17,6 @@ export default class CodeEditor {
     placeholderElement: null,
     editorMount: null,
     editorContainer: null,
-    vimToggle: null,
-    saveButton: null,
-    revertButton: null,
-    pathLabel: null,
-    statusEl: null,
     currentValue: '',
     initialValue: '',
     dirty: false,
@@ -31,8 +26,6 @@ export default class CodeEditor {
     handlersAttached: false,
     busSubscribed: false,
     fallbackTextarea: null,
-    statusMessage: '',
-    statusTone: 'muted',
     recentSaveAt: 0,
   };
 
@@ -55,15 +48,6 @@ export default class CodeEditor {
   };
 
   destroyEditorUI = () => {
-    if (this.state.vimToggle) {
-      this.state.vimToggle.removeEventListener('click', this.handleVimToggle);
-    }
-    if (this.state.saveButton) {
-      this.state.saveButton.removeEventListener('click', this.handleSaveClick);
-    }
-    if (this.state.revertButton) {
-      this.state.revertButton.removeEventListener('click', this.handleRevertClick);
-    }
     if (this.state.editorMount) {
       this.state.editorMount.destroy();
     }
@@ -73,11 +57,6 @@ export default class CodeEditor {
     this.state.hostElement = null;
     this.state.editorMount = null;
     this.state.editorContainer = null;
-    this.state.vimToggle = null;
-    this.state.saveButton = null;
-    this.state.revertButton = null;
-    this.state.pathLabel = null;
-    this.state.statusEl = null;
     this.state.fallbackTextarea = null;
   };
 
@@ -91,41 +70,6 @@ export default class CodeEditor {
     let root = d.el('div', {
       class: 'CodeEditor-root flex h-full flex-col rounded-md border border-slate-800/60 bg-slate-950/70',
     });
-    let toolbar = d.el('div', {
-      class: 'CodeEditor-toolbar flex items-center gap-3 border-b border-slate-800/60 px-3 py-2 text-xs text-slate-200',
-    });
-    let pathLabel = d.el('div', {
-      class: 'CodeEditor-path flex-1 truncate font-mono text-sm text-slate-100',
-    });
-    let right = d.el('div', {
-      class: 'flex items-center gap-2',
-    });
-    let statusEl = d.el('div', {
-      class: 'CodeEditor-status text-xs text-slate-400 opacity-0 transition-opacity',
-    });
-    let buttonGroup = d.el('div', {
-      class: 'flex items-center gap-2',
-    });
-    let vimToggle = d.el('button', {
-      type: 'button',
-      class: 'CodeEditor-vimToggle outline-none rounded border border-slate-700/70 px-3 py-1 text-xs bg-slate-900/70 hover:bg-slate-900 transition-colors',
-      textContent: 'Vim Off',
-    });
-    vimToggle.setAttribute('aria-pressed', 'false');
-    let revertButton = d.el('button', {
-      type: 'button',
-      class: 'CodeEditor-revert outline-none rounded px-3 py-1 text-xs bg-slate-800/70 hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:hover:bg-slate-800',
-      textContent: 'Revert',
-    });
-    let saveButton = d.el('button', {
-      type: 'button',
-      class: 'CodeEditor-save outline-none rounded px-3 py-1 text-xs bg-[#0071b2] hover:bg-[#008ad9] transition-colors disabled:opacity-50 disabled:hover:bg-[#0071b2]',
-      textContent: 'Save',
-      disabled: true,
-    });
-    buttonGroup.append(vimToggle, revertButton, saveButton);
-    right.append(statusEl, buttonGroup);
-    toolbar.append(pathLabel, right);
     let editorContainer = d.el('div', {
       class: 'CodeEditor-editor relative flex flex-1 min-h-0 overflow-hidden',
     });
@@ -133,18 +77,10 @@ export default class CodeEditor {
       class: 'CodeEditor-editorInner flex-1 min-h-0',
     });
     editorContainer.append(editorInner);
-    root.append(toolbar, editorContainer);
+    root.append(editorContainer);
     wrapper.replaceChildren(root);
-    vimToggle.addEventListener('click', this.handleVimToggle);
-    revertButton.addEventListener('click', this.handleRevertClick);
-    saveButton.addEventListener('click', this.handleSaveClick);
     this.state.hostElement = root;
     this.state.editorContainer = editorInner;
-    this.state.vimToggle = vimToggle;
-    this.state.saveButton = saveButton;
-    this.state.revertButton = revertButton;
-    this.state.pathLabel = pathLabel;
-    this.state.statusEl = statusEl;
     return root;
   };
 
@@ -220,24 +156,20 @@ export default class CodeEditor {
     }
     this.state.currentValue = value;
     this.updateDirtyState();
+    this.scheduleSave();
   };
 
   handleFallbackInput = ev => {
     this.state.currentValue = ev.target.value;
     this.updateDirtyState();
+    this.scheduleSave();
   };
 
   updateDirtyState = () => {
     let dirty = this.state.currentValue !== this.state.initialValue;
     if (dirty !== this.state.dirty) {
       this.state.dirty = dirty;
-      if (dirty) {
-        this.setStatus('Unsaved changes', 'warn');
-      } else if (!this.state.loading && !this.state.saving) {
-        this.setStatus('All changes saved', 'success');
-      }
     }
-    this.updateToolbar();
   };
 
   getCurrentValue = () => {
@@ -254,49 +186,19 @@ export default class CodeEditor {
     return '';
   };
 
-  setStatus = (message, tone = 'muted') => {
-    this.state.statusMessage = message || '';
-    this.state.statusTone = tone;
-    if (!this.state.statusEl) {
+  scheduleSave = () => {
+    if (!this.state.dirty || this.state.loading || this.state.saving) {
       return;
     }
-    let el = this.state.statusEl;
-    el.textContent = this.state.statusMessage;
-    el.classList.remove('text-slate-400', 'text-yellow-400', 'text-green-400', 'text-red-400');
-    let toneClass = 'text-slate-400';
-    if (tone === 'warn') toneClass = 'text-yellow-400';
-    else if (tone === 'success') toneClass = 'text-green-400';
-    else if (tone === 'error') toneClass = 'text-red-400';
-    el.classList.add(toneClass);
-    el.classList.toggle('opacity-0', !this.state.statusMessage);
-  };
-
-  updateToolbar = () => {
-    if (this.state.pathLabel) {
-      let projectName = this.state.currentProject ? this.state.currentProject.split(':')[0] : '';
-      let label = this.state.currentPath || '';
-      if (projectName && label) {
-        label = `${projectName}/${label}`;
-      }
-      if (!label) {
-        label = 'No file selected';
-      }
-      this.state.pathLabel.textContent = label;
+    if (!this.debouncedAutoSave) {
+      this.debouncedAutoSave = debounce(async () => {
+        if (!this.state.dirty || this.state.loading || this.state.saving) {
+          return;
+        }
+        await this.actions.save({ reason: 'auto' });
+      }, 200);
     }
-    if (this.state.saveButton) {
-      let disabled = !this.state.dirty || this.state.loading || this.state.saving;
-      this.state.saveButton.disabled = !!disabled;
-      this.state.saveButton.textContent = this.state.saving ? 'Saving…' : 'Save';
-    }
-    if (this.state.revertButton) {
-      let disabled = !this.state.currentPath || this.state.loading;
-      this.state.revertButton.disabled = !!disabled;
-    }
-    if (this.state.vimToggle) {
-      let enabled = !!state.settings?.opt?.vim;
-      this.state.vimToggle.textContent = enabled ? 'Vim On' : 'Vim Off';
-      this.state.vimToggle.setAttribute('aria-pressed', enabled ? 'true' : 'false');
-    }
+    this.debouncedAutoSave();
   };
 
   applyVim = async () => {
@@ -304,7 +206,6 @@ export default class CodeEditor {
     if (this.state.editorMount) {
       await this.state.editorMount.setKeyMap(enabled ? 'vim' : 'default');
     }
-    this.updateToolbar();
   };
 
   handleSettingsOption = async ({ k }) => {
@@ -312,19 +213,6 @@ export default class CodeEditor {
       return;
     }
     await this.applyVim();
-  };
-
-  handleVimToggle = async () => {
-    await post('settings.option', 'vim');
-    await this.applyVim();
-  };
-
-  handleSaveClick = async () => {
-    await this.actions.save();
-  };
-
-  handleRevertClick = async () => {
-    await this.actions.revert();
   };
 
   handleKeyDown = ev => {
@@ -345,35 +233,6 @@ export default class CodeEditor {
     }
   };
 
-  handleFileChange = async ({ path }) => {
-    if (!this.state.currentProject || !this.state.currentPath) {
-      return;
-    }
-    if (!path) {
-      return;
-    }
-    let projectName = this.state.currentProject.split(':')[0];
-    if (!path.startsWith(`${projectName}/`)) {
-      return;
-    }
-    let relative = path.slice(projectName.length + 1);
-    if (relative !== this.state.currentPath) {
-      return;
-    }
-    let now = performance.now();
-    if (this.state.recentSaveAt && now - this.state.recentSaveAt < 750) {
-      return;
-    }
-    if (this.state.dirty) {
-      this.state.externalChange = true;
-      this.setStatus('File changed elsewhere. Revert to reload.', 'warn');
-      this.updateToolbar();
-      return;
-    }
-    await this.actions.open();
-    this.setStatus('Reloaded updated file', 'muted');
-  };
-
   attachHandlers = () => {
     if (!this.state.handlersAttached) {
       addEventListener('keydown', this.handleKeyDown);
@@ -383,7 +242,6 @@ export default class CodeEditor {
       let bus = state.event?.bus;
       if (bus) {
         bus.on('settings:global:option:ready', this.handleSettingsOption);
-        bus.on('files:change', this.handleFileChange);
         this.state.busSubscribed = true;
       }
     }
@@ -419,7 +277,6 @@ export default class CodeEditor {
         queueMicrotask(async () => await post('codeEditor.open'));
         return;
       }
-      this.renderPlaceholder('Select a file to open it.');
     },
 
     open: async () => {
@@ -434,7 +291,6 @@ export default class CodeEditor {
         return;
       }
       this.state.loading = true;
-      this.setStatus('Loading…', 'muted');
       this.renderPlaceholder(`Loading ${path}…`);
       try {
         let blob = await rfiles.load(project, path);
@@ -456,14 +312,11 @@ export default class CodeEditor {
         await this.mountEditor(text, path);
         await this.applyVim();
         this.state.loading = false;
-        this.setStatus('All changes saved', 'success');
-        this.updateToolbar();
       } catch (err) {
         console.error(err);
         this.state.loading = false;
         this.state.currentProject = null;
         this.state.currentPath = null;
-        this.setStatus('Failed to load file', 'error');
         this.renderPlaceholder('Failed to load file.');
       }
     },
@@ -477,13 +330,10 @@ export default class CodeEditor {
       this.state.loading = false;
       this.state.saving = false;
       this.state.externalChange = false;
-      this.state.statusMessage = '';
-      this.state.statusTone = 'muted';
       this.destroyEditorUI();
-      this.renderPlaceholder('Select a file to open it.');
     },
 
-    save: async () => {
+    save: async ({ reason } = {}) => {
       if (!this.state.currentProject || !this.state.currentPath) {
         return;
       }
@@ -492,13 +342,10 @@ export default class CodeEditor {
       }
       this.state.currentValue = this.getCurrentValue();
       if (!this.state.dirty && this.state.currentValue === this.state.initialValue) {
-        this.updateToolbar();
         return;
       }
       this.state.saving = true;
       this.state.externalChange = false;
-      this.setStatus('Saving…', 'muted');
-      this.updateToolbar();
       try {
         let project = this.state.currentProject;
         let path = this.state.currentPath;
@@ -512,8 +359,6 @@ export default class CodeEditor {
         this.state.initialValue = value;
         this.state.dirty = false;
         this.state.recentSaveAt = performance.now();
-        this.setStatus('All changes saved', 'success');
-        this.updateToolbar();
         let projectName = project.split(':')[0];
         let bus = state.event?.bus;
         if (bus) {
@@ -521,10 +366,8 @@ export default class CodeEditor {
         }
       } catch (err) {
         console.error(err);
-        this.setStatus('Save failed', 'error');
       } finally {
         this.state.saving = false;
-        this.updateToolbar();
       }
     },
 
