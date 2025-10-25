@@ -3,6 +3,7 @@ import '../other/util.js';
 export default class App {
   actions = {
     init: async () => {
+      if (!location.hostname.includes('localhost') && location.hostname !== 'www.webfoundry.app') return location.href = 'https://webfoundry.app/';
       this.state.demo = location.search.includes('demo');
       if (this.state.demo) document.body.classList.add('text-xs');
       if (top === window) {
