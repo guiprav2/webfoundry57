@@ -12,6 +12,7 @@
         ? location.pathname.split('/').slice(0, 4).join('/')
         : '/';
     </script>
+    <script type="module" src="../webfoundry/ifdesigner.js"></script>
     <script src="../webfoundry/head.js"></script>
   </head>
   <body
@@ -38,12 +39,14 @@
         <button
           class="outline-none border-b border-black/50 transition-all hover:bg-black/70 w-12 md:w-16 h-12 md:h-16 gfont-[Pacifico] IconsSidebar-wfBtn"
           wf-if="!loadman.busy()"
+          value=""
         >
           wf</button
         ><button
           class="outline-none nf border-b border-black/50 transition-all hover:bg-black/70 w-12 md:w-16 h-12 md:h-16 gfont-[Pacifico] relative flex justify-center IconsSidebar-spinner items-center"
           wf-if="loadman.busy()"
           hidden=""
+          value=""
         >
           <img src="../media/loading.svg" class="w-12" />
           <div
@@ -56,12 +59,14 @@
           class="outline-none nf border-b border-black/50 transition-all hover:bg-black/70 w-12 md:w-16 h-12 md:h-16 IconsSidebar-projectsBtn nf-fa-sitemap"
           wf-class="{{state.app.panel === 'projects' &amp;&amp; 'bg-black/70'}}"
           wf-onclick="post('app.selectPanel', 'projects')"
+          value=""
         ></button>
         <button
           class="outline-none nf border-b border-black/50 transition-all hover:bg-black/70 w-12 md:w-16 h-12 md:h-16 IconsSidebar-filesBtn nf-fa-folder"
           wf-class="{{state.app.panel === 'files' &amp;&amp; 'bg-black/70'}}"
           wf-onclick="post('app.selectPanel', 'files')"
           wf-if="state.projects.current &amp;&amp; !loadman.ops['files.load']?.length"
+          value=""
         ></button>
 
         <button
@@ -69,35 +74,41 @@
           wf-class="{{state.app.panel === 'styles' &amp;&amp; 'bg-black/70'}}"
           wf-onclick="post('app.selectPanel', 'styles')"
           wf-if="state.designer.open &amp;&amp; !state.designer.current?.preview"
+          value=""
         ></button>
         <button
           class="outline-none nf border-b border-black/50 transition-all hover:bg-black/70 w-12 md:w-16 h-12 md:h-16 nf-oct-command_palette IconsSidebar-shellBtn"
           wf-class="{{state.shell.open &amp;&amp; 'bg-black/70'}}"
           wf-onclick="post('shell.toggle')"
           wf-if="/^connected|auth_fail$/.test(state.companion.client?.status) || state.shell.list.length"
+          value=""
         ></button>
         <button
           class="outline-none nf border-b border-black/50 transition-all hover:bg-black/70 w-12 md:w-16 h-12 md:h-16 IconsSidebar-playBtn nf-fa-play"
           wf-if="state.designer.open &amp;&amp; !state.designer.current?.preview"
           wf-onclick="post('designer.togglePreview')"
+          value=""
         ></button>
 
         <button
           class="outline-none nf border-b border-black/50 transition-all hover:bg-black/70 w-12 md:w-16 h-12 md:h-16 nf-fa-pause IconsSidebar-pauseBtn"
           wf-if="state.designer.open &amp;&amp; state.designer.current?.preview"
           wf-onclick="post('designer.togglePreview')"
+          value=""
         ></button>
 
         <button
           class="outline-none nf border-b border-black/50 transition-all hover:bg-black/70 w-12 md:w-16 h-12 md:h-16 nf-md-dots_vertical_circle IconsSidebar-settingsBtn"
           wf-class="{{state.app.panel === 'settings' &amp;&amp; 'bg-black/70'}}"
           wf-onclick="post('app.selectPanel', 'settings')"
+          value=""
         ></button
         ><button
           class="outline-none nf border-b border-black/50 transition-all hover:bg-black/70 w-12 md:w-16 h-12 md:h-16 IconsSidebar-closeBtn nf-oct-x"
           wf-class="{{state.app.panel === 'settings' &amp;&amp; 'bg-black/70'}}"
           wf-onclick="post('app.selectPanel', null)"
           wf-if="state.app.panel"
+          value=""
         ></button>
       </div>
 
@@ -120,6 +131,7 @@
             <div class="relative inline-block group">
               <button
                 class="px-3 outline-none focus:ring ring-neutral-600 text-white rounded flex items-center justify-between py-1 w-36"
+                value=""
               >
                 <span class="text-sm">Manipulation</span
                 ><span class="nf nf-fa-angle_down relative top-0.5"></span>
@@ -132,11 +144,13 @@
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toolbar', 'manipulation')"
+                    value=""
                   >
                     <div>Manipulation</div></button
                   ><button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toolbar', 'tailwind')"
+                    value=""
                   >
                     <div>Tailwind</div>
                   </button>
@@ -146,6 +160,7 @@
             <div class="relative inline-block group">
               <button
                 class="px-3 outline-none focus:ring ring-neutral-600 text-white rounded flex items-center justify-between w-24 py-1"
+                value=""
               >
                 <span class="text-sm">History</span
                 ><span class="nf nf-fa-angle_down relative top-0.5"></span>
@@ -158,6 +173,7 @@
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toolbar', 'undo')"
+                    value=""
                   >
                     <div>Undo</div>
                     <div
@@ -169,6 +185,7 @@
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toolbar', 'redo')"
+                    value=""
                   >
                     <div>Redo</div>
                     <div
@@ -183,6 +200,7 @@
             <div class="relative inline-block group">
               <button
                 class="px-3 outline-none focus:ring ring-neutral-600 text-white rounded flex items-center justify-between w-24 py-1"
+                value=""
               >
                 <span class="text-sm">Cursor</span
                 ><span class="nf nf-fa-angle_down relative top-0.5"></span>
@@ -195,6 +213,7 @@
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toolbar', 'selectParentElement')"
+                    value=""
                   >
                     <div>Parent</div>
                     <div
@@ -207,6 +226,7 @@
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toolbar', 'selectNextSibling')"
+                    value=""
                   >
                     <div>Next</div>
                     <div
@@ -218,6 +238,7 @@
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toolbar', 'selectPrevSibling')"
+                    value=""
                   >
                     <div>Previous</div>
                     <div
@@ -229,6 +250,7 @@
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toolbar', 'selectFirstChild')"
+                    value=""
                   >
                     <div>First Child</div>
                     <div
@@ -240,6 +262,7 @@
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toolbar', 'selectLastChild')"
+                    value=""
                   >
                     <div>Last Child</div>
                     <div
@@ -254,6 +277,7 @@
             <div class="relative inline-block group">
               <button
                 class="px-3 outline-none focus:ring ring-neutral-600 text-white rounded flex items-center justify-between w-24 py-1"
+                value=""
               >
                 <span class="text-sm">Create</span
                 ><span class="nf nf-fa-angle_down relative top-0.5"></span>
@@ -266,6 +290,7 @@
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toolbar', 'createFirstChild')"
+                    value=""
                   >
                     <div>Inside</div>
                     <div
@@ -277,6 +302,7 @@
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toolbar', 'createLastChild')"
+                    value=""
                   >
                     <div>Inside (last)</div>
                     <div
@@ -288,6 +314,7 @@
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toolbar', 'createNextSibling')"
+                    value=""
                   >
                     <div>After</div>
                     <div
@@ -299,6 +326,7 @@
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toolbar', 'createPrevSibling')"
+                    value=""
                   >
                     <div>Before</div>
                     <div
@@ -310,6 +338,7 @@
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toolbar', 'wrap')"
+                    value=""
                   >
                     <div>Wrap</div>
                     <div
@@ -321,6 +350,7 @@
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toolbar', 'unwrap')"
+                    value=""
                   >
                     <div>Unwrap</div>
                     <div
@@ -338,6 +368,7 @@
             >
               <button
                 class="px-3 outline-none focus:ring ring-neutral-600 text-white rounded flex items-center justify-between w-24 py-1"
+                value=""
               >
                 <span class="text-sm">Paste</span
                 ><span class="nf nf-fa-angle_down relative top-0.5"></span>
@@ -350,6 +381,7 @@
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toolbar', 'pasteNextSibling')"
+                    value=""
                   >
                     <div>After</div>
                     <div
@@ -361,6 +393,7 @@
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toolbar', 'pastePrevSibling')"
+                    value=""
                   >
                     <div>Before</div>
                     <div
@@ -372,6 +405,7 @@
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toolbar', 'pasteLastChild')"
+                    value=""
                   >
                     <div>Last Child</div>
                     <div
@@ -383,6 +417,7 @@
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toolbar', 'pasteFirstChild')"
+                    value=""
                   >
                     <div>First Child</div>
                     <div
@@ -398,6 +433,7 @@
             <div class="relative inline-block group">
               <button
                 class="px-3 outline-none focus:ring ring-neutral-600 text-white rounded flex items-center justify-between py-1 w-32"
+                value=""
               >
                 <span class="text-sm">Element</span
                 ><span class="nf nf-fa-angle_down relative top-0.5"></span>
@@ -410,6 +446,7 @@
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toolbar', 'changeElementId')"
+                    value=""
                   >
                     <div>ID</div>
                     <div
@@ -421,6 +458,7 @@
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toolbar', 'changeElementTag')"
+                    value=""
                   >
                     <div>Tag</div>
                     <div
@@ -432,6 +470,7 @@
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toolbar', 'changeHtml')"
+                    value=""
                   >
                     <div>HTML</div>
                     <div
@@ -443,6 +482,7 @@
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toolbar', 'changeInnerHtml')"
+                    value=""
                   >
                     <div>Inner HTML</div>
                     <div
@@ -455,6 +495,7 @@
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-if="state.designer.current.cursors[state.collab.uid]?.some?.(x =&gt; /^input|textarea$/.test(state.designer.current.map.get(x).tagName.toLowerCase()))"
                     wf-onclick="post('designer.toolbar', 'changeInputPlaceholder')"
+                    value=""
                   >
                     <div>Placeholder</div>
                     <div
@@ -467,6 +508,7 @@
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-if="state.designer.current.cursors[state.collab.uid]?.some?.(x =&gt; state.designer.current.map.get(x).tagName === 'FORM')"
                     wf-onclick="post('designer.toolbar', 'changeFormMethod')"
+                    value=""
                   >
                     <div>Form Method</div>
                     <div
@@ -479,6 +521,7 @@
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toolbar', 'toggleHidden')"
+                    value=""
                   >
                     <div>Toggle hidden</div>
                     <div
@@ -490,6 +533,7 @@
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toolbar', 'normalizeStylesUnion')"
+                    value=""
                   >
                     <div>Normalize (union)</div>
                     <div
@@ -500,6 +544,7 @@
                   ><button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toolbar', 'normalizeStylesIntersect')"
+                    value=""
                   >
                     <div>Normalize (intersect)</div>
                     <div
@@ -514,6 +559,7 @@
             <div class="relative inline-block group">
               <button
                 class="px-3 outline-none focus:ring ring-neutral-600 text-white rounded flex items-center justify-between py-1 w-36"
+                value=""
               >
                 <span class="text-sm">Text &amp; Media</span
                 ><span class="nf nf-fa-angle_down relative top-0.5"></span>
@@ -526,6 +572,7 @@
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toolbar', 'replaceTextContent')"
+                    value=""
                   >
                     <div>Single line</div>
                     <div
@@ -537,6 +584,7 @@
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toolbar', 'replaceMultilineTextContent')"
+                    value=""
                   >
                     <div>Multiline</div>
                     <div
@@ -548,6 +596,7 @@
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toolbar', 'changeLinkUrl')"
+                    value=""
                   >
                     <div>Link URL</div>
                     <div
@@ -560,6 +609,7 @@
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toolbar', 'changeMediaSrc')"
+                    value=""
                   >
                     <div>Media URL</div>
                     <div
@@ -572,6 +622,7 @@
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toolbar', 'changeMediaFromGallery')"
+                    value=""
                   >
                     <div>Media Gallery</div>
                     <div
@@ -584,6 +635,7 @@
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toolbar', 'changeBackgroundUrl')"
+                    value=""
                   >
                     <div>Background URL</div>
                     <div
@@ -596,6 +648,7 @@
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toolbar', 'changeBackgroundFromGallery')"
+                    value=""
                   >
                     <div>Background Gallery</div>
                     <div
@@ -610,6 +663,7 @@
             <div class="relative inline-block group">
               <button
                 class="px-3 outline-none focus:ring ring-neutral-600 text-white rounded flex items-center justify-between py-1 w-32"
+                value=""
               >
                 <span class="text-sm">JavaScript</span
                 ><span class="nf nf-fa-angle_down relative top-0.5"></span>
@@ -622,6 +676,7 @@
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toolbar', 'setIfExpression')"
+                    value=""
                   >
                     <div>Conditional</div>
                     <div
@@ -633,6 +688,7 @@
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toolbar', 'setMapExpression')"
+                    value=""
                   >
                     <div>Map</div>
                     <div
@@ -644,6 +700,7 @@
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toolbar', 'setEventHandlers')"
+                    value=""
                   >
                     <div>Event Handlers</div>
                     <div
@@ -656,6 +713,7 @@
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toolbar', 'setDisabledExpression')"
+                    value=""
                   >
                     <div>Disabled</div>
                     <div
@@ -670,6 +728,7 @@
             <div class="relative inline-block group">
               <button
                 class="px-3 outline-none focus:ring ring-neutral-600 text-white rounded flex items-center justify-between py-1 w-32"
+                value=""
               >
                 <span class="text-sm truncate">{{state.designer.tagLabel}}</span
                 ><span class="nf nf-fa-angle_down relative top-0.5"></span>
@@ -682,18 +741,21 @@
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toolbar', 'changeElementTag')"
+                    value=""
                   >
                     &lt;custom&gt;
                   </button>
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toolbar', 'changeElementTag', { tag: 'div' })"
+                    value=""
                   >
                     &lt;div&gt;
                   </button>
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toolbar', 'changeElementTag', { tag: 'span' })"
+                    value=""
                   >
                     &lt;span&gt;
                   </button>
@@ -701,6 +763,7 @@
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toolbar', 'changeElementTag', { tag: 'a' })"
                     }=""
+                    value=""
                   >
                     &lt;a&gt;
                   </button>
@@ -708,180 +771,210 @@
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toolbar', 'changeElementTag', { tag: 'p' })"
                     }=""
+                    value=""
                   >
                     &lt;p&gt;
                   </button>
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toolbar', 'changeElementTag', { tag: 'button' })"
+                    value=""
                   >
                     &lt;button&gt;
                   </button>
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toolbar', 'changeElementTag', { tag: 'input' })"
+                    value=""
                   >
                     &lt;input&gt;
                   </button>
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toolbar', 'changeElementTag', { tag: 'form' })"
+                    value=""
                   >
                     &lt;form&gt;
                   </button>
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toolbar', 'changeElementTag', { tag: 'label' })"
+                    value=""
                   >
                     &lt;label&gt;
                   </button>
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toolbar', 'changeElementTag', { tag: 'textarea' })"
+                    value=""
                   >
                     &lt;textarea&gt;
                   </button>
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toolbar', 'changeElementTag', { tag: 'ul' })"
+                    value=""
                   >
                     &lt;ul&gt;
                   </button>
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toolbar', 'changeElementTag', { tag: 'ol' })"
+                    value=""
                   >
                     &lt;ol&gt;
                   </button>
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toolbar', 'changeElementTag', { tag: 'li' })"
+                    value=""
                   >
                     &lt;li&gt;
                   </button>
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toolbar', 'changeElementTag', { tag: 'img' })"
+                    value=""
                   >
                     &lt;img&gt;
                   </button>
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toolbar', 'changeElementTag', { tag: 'section' })"
+                    value=""
                   >
                     &lt;section&gt;
                   </button>
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toolbar', 'changeElementTag', { tag: 'article' })"
+                    value=""
                   >
                     &lt;article&gt;
                   </button>
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toolbar', 'changeElementTag', { tag: 'header' })"
+                    value=""
                   >
                     &lt;header&gt;
                   </button>
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toolbar', 'changeElementTag', { tag: 'footer' })"
+                    value=""
                   >
                     &lt;footer&gt;
                   </button>
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toolbar', 'changeElementTag', { tag: 'nav' })"
+                    value=""
                   >
                     &lt;nav&gt;
                   </button>
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toolbar', 'changeElementTag', { tag: 'main' })"
+                    value=""
                   >
                     &lt;main&gt;
                   </button>
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toolbar', 'changeElementTag', { tag: 'h1' })"
+                    value=""
                   >
                     &lt;h1&gt;
                   </button>
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toolbar', 'changeElementTag', { tag: 'h2' })"
+                    value=""
                   >
                     &lt;h2&gt;
                   </button>
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toolbar', 'changeElementTag', { tag: 'h3' })"
+                    value=""
                   >
                     &lt;h3&gt;
                   </button>
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toolbar', 'changeElementTag', { tag: 'h4' })"
+                    value=""
                   >
                     &lt;h4&gt;
                   </button>
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toolbar', 'changeElementTag', { tag: 'h5' })"
+                    value=""
                   >
                     &lt;h5&gt;
                   </button>
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toolbar', 'changeElementTag', { tag: 'h6' })"
+                    value=""
                   >
                     &lt;h6&gt;
                   </button>
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toolbar', 'changeElementTag', { tag: 'br' })"
+                    value=""
                   >
                     &lt;br&gt;
                   </button>
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toolbar', 'changeElementTag', { tag: 'hr' })"
+                    value=""
                   >
                     &lt;hr&gt;
                   </button>
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toolbar', 'changeElementTag', { tag: 'table' })"
+                    value=""
                   >
                     &lt;table&gt;
                   </button>
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toolbar', 'changeElementTag', { tag: 'thead' })"
+                    value=""
                   >
                     &lt;thead&gt;
                   </button>
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toolbar', 'changeElementTag', { tag: 'tbody' })"
+                    value=""
                   >
                     &lt;tbody&gt;
                   </button>
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toolbar', 'changeElementTag', { tag: 'tr' })"
+                    value=""
                   >
                     &lt;tr&gt;
                   </button>
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toolbar', 'changeElementTag', { tag: 'td' })"
+                    value=""
                   >
                     &lt;td&gt;
                   </button>
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toolbar', 'changeElementTag', { tag: 'th' })"
+                    value=""
                   >
                     &lt;th&gt;
                   </button>
@@ -893,16 +986,19 @@
               <button
                 class="nf outline-none nf-md-refresh p-1.5"
                 wf-onclick="post('designer.toolbar', 'refresh')"
+                value=""
               ></button>
 
               <button
                 class="nf nf-fa-clone outline-none p-1.5"
                 wf-onclick="post('designer.toolbar', 'copySelected')"
+                value=""
               ></button>
 
               <button
                 class="nf nf-oct-x outline-none p-1.5"
                 wf-onclick="post('designer.toolbar', 'deleteSelected')"
+                value=""
               ></button>
             </div>
           </div>
@@ -914,6 +1010,7 @@
             <div class="relative inline-block group">
               <button
                 class="px-3 outline-none focus:ring ring-neutral-600 text-white rounded flex items-center justify-between py-1 w-26"
+                value=""
               >
                 <span class="text-sm">Tailwind</span
                 ><span class="nf nf-fa-angle_down relative top-0.5"></span>
@@ -926,11 +1023,13 @@
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toolbar', 'manipulation')"
+                    value=""
                   >
                     <div>Manipulation</div></button
                   ><button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toolbar', 'tw')"
+                    value=""
                   >
                     <div>Tailwind</div>
                   </button>
@@ -941,6 +1040,7 @@
               <button
                 class="px-3 outline-none focus:ring ring-neutral-600 text-white rounded flex items-center justify-between py-1 w-32"
                 id="GFontFocus"
+                value=""
               >
                 <span class="text-sm">Font Family</span
                 ><span class="nf nf-fa-angle_down relative top-0.5"></span>
@@ -957,31 +1057,37 @@
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                       wf-onclick="post('designer.toggleCssClass', null, 'gfont')"
+                      value=""
                     >
                       <div>Unset</div></button
                     ><button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                       wf-onclick="post('designer.gfontCategory', 'Serif')"
+                      value=""
                     >
                       <div>Serif</div></button
                     ><button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                       wf-onclick="post('designer.gfontCategory', 'Sans-serif')"
+                      value=""
                     >
                       <div>Sans-serif</div></button
                     ><button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                       wf-onclick="post('designer.gfontCategory', 'Monospace')"
+                      value=""
                     >
                       <div>Monospace</div></button
                     ><button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                       wf-onclick="post('designer.gfontCategory', 'Display')"
+                      value=""
                     >
                       <div>Display</div></button
                     ><button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                       wf-onclick="post('designer.gfontCategory', 'Handwriting')"
+                      value=""
                     >
                       <div>Handwriting</div>
                     </button>
@@ -993,6 +1099,7 @@
                     <button
                       class="w-full text-left px-3 py-2 flex items-center gap-2 outline-none"
                       wf-onclick="post('designer.gfontCategory', null)"
+                      value=""
                     >
                       <div class="nf nf-md-chevron_left relative top-0.5"></div>
                       <div>{{state.designer.gfontCategory}}</div></button
@@ -1000,6 +1107,7 @@
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                       wf-if="!/display|handwriting/i.test(state.designer.gfontCategory)"
                       wf-onclick="post('designer.toggleCssClass', { 'Sans-serif': 'font-sans', Serif: 'font-serif', Monospace: 'font-mono' }[state.designer.gfontCategory])"
+                      value=""
                     >
                       <div>Use default</div>
                       <div
@@ -1012,6 +1120,7 @@
                       class="w-full bg-transparent outline-none px-3 py-2"
                       placeholder="Search fonts..."
                       wf-onkeyup="post('designer.gfontKeyUp', event)"
+                      value=""
                     />
                   </div>
                   <div class="max-h-96 overflow-auto *:hover:bg-[#091017]">
@@ -1020,6 +1129,7 @@
                       wf-map="x of state.designer.gfonts || []"
                       wf-onattach="post('designer.gfontSample', _1, x.name)"
                       wf-onclick="post('designer.toggleCssClass', `gfont-[${x.name.replaceAll(' ', '_')}]`, 'gfont')"
+                      value=""
                     >
                       <div>{{x.name}}</div>
                       <div
@@ -1037,6 +1147,7 @@
             <div class="relative inline-block group">
               <button
                 class="px-3 outline-none focus:ring ring-neutral-600 text-white rounded flex items-center justify-between py-1 w-32"
+                value=""
               >
                 <span class="text-sm">Text Size</span
                 ><span class="nf nf-fa-angle_down relative top-0.5"></span>
@@ -1048,6 +1159,7 @@
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toggleCssClass', 'text-xs', 'textSize')"
+                    value=""
                   >
                     <div>Extra Small</div>
                     <div
@@ -1060,6 +1172,7 @@
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toggleCssClass', 'text-sm', 'textSize')"
+                    value=""
                   >
                     <div>Small</div>
                     <div
@@ -1072,6 +1185,7 @@
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toggleCssClass', 'text-base', 'textSize')"
+                    value=""
                   >
                     <div>Base</div>
                     <div
@@ -1084,6 +1198,7 @@
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toggleCssClass', 'text-md', 'textSize')"
+                    value=""
                   >
                     <div>Medium</div>
                     <div
@@ -1096,6 +1211,7 @@
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toggleCssClass', 'text-lg', 'textSize')"
+                    value=""
                   >
                     <div>Large</div>
                     <div
@@ -1108,6 +1224,7 @@
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toggleCssClass', 'text-xl', 'textSize')"
+                    value=""
                   >
                     <div>Extra Large</div>
                     <div
@@ -1120,6 +1237,7 @@
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toggleCssClass', 'text-2xl', 'textSize')"
+                    value=""
                   >
                     <div>2 Extra Large</div>
                     <div
@@ -1132,6 +1250,7 @@
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toggleCssClass', 'text-3xl', 'textSize')"
+                    value=""
                   >
                     <div>3 Extra Large</div>
                     <div
@@ -1144,6 +1263,7 @@
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toggleCssClass', 'text-4xl', 'textSize')"
+                    value=""
                   >
                     <div>4 Extra Large</div>
                     <div
@@ -1156,6 +1276,7 @@
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toggleCssClass', 'text-5xl', 'textSize')"
+                    value=""
                   >
                     <div>5 Extra Large</div>
                     <div
@@ -1168,6 +1289,7 @@
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toggleCssClass', 'text-6xl', 'textSize')"
+                    value=""
                   >
                     <div>6 Extra Large</div>
                     <div
@@ -1180,6 +1302,7 @@
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toggleCssClass', 'text-7xl', 'textSize')"
+                    value=""
                   >
                     <div>7 Extra Large</div>
                     <div
@@ -1195,6 +1318,7 @@
             <div class="relative inline-block group">
               <button
                 class="px-3 outline-none focus:ring ring-neutral-600 text-white rounded flex items-center justify-between py-1 w-32"
+                value=""
               >
                 <span class="text-sm">Font Style</span
                 ><span class="nf nf-fa-angle_down relative top-0.5"></span>
@@ -1206,6 +1330,7 @@
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toggleCssClass', 'font-thin', 'fontWeight')"
+                    value=""
                   >
                     <div>Thin</div>
                     <div
@@ -1217,6 +1342,7 @@
                   ><button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toggleCssClass', 'font-extralight', 'fontWeight')"
+                    value=""
                   >
                     <div>Extra Light</div>
                     <div
@@ -1228,6 +1354,7 @@
                   ><button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toggleCssClass', 'font-light', 'fontWeight')"
+                    value=""
                   >
                     <div>Light</div>
                     <div
@@ -1239,6 +1366,7 @@
                   ><button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toggleCssClass', 'font-normal', 'fontWeight')"
+                    value=""
                   >
                     <div>Normal</div>
                     <div
@@ -1250,6 +1378,7 @@
                   ><button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toggleCssClass', 'font-medium', 'fontWeight')"
+                    value=""
                   >
                     <div>Medium</div>
                     <div
@@ -1261,6 +1390,7 @@
                   ><button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toggleCssClass', 'font-semibold', 'fontWeight')"
+                    value=""
                   >
                     <div>Semibold</div>
                     <div
@@ -1272,6 +1402,7 @@
                   ><button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toggleCssClass', 'font-bold', 'fontWeight')"
+                    value=""
                   >
                     <div>Bold</div>
                     <div
@@ -1283,6 +1414,7 @@
                   ><button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toggleCssClass', 'italic', 'italic')"
+                    value=""
                   >
                     <div>Italic</div>
                     <div
@@ -1294,6 +1426,7 @@
                   ><button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toggleCssClass', 'not-italic', 'italic')"
+                    value=""
                   >
                     <div>Not Italic</div>
                     <div
@@ -1305,6 +1438,7 @@
                   ><button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toggleCssClass', 'underline', 'decoration')"
+                    value=""
                   >
                     <div>Underline</div>
                     <div
@@ -1316,6 +1450,7 @@
                   ><button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toggleCssClass', 'line-through', 'decoration')"
+                    value=""
                   >
                     <div>Line Through</div>
                     <div
@@ -1331,6 +1466,7 @@
             <div class="relative inline-block group">
               <button
                 class="px-3 outline-none focus:ring ring-neutral-600 text-white rounded flex items-center justify-between py-1 w-28"
+                value=""
               >
                 <span class="text-sm">Tracking</span
                 ><span class="nf nf-fa-angle_down relative top-0.5"></span>
@@ -1342,6 +1478,7 @@
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toggleCssClass', 'tracking-tighter', 'tracking')"
+                    value=""
                   >
                     <div>Tighter</div>
                     <div
@@ -1354,6 +1491,7 @@
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toggleCssClass', 'tracking-tight', 'tracking')"
+                    value=""
                   >
                     <div>Tight</div>
                     <div
@@ -1366,6 +1504,7 @@
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toggleCssClass', 'tracking-normal', 'tracking')"
+                    value=""
                   >
                     <div>Normal</div>
                     <div
@@ -1378,6 +1517,7 @@
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toggleCssClass', 'tracking-wide', 'tracking')"
+                    value=""
                   >
                     <div>Wide</div>
                     <div
@@ -1390,6 +1530,7 @@
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toggleCssClass', 'tracking-wider', 'tracking')"
+                    value=""
                   >
                     <div>Wider</div>
                     <div
@@ -1402,6 +1543,7 @@
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.toggleCssClass', 'tracking-widest', 'tracking')"
+                    value=""
                   >
                     <div>Widest</div>
                     <div
@@ -1418,6 +1560,7 @@
             <div class="relative inline-block group">
               <button
                 class="px-3 outline-none focus:ring ring-neutral-600 text-white rounded flex items-center justify-between py-1 w-32"
+                value=""
               >
                 <span class="text-sm">Text Color</span
                 ><span class="nf nf-fa-angle_down relative top-0.5"></span>
@@ -1430,6 +1573,7 @@
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                       wf-onclick="post('designer.toggleHue', 'red')"
+                      value=""
                     >
                       <div class="flex items-center gap-3">
                         <div class="w-3 h-3 rounded bg-red-500 min-h-0"></div>
@@ -1445,6 +1589,7 @@
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                       wf-onclick="post('designer.toggleHue', 'orange')"
+                      value=""
                     >
                       <div class="flex items-center gap-3">
                         <div
@@ -1462,6 +1607,7 @@
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                       wf-onclick="post('designer.toggleHue', 'amber')"
+                      value=""
                     >
                       <div class="flex items-center gap-3">
                         <div class="w-3 h-3 rounded bg-amber-500 min-h-0"></div>
@@ -1477,6 +1623,7 @@
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                       wf-onclick="post('designer.toggleHue', 'yellow')"
+                      value=""
                     >
                       <div class="flex items-center gap-3">
                         <div
@@ -1494,6 +1641,7 @@
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                       wf-onclick="post('designer.toggleHue', 'lime')"
+                      value=""
                     >
                       <div class="flex items-center gap-3">
                         <div class="w-3 h-3 rounded bg-lime-500 min-h-0"></div>
@@ -1509,6 +1657,7 @@
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                       wf-onclick="post('designer.toggleHue', 'green')"
+                      value=""
                     >
                       <div class="flex items-center gap-3">
                         <div class="w-3 h-3 rounded bg-green-500 min-h-0"></div>
@@ -1524,6 +1673,7 @@
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                       wf-onclick="post('designer.toggleHue', 'emerald')"
+                      value=""
                     >
                       <div class="flex items-center gap-3">
                         <div
@@ -1541,6 +1691,7 @@
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                       wf-onclick="post('designer.toggleHue', 'teal')"
+                      value=""
                     >
                       <div class="flex items-center gap-3">
                         <div class="w-3 h-3 rounded bg-teal-500 min-h-0"></div>
@@ -1556,6 +1707,7 @@
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                       wf-onclick="post('designer.toggleHue', 'cyan')"
+                      value=""
                     >
                       <div class="flex items-center gap-3">
                         <div class="w-3 h-3 rounded bg-cyan-500 min-h-0"></div>
@@ -1571,6 +1723,7 @@
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                       wf-onclick="post('designer.toggleHue', 'sky')"
+                      value=""
                     >
                       <div class="flex items-center gap-3">
                         <div class="w-3 h-3 rounded bg-sky-500 min-h-0"></div>
@@ -1586,6 +1739,7 @@
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                       wf-onclick="post('designer.toggleHue', 'blue')"
+                      value=""
                     >
                       <div class="flex items-center gap-3">
                         <div class="w-3 h-3 rounded bg-blue-500 min-h-0"></div>
@@ -1601,6 +1755,7 @@
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                       wf-onclick="post('designer.toggleHue', 'indigo')"
+                      value=""
                     >
                       <div class="flex items-center gap-3">
                         <div
@@ -1618,6 +1773,7 @@
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                       wf-onclick="post('designer.toggleHue', 'violet')"
+                      value=""
                     >
                       <div class="flex items-center gap-3">
                         <div
@@ -1635,6 +1791,7 @@
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                       wf-onclick="post('designer.toggleHue', 'purple')"
+                      value=""
                     >
                       <div class="flex items-center gap-3">
                         <div
@@ -1652,6 +1809,7 @@
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                       wf-onclick="post('designer.toggleHue', 'fuchsia')"
+                      value=""
                     >
                       <div class="flex items-center gap-3">
                         <div
@@ -1669,6 +1827,7 @@
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                       wf-onclick="post('designer.toggleHue', 'pink')"
+                      value=""
                     >
                       <div class="flex items-center gap-3">
                         <div class="w-3 h-3 rounded bg-pink-500 min-h-0"></div>
@@ -1684,6 +1843,7 @@
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                       wf-onclick="post('designer.toggleHue', 'rose')"
+                      value=""
                     >
                       <div class="flex items-center gap-3">
                         <div class="w-3 h-3 rounded bg-rose-500 min-h-0"></div>
@@ -1699,6 +1859,7 @@
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                       wf-onclick="post('designer.toggleHue', 'slate')"
+                      value=""
                     >
                       <div class="flex items-center gap-3">
                         <div class="w-3 h-3 rounded bg-slate-500 min-h-0"></div>
@@ -1714,6 +1875,7 @@
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                       wf-onclick="post('designer.toggleHue', 'gray')"
+                      value=""
                     >
                       <div class="flex items-center gap-3">
                         <div class="w-3 h-3 rounded bg-gray-500 min-h-0"></div>
@@ -1729,6 +1891,7 @@
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                       wf-onclick="post('designer.toggleHue', 'zinc')"
+                      value=""
                     >
                       <div class="flex items-center gap-3">
                         <div class="w-3 h-3 rounded bg-zinc-500 min-h-0"></div>
@@ -1744,6 +1907,7 @@
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                       wf-onclick="post('designer.toggleHue', 'neutral')"
+                      value=""
                     >
                       <div class="flex items-center gap-3">
                         <div
@@ -1761,6 +1925,7 @@
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                       wf-onclick="post('designer.toggleHue', 'stone')"
+                      value=""
                     >
                       <div class="flex items-center gap-3">
                         <div class="w-3 h-3 rounded bg-stone-500 min-h-0"></div>
@@ -1783,6 +1948,7 @@
             >
               <button
                 class="px-3 outline-none focus:ring ring-neutral-600 text-white rounded flex items-center justify-between py-1 w-32"
+                value=""
               >
                 <span class="text-sm">Text Shade</span
                 ><span class="nf nf-fa-angle_down relative top-0.5"></span>
@@ -1794,6 +1960,7 @@
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.setShade', 50)"
+                    value=""
                   >
                     <div class="flex items-center gap-3">
                       <div
@@ -1812,6 +1979,7 @@
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.setShade', 100)"
+                    value=""
                   >
                     <div class="flex items-center gap-3">
                       <div
@@ -1830,6 +1998,7 @@
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.setShade', 200)"
+                    value=""
                   >
                     <div class="flex items-center gap-3">
                       <div
@@ -1848,6 +2017,7 @@
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.setShade', 300)"
+                    value=""
                   >
                     <div class="flex items-center gap-3">
                       <div
@@ -1866,6 +2036,7 @@
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.setShade', 400)"
+                    value=""
                   >
                     <div class="flex items-center gap-3">
                       <div
@@ -1884,6 +2055,7 @@
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.setShade', 500)"
+                    value=""
                   >
                     <div class="flex items-center gap-3">
                       <div
@@ -1902,6 +2074,7 @@
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.setShade', 600)"
+                    value=""
                   >
                     <div class="flex items-center gap-3">
                       <div
@@ -1920,6 +2093,7 @@
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.setShade', 700)"
+                    value=""
                   >
                     <div class="flex items-center gap-3">
                       <div
@@ -1938,6 +2112,7 @@
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.setShade', 800)"
+                    value=""
                   >
                     <div class="flex items-center gap-3">
                       <div
@@ -1956,6 +2131,7 @@
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.setShade', 900)"
+                    value=""
                   >
                     <div class="flex items-center gap-3">
                       <div
@@ -1974,6 +2150,7 @@
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.setShade', 950)"
+                    value=""
                   >
                     <div class="flex items-center gap-3">
                       <div
@@ -1995,6 +2172,7 @@
             <div class="relative inline-block group">
               <button
                 class="px-3 outline-none focus:ring ring-neutral-600 text-white rounded flex items-center justify-between py-1 w-32"
+                value=""
               >
                 <span class="text-sm">Back Color</span
                 ><span class="nf nf-fa-angle_down relative top-0.5"></span>
@@ -2007,6 +2185,7 @@
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none *:hover:bg-[#091017]"
                       wf-onclick="post('designer.toggleBgHue', 'red')"
+                      value=""
                     >
                       <div class="flex items-center gap-3">
                         <div class="w-3 h-3 rounded bg-red-500 min-h-0"></div>
@@ -2022,6 +2201,7 @@
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                       wf-onclick="post('designer.toggleBgHue', 'orange')"
+                      value=""
                     >
                       <div class="flex items-center gap-3">
                         <div
@@ -2039,6 +2219,7 @@
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                       wf-onclick="post('designer.toggleBgHue', 'amber')"
+                      value=""
                     >
                       <div class="flex items-center gap-3">
                         <div class="w-3 h-3 rounded bg-amber-500 min-h-0"></div>
@@ -2054,6 +2235,7 @@
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                       wf-onclick="post('designer.toggleBgHue', 'yellow')"
+                      value=""
                     >
                       <div class="flex items-center gap-3">
                         <div
@@ -2071,6 +2253,7 @@
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                       wf-onclick="post('designer.toggleBgHue', 'lime')"
+                      value=""
                     >
                       <div class="flex items-center gap-3">
                         <div class="w-3 h-3 rounded bg-lime-500 min-h-0"></div>
@@ -2086,6 +2269,7 @@
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                       wf-onclick="post('designer.toggleBgHue', 'green')"
+                      value=""
                     >
                       <div class="flex items-center gap-3">
                         <div class="w-3 h-3 rounded bg-green-500 min-h-0"></div>
@@ -2101,6 +2285,7 @@
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                       wf-onclick="post('designer.toggleBgHue', 'emerald')"
+                      value=""
                     >
                       <div class="flex items-center gap-3">
                         <div
@@ -2118,6 +2303,7 @@
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                       wf-onclick="post('designer.toggleBgHue', 'teal')"
+                      value=""
                     >
                       <div class="flex items-center gap-3">
                         <div class="w-3 h-3 rounded bg-teal-500 min-h-0"></div>
@@ -2133,6 +2319,7 @@
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                       wf-onclick="post('designer.toggleBgHue', 'cyan')"
+                      value=""
                     >
                       <div class="flex items-center gap-3">
                         <div class="w-3 h-3 rounded bg-cyan-500 min-h-0"></div>
@@ -2148,6 +2335,7 @@
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                       wf-onclick="post('designer.toggleBgHue', 'sky')"
+                      value=""
                     >
                       <div class="flex items-center gap-3">
                         <div class="w-3 h-3 rounded bg-sky-500 min-h-0"></div>
@@ -2163,6 +2351,7 @@
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                       wf-onclick="post('designer.toggleBgHue', 'blue')"
+                      value=""
                     >
                       <div class="flex items-center gap-3">
                         <div class="w-3 h-3 rounded bg-blue-500 min-h-0"></div>
@@ -2178,6 +2367,7 @@
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                       wf-onclick="post('designer.toggleBgHue', 'indigo')"
+                      value=""
                     >
                       <div class="flex items-center gap-3">
                         <div
@@ -2195,6 +2385,7 @@
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                       wf-onclick="post('designer.toggleBgHue', 'violet')"
+                      value=""
                     >
                       <div class="flex items-center gap-3">
                         <div
@@ -2212,6 +2403,7 @@
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                       wf-onclick="post('designer.toggleBgHue', 'purple')"
+                      value=""
                     >
                       <div class="flex items-center gap-3">
                         <div
@@ -2229,6 +2421,7 @@
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                       wf-onclick="post('designer.toggleBgHue', 'fuchsia')"
+                      value=""
                     >
                       <div class="flex items-center gap-3">
                         <div
@@ -2246,6 +2439,7 @@
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                       wf-onclick="post('designer.toggleBgHue', 'pink')"
+                      value=""
                     >
                       <div class="flex items-center gap-3">
                         <div class="w-3 h-3 rounded bg-pink-500 min-h-0"></div>
@@ -2261,6 +2455,7 @@
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                       wf-onclick="post('designer.toggleBgHue', 'rose')"
+                      value=""
                     >
                       <div class="flex items-center gap-3">
                         <div class="w-3 h-3 rounded bg-rose-500 min-h-0"></div>
@@ -2276,6 +2471,7 @@
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                       wf-onclick="post('designer.toggleBgHue', 'slate')"
+                      value=""
                     >
                       <div class="flex items-center gap-3">
                         <div class="w-3 h-3 rounded bg-slate-500 min-h-0"></div>
@@ -2291,6 +2487,7 @@
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                       wf-onclick="post('designer.toggleBgHue', 'gray')"
+                      value=""
                     >
                       <div class="flex items-center gap-3">
                         <div class="w-3 h-3 rounded bg-gray-500 min-h-0"></div>
@@ -2306,6 +2503,7 @@
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                       wf-onclick="post('designer.toggleBgHue', 'zinc')"
+                      value=""
                     >
                       <div class="flex items-center gap-3">
                         <div class="w-3 h-3 rounded bg-zinc-500 min-h-0"></div>
@@ -2321,6 +2519,7 @@
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                       wf-onclick="post('designer.toggleBgHue', 'neutral')"
+                      value=""
                     >
                       <div class="flex items-center gap-3">
                         <div
@@ -2338,6 +2537,7 @@
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                       wf-onclick="post('designer.toggleBgHue', 'stone')"
+                      value=""
                     >
                       <div class="flex items-center gap-3">
                         <div class="w-3 h-3 rounded bg-stone-500 min-h-0"></div>
@@ -2360,6 +2560,7 @@
             >
               <button
                 class="px-3 outline-none focus:ring ring-neutral-600 text-white rounded flex items-center justify-between py-1 w-32"
+                value=""
               >
                 <span class="text-sm">Back Shade</span
                 ><span class="nf nf-fa-angle_down relative top-0.5"></span>
@@ -2371,6 +2572,7 @@
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.setBgShade', 50)"
+                    value=""
                   >
                     <div class="flex items-center gap-3">
                       <div
@@ -2389,6 +2591,7 @@
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.setBgShade', 100)"
+                    value=""
                   >
                     <div class="flex items-center gap-3">
                       <div
@@ -2407,6 +2610,7 @@
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.setBgShade', 200)"
+                    value=""
                   >
                     <div class="flex items-center gap-3">
                       <div
@@ -2425,6 +2629,7 @@
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.setBgShade', 300)"
+                    value=""
                   >
                     <div class="flex items-center gap-3">
                       <div
@@ -2443,6 +2648,7 @@
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.setBgShade', 400)"
+                    value=""
                   >
                     <div class="flex items-center gap-3">
                       <div
@@ -2461,6 +2667,7 @@
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.setBgShade', 500)"
+                    value=""
                   >
                     <div class="flex items-center gap-3">
                       <div
@@ -2479,6 +2686,7 @@
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.setBgShade', 600)"
+                    value=""
                   >
                     <div class="flex items-center gap-3">
                       <div
@@ -2497,6 +2705,7 @@
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.setBgShade', 700)"
+                    value=""
                   >
                     <div class="flex items-center gap-3">
                       <div
@@ -2515,6 +2724,7 @@
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.setBgShade', 800)"
+                    value=""
                   >
                     <div class="flex items-center gap-3">
                       <div
@@ -2533,6 +2743,7 @@
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.setBgShade', 900)"
+                    value=""
                   >
                     <div class="flex items-center gap-3">
                       <div
@@ -2551,6 +2762,7 @@
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                     wf-onclick="post('designer.setBgShade', 950)"
+                    value=""
                   >
                     <div class="flex items-center gap-3">
                       <div
@@ -2583,6 +2795,7 @@
             <button
               class="ProjectsPanel-createBtn outline-none border-b border-black/50 transition-all h-12 text-xl transition-colors shrink-0 hover:bg-[#008ad9] bg-[#0071b2]"
               wf-onclick="post('projects.create')"
+              value=""
             >
               Create
             </button>
@@ -2616,10 +2829,12 @@
                   <button
                     class="ProjectsPanel-renameBtn outline-none nf nf-fa-pencil p-2"
                     wf-onclick="event.preventDefault(), event.stopPropagation(), post('projects.mv', x)"
+                    value=""
                   ></button>
                   <button
                     class="ProjectsPanel-deleteBtn outline-none nf nf-fa-trash p-2"
                     wf-onclick="event.preventDefault(), event.stopPropagation(), post('projects.rm', x)"
+                    value=""
                   ></button>
                 </div>
               </a>
@@ -2633,6 +2848,7 @@
             <button
               class="FilesPanel-createBtn outline-none border-b border-black/50 transition-all h-12 text-xl transition-colors hover:bg-[#008ad9] shrink-0 bg-[#0071b2]"
               wf-onclick="event.preventDefault(), post('files.create')"
+              value=""
             >
               Create
             </button>
@@ -2677,16 +2893,19 @@
                     class="FilesPanel-createInsideBtn outline-none nf p-2 nf-fa-plus"
                     wf-if="x[2]"
                     wf-onclick="event.preventDefault(), event.stopPropagation(), post('files.create', joinPath(x[1], x[0]))"
+                    value=""
                   ></button
                   ><button
                     class="outline-none nf p-2 nf-fa-pencil"
                     wf-onclick="event.preventDefault(), event.stopPropagation(), post('files.mv', joinPath(x[1], x[0]) + (x[2] ? '/' : ''))"
                     wf-if="!state.files.protected(x[1] + x[0])"
+                    value=""
                   ></button
                   ><button
                     class="outline-none nf p-2 nf-fa-trash"
                     wf-if="!state.files.protected(x[1] + x[0])"
                     wf-onclick="event.preventDefault(), event.stopPropagation(), post('files.rm', joinPath(x[1], x[0]) + (x[2] ? '/' : ''))"
+                    value=""
                   ></button>
                 </div>
               </a>
@@ -2737,16 +2956,19 @@
                     wf-onkeydown="post('styles.replaceKeyDown', event)"
                     wf-onblur="post('styles.replaceBlur', event)"
                     autocapitalize="off"
+                    value=""
                   />
                 </div>
                 <div class="flex">
                   <button
                     class="StylesPanel-editBtn outline-none nf p-2 nf-fa-pencil"
                     wf-onclick="event.preventDefault(), event.stopPropagation(), post('styles.edit', x)"
+                    value=""
                   ></button>
                   <button
                     class="StylesPanel-deleteBtn outline-none nf p-2 nf-fa-trash"
                     wf-onclick="event.preventDefault(), event.stopPropagation(), post('styles.rm', x)"
+                    value=""
                   ></button>
                 </div>
               </div>
@@ -2760,6 +2982,7 @@
                   placeholder="add class"
                   wf-onkeyup="post('styles.addKeyUp', event)"
                   autocapitalize="off"
+                  value=""
                 />
               </div>
             </div>
@@ -2821,6 +3044,7 @@
                       wf-disabled="loadman.busy()"
                       wf-checked="state.settings.opt.isolate"
                       wf-onclick="event.preventDefault(), post('settings.option', 'isolate')"
+                      value="on"
                     />
                     <div
                       class="w-11 h-6 rounded-full peer-checked:bg-green-500 bg-black/50"
@@ -2840,6 +3064,7 @@
                       wf-disabled="loadman.busy()"
                       wf-checked="!state.settings.opt.brand"
                       wf-onclick="event.preventDefault(), post('settings.option', 'brand')"
+                      value="on"
                     />
                     <div
                       class="w-11 h-6 rounded-full peer-checked:bg-green-500 bg-black/50"
@@ -2860,6 +3085,7 @@
                       wf-disabled="loadman.busy()"
                       wf-checked="!state.settings.opt.toolbar"
                       wf-onclick="event.preventDefault(), post('settings.option', 'toolbar')"
+                      value="on"
                     />
                     <div
                       class="w-11 h-6 rounded-full peer-checked:bg-green-500 bg-black/50"
@@ -2879,6 +3105,7 @@
                       wf-disabled="loadman.busy()"
                       wf-checked="state.settings.opt.vim"
                       wf-onclick="event.preventDefault(), post('settings.option', 'vim')"
+                      value="on"
                     />
                     <div
                       class="w-11 h-6 rounded-full peer-checked:bg-green-500 bg-black/50"
@@ -2899,6 +3126,7 @@
                       wf-disabled="loadman.busy()"
                       wf-checked="state.settings.popt.nerdfonts"
                       wf-onclick="event.preventDefault(), post('settings.projectOption', 'nerdfonts')"
+                      value="on"
                     />
                     <div
                       class="w-11 h-6 rounded-full peer-checked:bg-green-500 bg-black/50"
@@ -2921,6 +3149,7 @@
                       wf-disabled="loadman.busy()"
                       wf-checked="state.settings.popt.tailwind"
                       wf-onclick="event.preventDefault(), post('settings.projectOption', 'tailwind')"
+                      value="on"
                     />
                     <div
                       class="w-11 h-6 rounded-full peer-checked:bg-green-500 bg-black/50"
@@ -2943,6 +3172,7 @@
                       wf-disabled="loadman.busy()"
                       wf-checked="state.settings.popt.betterscroll"
                       wf-onclick="event.preventDefault(), post('settings.projectOption', 'betterscroll')"
+                      value="on"
                     />
                     <div
                       class="w-11 h-6 rounded-full peer-checked:bg-green-500 bg-black/50"
@@ -2965,6 +3195,7 @@
                       wf-disabled="loadman.busy()"
                       wf-checked="state.settings.popt.peacock"
                       wf-onclick="event.preventDefault(), post('settings.projectOption', 'peacock')"
+                      value="on"
                     />
                     <div
                       class="w-11 h-6 rounded-full peer-checked:bg-green-500 bg-black/50"
@@ -2984,6 +3215,7 @@
                       wf-disabled="loadman.busy()"
                       wf-checked="(state.settings.opt.companion)"
                       wf-onclick="event.preventDefault(), event.stopPropagation(), post('settings.option', 'companion')"
+                      value="on"
                     />
                     <div
                       class="w-11 h-6 rounded-full peer-checked:bg-green-500 bg-black/50"
@@ -3006,6 +3238,7 @@
                       wf-disabled="loadman.busy()"
                       wf-checked="state.settings.popt.storage === 'cfs'"
                       wf-onclick="event.preventDefault(), post('settings.projectOption', 'storage', state.settings.popt.storage === 'cfs' ? 'local' : 'cfs')"
+                      value="on"
                     />
                     <div
                       class="w-11 h-6 rounded-full peer-checked:bg-green-500 bg-black/50"
@@ -3020,6 +3253,7 @@
                   class="w-full text-left px-3 py-2 flex justify-between items-center rounded hover:bg-black/50 outline-none"
                   wf-onclick="post('companion.copyKey', event)"
                   wf-if="state.settings.opt.companion"
+                  value=""
                 >
                   <div>Copy companion key</div>
                   <div class="text-sm text-green-400 hidden">Copied!</div>
@@ -3029,6 +3263,7 @@
                   wf-if="!state.assistant.session"
                   wf-onclick="event.preventDefault(), post('assistant.start')"
                   wf-disabled="state.assistant.initializing"
+                  value=""
                 >
                   <div>Voice assistant</div>
                   <div
@@ -3042,6 +3277,7 @@
                   class="w-full text-left px-3 py-2 flex justify-between items-center rounded hover:bg-black/50 outline-none"
                   wf-if="state.assistant.session"
                   wf-onclick="event.preventDefault(), post('assistant.stop')"
+                  value=""
                 >
                   <div>Disable assistant</div></button
                 ><label
@@ -3056,6 +3292,7 @@
                       wf-disabled="loadman.busy() || (state.assistant.session || state.assistant.initializing)"
                       wf-checked="state.settings.opt.shiftToSpeak"
                       wf-onclick="event.preventDefault(), post('settings.option', 'shiftToSpeak')"
+                      value="on"
                     />
                     <div
                       class="w-11 h-6 rounded-full peer-checked:bg-green-500 bg-black/50"
@@ -3069,6 +3306,7 @@
                   wf-disabled="loadman.busy()"
                   wf-onclick="event.preventDefault(), post('collab.setup')"
                   wf-if="state.settings.opt.isolate &amp;&amp; !state.collab.rtc &amp;&amp; state.projects.current &amp;&amp; !state.app.demo"
+                  value=""
                 >
                   <div>Collaborate</div>
                 </button>
@@ -3078,6 +3316,7 @@
                   wf-disabled="loadman.busy()"
                   wf-onclick="event.preventDefault(), post('collab.stop')"
                   wf-if="state.collab.rtc &amp;&amp; state.projects.current &amp;&amp; !state.app.demo"
+                  value=""
                 >
                   <div>Stop collaboration</div>
                 </button>
@@ -3087,6 +3326,7 @@
                   wf-disabled="loadman.busy()"
                   wf-onclick="event.preventDefault(), post('files.importZip')"
                   wf-if="state.projects.current"
+                  value=""
                 >
                   <div>Import ZIP</div>
                 </button>
@@ -3096,6 +3336,7 @@
                   wf-disabled="loadman.busy()"
                   wf-onclick="event.preventDefault(), post('files.exportZip')"
                   wf-if="state.projects.current"
+                  value=""
                 >
                   <div>Export ZIP</div>
                 </button>
@@ -3105,6 +3346,7 @@
                   wf-disabled="loadman.busy()"
                   wf-onclick="event.preventDefault(), post('files.deploy')"
                   wf-if="state.projects.current"
+                  value=""
                 >
                   <div>Deploy to Netlify</div>
                 </button>
@@ -3158,6 +3400,7 @@
                 <button
                   class="Designer-resizeBtn w-2 rounded-full h-24 bg-neutral-300 outline-none"
                   wf-onpointerdown="event.preventDefault(), post('designer.resize', event)"
+                  value=""
                 ></button>
               </div>
             </div>
@@ -3210,6 +3453,7 @@
               <button
                 class="px-3 py-0.5 bg-[#0071b2] hover:bg-[#008ad9] h-7 outline-none"
                 wf-onclick="post('companion.poll')"
+                value=""
               >
                 Retry
               </button>
@@ -3229,6 +3473,7 @@
                 <button
                   class="nf nf-oct-x relative top-[2px] outline-none ShellWrapper-tabCloseBtn"
                   wf-onclick="event.stopPropagation(), post('shell.close', x.session)"
+                  value=""
                 ></button>
               </a>
 
@@ -3236,6 +3481,7 @@
                 class="nf nf-fa-plus w-8 text-xs outline-none min-h-7 ShellWrapper-createTabBtn"
                 wf-onclick="post('shell.spawn')"
                 wf-if="state.shell.list.length"
+                value=""
               ></button>
             </div>
             <div

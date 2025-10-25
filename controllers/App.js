@@ -3,7 +3,12 @@ import '../other/util.js';
 export default class App {
   actions = {
     init: async () => {
-      if (!location.hostname.includes('localhost') && !/^webfoundry\d+\.netlify\.app$/.test(location.hostname) && location.hostname !== 'www.webfoundry.app') {
+      if (
+        !location.hostname.includes('localhost') &&
+        !/^webfoundry\d+\.netlify\.app$/.test(location.hostname) &&
+        location.hostname !== 'www.webfoundry.app' &&
+        new URL(location.href).searchParams.get('isolate') == null
+      ) {
         return location.href = 'https://webfoundry.app/';
       }
       this.state.demo = location.search.includes('demo');
