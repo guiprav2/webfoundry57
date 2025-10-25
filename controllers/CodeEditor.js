@@ -1,7 +1,5 @@
 import rfiles from '../repos/rfiles.js';
 import { debounce, isMedia } from '../other/util.js';
-import { mountLighted } from '../other/lighted.js';
-import { createYjsBackend } from '../components/CodeEditor.js';
 import { lookup as mimeLookup } from 'https://esm.sh/mrmime';
 
 const FALLBACK_CURSOR_COLOR = 'sky-500';
