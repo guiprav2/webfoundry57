@@ -1,10 +1,166 @@
 import completion from 'https://esm.sh/@camilaprav/kittygpt@0.0.65/completion.js';
-import { loadman } from '../other/util.js';
+import { loadman, joinPath } from '../other/util.js';
 import { lookup as mimeLookup } from 'https://esm.sh/mrmime';
 
 let PEXELS_API_KEY = 'TvQp9hqct3J5XlyGjBUtt0TlgqiCd1UtDuJlvhl4HzfOt53BrvwuCq6b';
 
 let actions = window.actions = {
+  selectPanel: {
+    parameters: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', enum: ['projects', 'files', 'styles', 'settings'] },
+      },
+    },
+    handler: async ({ name }) => await post('app.selectPanel', name),
+  },
+
+  createProject: {
+    disabled: () => [state.collab.uid !== 'master' && `Peers can't create projects.`],
+    parameters: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', description: `New project name (prefer hostname/domain-like; empty prompts user)` },
+      },
+    },
+    handler: async ({ name = null } = {}) => await post('projects.create', name),
+  },
+
+  listProjects: {
+    disabled: () => [state.collab.uid !== 'master' && `Peers can't list projects.`],
+    handler: () => ({ success: true, names: state.projects.list.map(x => x.split(':')[0]) }),
+  },
+
+  selectProject: {
+    description: `Confirm exact requested project name by calling listProjects first.`,
+    disabled: () => [state.collab.uid !== 'master' && `Peers can't select projects.`],
+    parameters: {
+      type: 'object',
+      properties: { name: { type: 'string' } },
+    },
+    handler: async ({ name }) => await post('projects.select', state.projects.list.find(x => x.split(':')[0] === name)),
+  },
+
+  renameProject: {
+    disabled: () => [state.collab.uid !== 'master' && `Peers can't create projects.`],
+    parameters: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', description: `Project to rename (defaults to current)` },
+        newName: { type: 'string', description: `New name (empty prompts user)` },
+      },
+    },
+    handler: async ({ name = null, newName = null } = {}) => {
+      let project = name ? state.projects.list.find(x => x.split(':')[0] === name) : state.projects.current;
+      if (!project) throw new Error(`Project not found: ${name}`);
+      return await post('projects.mv', project, newName);
+    },
+  },
+
+  rmProject: {
+    disabled: () => [state.collab.uid !== 'master' && `Peers can't create projects.`],
+    parameters: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', description: `Project to remove (defaults to current)` },
+      },
+    },
+    handler: async ({ name = null, newName = null } = {}) => {
+      let project = name ? state.projects.list.find(x => x.split(':')[0] === name) : state.projects.current;
+      if (!project) throw new Error(`Project not found: ${name}`);
+      return await post('projects.rm', project);
+    },
+  },
+
+  togglePreview: {
+    disabled: () => [
+      !state.designer.open && `Designer closed.`,
+      state.collab.uid !== 'master' && `Peers can't toggle preview.`,
+    ],
+    handler: async () => await post('designer.togglePreview'),
+  },
+
+  toggleShell: { handler: async () => await post('shell.toggle') },
+
+  createFile: {
+    description: `Root files are rare; confirm in which directory to place the new file with user. When asked to "create a page" with a given name, this is probably what the user means.`,
+    disabled: () => [
+      !state.projects.current && `Project not open`,
+      state.collab.uid !== 'master' && `Peers can't create files.`,
+    ],
+    parameters: {
+      type: 'object',
+      properties: {
+        path: { type: 'string', description: `Full path to new file with extension (empty prompts user)` },
+      },
+    },
+    handler: async ({ path = null } = {}) => await post('files.create', path?.split?.('/')?.slice?.(0, -1)?.join?.('/'), path?.split?.('/')?.at?.(-1)),
+  },
+
+  createDirectory: {
+    description: `Confirm in which directory to place the new directory with user.`,
+    disabled: () => [
+      !state.projects.current && `Project not open`,
+      state.collab.uid !== 'master' && `Peers can't create directories.`,
+    ],
+    parameters: {
+      type: 'object',
+      properties: {
+        path: { type: 'string', description: `Full path to new file with extension (empty prompts user)` },
+      },
+    },
+    handler: async ({ path = null } = {}) => await post('files.create', path?.split?.('/')?.slice?.(0, -1)?.join?.('/'), path?.split?.('/')?.at?.(-1), 'dir'),
+  },
+
+  listFiles: {
+    disabled: () => [!state.projects.current && `Project not open`],
+    handler: () => ({ success: true, names: state.files.list.map(x => joinPath(x[1], x[0])) }),
+  },
+
+  mvFile: {
+    disabled: () => [
+      !state.projects.current && `Project not open`,
+      state.collab.uid !== 'master' && `Peers can't move files.`,
+    ],
+    parameters: {
+      type: 'object',
+      properties: {
+        path: { type: 'string', description: `File path to rename (defaults to current)` },
+        newPath: { type: 'string', description: `New full file path (empty prompts user for simple rename on same path)` },
+      },
+    },
+    handler: async ({ path = null, newPath = null } = {}) => await post('files.mv', path, newPath),
+  },
+
+  rmFile: {
+    disabled: () => [
+      !state.projects.current && `Project not open`,
+      state.collab.uid !== 'master' && `Peers can't remove files.`,
+    ],
+    parameters: {
+      type: 'object',
+      properties: {
+        path: { type: 'string', description: `Full path to remove (defaults to current)` },
+      },
+    },
+    handler: async ({ path = state.files.current } = {}) => await post('files.rm', path),
+  },
+
+  selectFile: {
+    description: `User may specify a file without the full path; use listFiles to find the right one if not ambiguous.`,
+    disabled: () => [
+      !state.projects.current && `Project not open`,
+      state.collab.uid !== 'master' && `Peers can't select files.`,
+    ],
+    parameters: {
+      type: 'object',
+      properties: {
+        path: { type: 'string', description: `Full path to select` },
+      },
+    },
+    handler: async ({ path }) => await post('files.select', path),
+  },
+
   undo: {
     shortcut: ['Ctrl-z', 'z'],
     disabled: () => [!state.designer.open && `Designer closed.`],

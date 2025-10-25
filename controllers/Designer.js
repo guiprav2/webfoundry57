@@ -322,9 +322,10 @@ export default class Designer {
       Object.assign(frame, { ready: false, resolve: p.resolve, reject: p.reject, preview: !frame.preview });
       d.update();
       setTimeout(() => p.reject(new Error(`Frame wait timeout`)), 15000);
-      await loadman.run('designer.togglePreview', async () => {
+      return await loadman.run('designer.togglePreview', async () => {
         await p.promise;
         state.event.bus.emit('designer:togglePreview:ready', { preview: frame.preview });
+        return { success: true, note: frame.preview ? `Preview toggled on` : `Preview toggled off` };
       });
     },
 

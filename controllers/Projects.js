@@ -21,6 +21,7 @@ export default class Projects {
       });
       bus.on('projects:rm:ready', async ({ project }) => {
         if (this.state.current === project) await post('projects.select', null);
+        await post('app.selectPanel', 'projects');
         await post('projects.load');
       });
       bus.on('settings:global:option:ready', async ({ k, v }) => {
@@ -37,17 +38,20 @@ export default class Projects {
       bus.emit('projects:load:ready');
     },
 
-    create: async (opt = {}) => {
+    create: async (name, opt = {}) => {
       let { bus } = state.event;
       bus.emit('projects:create:start');
       bus.emit('projects:create:prompt');
-      let name;
-      while (true) {
-        let [btn, val] = await showModal('PromptDialog', { title: 'Create project', placeholder: 'Project name', initialValue: name, allowEmpty: false, short: true });
-        if (btn !== 'ok') return bus.emit('projects:create:cancel');
-        name = val;
-        if (state.projects.list.find(x => x.split(':')[0] === val)) { await showModal('InfoDialog', { title: `Project already exists.` }); continue }
-        break;
+      if (name) {
+        if (state.projects.list.find(x => x.split(':')[0] === name)) throw new Error(`Project already exists: ${name}`);
+      } else {
+        while (true) {
+          let [btn, val] = await showModal('PromptDialog', { title: 'Create project', placeholder: 'Project name', initialValue: name, allowEmpty: false, short: true });
+          if (btn !== 'ok') return bus.emit('projects:create:cancel');
+          name = val;
+          if (state.projects.list.find(x => x.split(':')[0] === val)) { await showModal('InfoDialog', { title: `Project already exists.` }); continue }
+          break;
+        }
       }
       await loadman.run('projects.create', async () => {
         bus.emit('projects:create:confirmed', { name });
@@ -79,25 +83,21 @@ export default class Projects {
       });
     },
 
-    select: project => {
-      let { bus } = state.event;
-      bus.emit('projects:select:start', { project });
-      this.state.current = project;
-      bus.emit('projects:select:ready', { project });
-    },
-
-    mv: async project => {
+    mv: async (project, newName) => {
       let { bus } = state.event;
       let [name, uuid] = project.split(':');
       bus.emit('projects:mv:start', { project });
       bus.emit('projects:mv:prompt', { project });
-      let newName;
-      while (true) {
-        let [btn, val] = await showModal('PromptDialog', { title: 'Rename project', placeholder: 'Project name', initialValue: newName || name, allowEmpty: false, short: true });
-        if (btn !== 'ok') return bus.emit('projects:mv:cancel');
-        newName = val;
-        if (state.projects.list.find(x => x.split(':')[0] === val)) { await showModal('InfoDialog', { title: `Project already exists.` }); continue }
-        break;
+      if (newName) {
+        if (state.projects.list.find(x => x.split(':')[0] === newName)) throw new Error(`Project already exists: ${newName}`);
+      } else {
+        while (true) {
+          let [btn, val] = await showModal('PromptDialog', { title: 'Rename project', placeholder: 'Project name', initialValue: newName || name, allowEmpty: false, short: true });
+          if (btn !== 'ok') return bus.emit('projects:mv:cancel');
+          newName = val;
+          if (state.projects.list.find(x => x.split(':')[0] === val)) { await showModal('InfoDialog', { title: `Project already exists.` }); continue }
+          break;
+        }
       }
       await loadman.run('projects.mv', async () => {
         bus.emit('projects:mv:confirmed', { project, newName });
@@ -111,12 +111,23 @@ export default class Projects {
       bus.emit('projects:rm:start', { project });
       bus.emit('projects:rm:confirm', { project });
       let [btn] = await showModal('ConfirmationDialog', { title: 'Delete project?' });
-      if (btn !== 'yes') return bus.emit('projects:rm:cancel', { project });
+      if (btn !== 'yes') { bus.emit('projects:rm:cancel', { project }); return { success: true, note: `Denied by user; acknowledge non-deletion` } }
       await loadman.run('projects.rm', async () => {
         bus.emit('projects:rm:confirmed', { project });
         await rprojects.rm(project);
         bus.emit('projects:rm:ready', { project });
       });
+    },
+
+    select: project => {
+      let { bus } = state.event;
+      bus.emit('projects:select:start', { project });
+      if (this.state.list.indexOf(project) === -1) {
+        bus.emit('projects:select:error', { project, error: new Error(`Project not found: ${project}`) });
+        return { success: false, reason: `Project not found` };
+      }
+      this.state.current = project;
+      bus.emit('projects:select:ready', { project });
     },
   };
 };
