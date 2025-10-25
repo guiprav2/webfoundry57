@@ -13,11 +13,11 @@
       (async () => {
         window.rootPrefix = /^\/(files|preview)\//.test(location.pathname) ? location.pathname.split('/').slice(0, 4).join('/') : '/';
         if (rootPrefix === '/' || rootPrefix === '/collab.html') rootPrefix = '.';
+        let wforigin = new URL(location.href).searchParams.get('isolate') != null ? `${location.protocol}//www.${location.hostname.split('.').slice(1).join('.')}` : location.origin;
         if (new URL(location.href).searchParams.get('isolate') != null) {
           await navigator.serviceWorker.register('/sw.js');
           await navigator.serviceWorker.ready;
           if (!navigator.serviceWorker.controller) return location.reload();
-          let wforigin = `${location.protocol}//${location.hostname.split('.').slice(1).join('.')}`;
           let parts = location.pathname.slice(1).split('/');
           let tabId = parts[1];
           navigator.serviceWorker.addEventListener('message', async event => {
@@ -63,10 +63,7 @@
           import(`${rootPrefix}/webfoundry/app.js`),
         ]);
         document.body.append(md.default.el(mapp.default));
-        parent.postMessage(
-          { path: `pages/${location.pathname.slice(1).split('/').slice(3).join('/')}`, type: 'ready', status: 200 },
-          new URL(location.href).searchParams.get('isolate') != null ? `${location.protocol}//${location.hostname.split('.').slice(1).join('.')}` : location.origin,
-        );
+        parent.postMessage({ path: `pages/${location.pathname.slice(1).split('/').slice(3).join('/')}`, type: 'ready', status: 200 }, wforigin);
       })();
     </script>
   </body>
