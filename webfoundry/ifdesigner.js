@@ -5,7 +5,7 @@ import htmlsnap from 'https://esm.sh/@camilaprav/htmlsnap@0.0.16';
 import morphdom from 'https://esm.sh/morphdom';
 
 window.state = { map: new BiMap(), cursors: {}, overlays: {} };
-let wforigin = new URL(location.href).searchParams.get('isolate') != null ? `${location.protocol}//www.${location.hostname.split('.').slice(1).join('.')}` : location.origin;
+let wforigin = new URL(location.href).searchParams.get('isolate') || location.origin;
 let post = data => parent.postMessage({ path: null, ...data, path: location.pathname.slice(1).split('/').slice(3).join('/') }, wforigin);
 addEventListener('message', async ev => {
   let { type, ...rest } = ev.data;
@@ -53,7 +53,7 @@ async function trackCursors() {
     while (ids.length > ovs.length) {
       let i = ovs.length;
       let p = state.collab.rtc?.presence?.find?.(x => x.user === k);
-      let o = d.el('div', { class: ['wf-cursor hidden z-10 pointer-events-none', () => !p ? 'border border-blue-400' : `border border-${p.color}`] });
+      let o = d.el('div', { class: ['wf-cursor hidden z-10 pointer-events-none'] });
       ovs.push(new Boo(o, () => state.map.get(state.cursors[k][i]), { transitionClass: 'transition-all' }));
     }
     while (ovs.length > ids.length) ovs.pop().disable();

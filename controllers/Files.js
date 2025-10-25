@@ -57,7 +57,8 @@ export default class Files {
           let parts = url.hostname.split('.');
           let domain = parts.slice(1).join('.');
           let name = parts[0];
-          if (domain !== location.hostname.replace(/^www\./, '') || !state.projects.current.startsWith(`${name}:`)) return; // FIXME: Also check path.
+          if (!/^webfoundry.app|webfoundry\d+\.netlify\.app|localhost$/.test(domain)) return;
+          if (!state.projects.current?.startsWith(`${name}:`)) return; // FIXME: Also check path.
         }
         if (!ev.source || typeof ev.source.postMessage !== 'function') return;
         await respond({ project, path }, payload => ev.source.postMessage(payload, ev.origin));

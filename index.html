@@ -13,7 +13,7 @@
       (async () => {
         window.rootPrefix = /^\/(files|preview)\//.test(location.pathname) ? location.pathname.split('/').slice(0, 4).join('/') : '/';
         if (rootPrefix === '/' || rootPrefix === '/collab.html') rootPrefix = '.';
-        let wforigin = new URL(location.href).searchParams.get('isolate') != null ? `${location.protocol}//www.${location.hostname.split('.').slice(1).join('.')}` : location.origin;
+        let wforigin = new URL(location.href).searchParams.get('isolate') || location.origin;
         if (new URL(location.href).searchParams.get('isolate') != null) {
           await navigator.serviceWorker.register('/sw.js');
           await navigator.serviceWorker.ready;

@@ -43,9 +43,41 @@ export default class Designer {
       let [name, uuid] = state.projects.current.split(':');
       if (frame.preview) path = path.slice('pages/'.length);
       let fullpath = `/${frame.preview ? 'preview' : 'files'}/${sessionStorage.webfoundryTabId}/${name}:${uuid}/${path}`;
-      return state.settings.opt.isolate
-        ? `${location.protocol}//${(name || '').toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')}.${location.hostname.replace(/^www\./, '')}${fullpath}?isolate`
-        : fullpath;
+      if (!state.settings.opt.isolate) return fullpath;
+
+      // clean project name for subdomain
+      let sub = (name || '')
+        .toLowerCase()
+        .replace(/[^a-z0-9-]/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '');
+
+      let host = location.hostname;
+      let parts = host.split('.');
+
+      // Determine which root we’re on
+      let root;
+      if (/^localhost(:\d+)?$/.test(host)) {
+        // localhost or localhost:port
+        root = host;
+      } else if (/\.webfoundry\d*\.netlify\.app$/i.test(host)) {
+        // abc.webfoundry57.netlify.app → webfoundry57.netlify.app
+        root = parts.slice(1).join('.');
+      } else if (/^webfoundry\d+\.webfoundry\.app$/i.test(host)) {
+        // webfoundry57.webfoundry.app → webfoundry.app
+        root = parts.slice(-2).join('.');
+      } else if (/\.webfoundry\.app$/i.test(host)) {
+        // www.webfoundry.app → webfoundry.app
+        root = parts.slice(-2).join('.');
+      } else {
+        // fallback
+        root = parts.slice(-2).join('.');
+      }
+
+      // Build new host, replacing current subdomain instead of nesting
+      let newHost = /^localhost/.test(root) ? root : `${sub}.${root}`;
+
+      return `${location.protocol}//${newHost}${fullpath}?isolate=${location.origin}`;
     },
 
     get current() { return this.list.find(x => x.path === state.files.current) },
@@ -116,7 +148,8 @@ export default class Designer {
           let parts = url.hostname.split('.');
           let domain = parts.slice(1).join('.');
           let name = parts[0];
-          if (domain !== location.hostname.replace(/^www\./, '') || !state.projects.current.startsWith(`${name}:`)) return; // FIXME: Also check path.
+          if (!/^webfoundry.app|webfoundry\d+\.netlify\.app|localhost$/.test(domain)) return;
+          if (!state.projects.current?.startsWith(`${name}:`)) return; // FIXME: Also check path.
         }
         let project = state.projects.current;
         let frame = this.state.list.find(x => x.path === ev.data.path);
