@@ -145,9 +145,13 @@ export default class Collab {
       state.projects.current = ev.project;
       state.files.list = ev.files;
       state.files.expandedPaths = new Set(ev.expandedPaths);
-      if (state.files.current !== ev.current) {
+      let changedSelection = state.files.current !== ev.current;
+      if (changedSelection) {
         state.files.current = ev.current;
         await post('designer.select', ev.current);
+      }
+      if (state.collab.uid !== 'master') {
+        state.event.bus.emit('files:select:ready', { project: ev.project, path: ev.current });
       }
       state.designer.frameWidth = ev.frameWidth;
       state.designer.frameHeight = ev.frameHeight;

@@ -289,6 +289,7 @@ export default class CodeEditor {
       return;
     }
     this.boundRTC = rtc;
+    this.state.collabBound = true;
     rtc.events.on('codeEditor:update', async payload => await this.applyRemoteUpdate(payload));
     rtc.events.on('codeEditor:selection', payload => this.applyRemoteSelection(payload));
     rtc.events.on('presence:leave', () => this.cleanupPeerSelections());
@@ -407,11 +408,15 @@ export default class CodeEditor {
       });
     }
     let caretEl = document.createElement('span');
-    caretEl.className = 'CodeEditor-peerCaret pointer-events-none block';
-    caretEl.style.borderLeft = `2px solid ${resolveColor(presenceColor, 1)}`;
-    caretEl.style.marginLeft = '-1px';
+    caretEl.className = 'CodeEditor-peerCaret animate-pulse pointer-events-none';
+    caretEl.style.display = 'inline-block';
+    caretEl.style.position = 'relative';
+    caretEl.style.width = '0';
     caretEl.style.height = `${cm.defaultTextHeight()}px`;
-    caretEl.style.transform = 'translateY(-2px)';
+    caretEl.style.borderLeft = `2px solid ${resolveColor(presenceColor, 1)}`;
+    caretEl.style.margin = '0';
+    caretEl.style.top = '4px';
+    caretEl.style.pointerEvents = 'none';
     let caret = cm.setBookmark(caretPos, { widget: caretEl, insertLeft: true, handleMouseEvents: false });
     markers.set(peer, { mark, caret, color: presenceColor });
     entry.selectionMarkers = markers;
@@ -696,11 +701,14 @@ export default class CodeEditor {
       this.state.loading = true;
       this.renderPlaceholder(`Loading ${path}…`);
       try {
-        let blob = await rfiles.load(project, path);
-        if (!blob) {
-          throw new Error('File not found');
+        let text = '';
+        if (!state.collab?.uid || state.collab.uid === 'master') {
+          let blob = await rfiles.load(project, path);
+          if (!blob) {
+            throw new Error('File not found');
+          }
+          text = await blob.text();
         }
-        let text = await blob.text();
         this.state.currentProject = project;
         this.state.currentPath = path;
         let entry = this.getDocEntry(project, path);
