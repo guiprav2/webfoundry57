@@ -14,6 +14,7 @@
         window.rootPrefix = /^\/(files|preview)\//.test(location.pathname) ? location.pathname.split('/').slice(0, 4).join('/') : '/';
         if (rootPrefix === '/' || rootPrefix === '/collab.html') rootPrefix = '.';
         let wforigin = new URL(location.href).searchParams.get('isolate') || location.origin;
+        if (/^(\w+\.)?(webfoundry.app|webfoundry\d+\.netlify\.app|localhost)$/.test(wforigin)) throw new Error(`Bad isolation origin`);
         if (new URL(location.href).searchParams.get('isolate') != null) {
           await navigator.serviceWorker.register('/sw.js');
           await navigator.serviceWorker.ready;

@@ -44,39 +44,16 @@ export default class Designer {
       if (frame.preview) path = path.slice('pages/'.length);
       let fullpath = `/${frame.preview ? 'preview' : 'files'}/${sessionStorage.webfoundryTabId}/${name}:${uuid}/${path}`;
       if (!state.settings.opt.isolate) return fullpath;
-
-      // clean project name for subdomain
-      let sub = (name || '')
-        .toLowerCase()
-        .replace(/[^a-z0-9-]/g, '-')
-        .replace(/-+/g, '-')
-        .replace(/^-|-$/g, '');
-
+      let sub = (name || '').toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
       let host = location.hostname;
       let parts = host.split('.');
-
-      // Determine which root we’re on
       let root;
-      if (/^localhost(:\d+)?$/.test(host)) {
-        // localhost or localhost:port
-        root = host;
-      } else if (/\.webfoundry\d*\.netlify\.app$/i.test(host)) {
-        // abc.webfoundry57.netlify.app → webfoundry57.netlify.app
-        root = parts.slice(1).join('.');
-      } else if (/^webfoundry\d+\.webfoundry\.app$/i.test(host)) {
-        // webfoundry57.webfoundry.app → webfoundry.app
-        root = parts.slice(-2).join('.');
-      } else if (/\.webfoundry\.app$/i.test(host)) {
-        // www.webfoundry.app → webfoundry.app
-        root = parts.slice(-2).join('.');
-      } else {
-        // fallback
-        root = parts.slice(-2).join('.');
-      }
-
-      // Build new host, replacing current subdomain instead of nesting
+      if (/^localhost(:\d+)?$/.test(host)) root = host;
+      else if (/\.webfoundry\d*\.netlify\.app$/i.test(host)) root = parts.slice(1).join('.');
+      else if (/^webfoundry\d+\.webfoundry\.app$/i.test(host)) root = parts.slice(-2).join('.');
+      else if (/\.webfoundry\.app$/i.test(host)) root = parts.slice(-2).join('.');
+      else root = parts.slice(-2).join('.');
       let newHost = /^localhost/.test(root) ? root : `${sub}.${root}`;
-
       return `${location.protocol}//${newHost}${fullpath}?isolate=${location.origin}`;
     },
 
@@ -205,7 +182,7 @@ export default class Designer {
         reject: p.reject,
       });
       d.update();
-      setTimeout(() => p.reject(new Error(`Frame wait timeout`)), 15000);
+      setTimeout(() => p.reject(new Error(`Frame wait timeout`)), 30000);
       await loadman.run('designer.select', async () => {
         try { await p.promise; bus.emit('designer:select:ready', { project, path }) }
         catch (err) { console.error(err); this.state.list = this.state.list.filter(x => x.path !== path); bus.emit('designer:select:error', { project, path, err }) }
@@ -354,7 +331,7 @@ export default class Designer {
       let p = Promise.withResolvers();
       Object.assign(frame, { ready: false, resolve: p.resolve, reject: p.reject, preview: !frame.preview });
       d.update();
-      setTimeout(() => p.reject(new Error(`Frame wait timeout`)), 15000);
+      setTimeout(() => p.reject(new Error(`Frame wait timeout`)), 30000);
       return await loadman.run('designer.togglePreview', async () => {
         await p.promise;
         state.event.bus.emit('designer:togglePreview:ready', { preview: frame.preview });

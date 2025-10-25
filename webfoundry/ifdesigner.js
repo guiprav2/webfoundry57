@@ -6,6 +6,7 @@ import morphdom from 'https://esm.sh/morphdom';
 
 window.state = { map: new BiMap(), cursors: {}, overlays: {} };
 let wforigin = new URL(location.href).searchParams.get('isolate') || location.origin;
+if (/^(\w+\.)?(webfoundry.app|webfoundry\d+\.netlify\.app|localhost)$/.test(wforigin)) throw new Error(`Bad isolation origin`);
 let post = data => parent.postMessage({ path: null, ...data, path: location.pathname.slice(1).split('/').slice(3).join('/') }, wforigin);
 addEventListener('message', async ev => {
   let { type, ...rest } = ev.data;
