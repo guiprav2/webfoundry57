@@ -149,7 +149,7 @@ export default class Files {
       let project = state.projects.current;
       let { bus } = state.event;
       bus.emit('files:select:start');
-      let check = path?.endsWith?.('/') ? `${path}.keep` : path;
+      let check = path?.endsWith?.('/') ? path.slice(0, -1) : path;
       if (check && !state.files.list.find(x => joinPath(x[1], x[0]) === check)) throw new Error(`Path does not exist: ${path}`);
       if (path?.endsWith?.('/')) {
         if (this.state.expandedPaths.has(path)) this.state.expandedPaths.delete(path);
