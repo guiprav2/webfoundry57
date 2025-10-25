@@ -1,3 +1,4 @@
+import prettier from '../other/prettier.js';
 import { mountCodeMirror } from '../other/codemirror.js';
 
 class CodeDialog {
@@ -60,7 +61,7 @@ class CodeDialog {
     if (initialValue == null) {
       initialValue = '';
     }
-    initialValue = String(initialValue);
+    initialValue = await prettier(String(initialValue), { parser: 'html' });
     let keyMap = state.settings?.opt?.vim ? 'vim' : 'default';
     let mode = this.inferMode();
     try {
