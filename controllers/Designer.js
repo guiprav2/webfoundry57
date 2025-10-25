@@ -116,7 +116,7 @@ export default class Designer {
           let parts = url.hostname.split('.');
           let domain = parts.slice(1).join('.');
           let name = parts[0];
-          if (domain !== location.hostname || !state.projects.current.startsWith(`${name}:`)) return; // FIXME: Also check path.
+          if (domain !== location.hostname.replace(/^www\./, '') || !state.projects.current.startsWith(`${name}:`)) return; // FIXME: Also check path.
         }
         let project = state.projects.current;
         let frame = this.state.list.find(x => x.path === ev.data.path);

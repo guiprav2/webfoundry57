@@ -26,17 +26,6 @@ export default class Files {
   actions = {
     init: () => {
       let { bus } = state.event;
-      let allowedOrigin = origin => {
-        try {
-          let url = new URL(origin);
-          let host = url.hostname;
-          let base = location.hostname;
-          return host === base || host.endsWith(`.${base}`);
-        } catch {
-          return false;
-        }
-      };
-
       let respond = async ({ project, path }, callback) => {
         try {
           path = decodeURIComponent(path);
@@ -60,12 +49,18 @@ export default class Files {
         await respond({ project, path }, payload => port.postMessage(payload));
       });
 
-      window.addEventListener('message', async event => {
-        let { type, project, path } = event.data || {};
+      window.addEventListener('message', async ev => {
+        let { type, project, path } = ev.data || {};
         if (type !== 'fetch') return;
-        if (!allowedOrigin(event.origin)) return;
-        if (!event.source || typeof event.source.postMessage !== 'function') return;
-        await respond({ project, path }, payload => event.source.postMessage(payload, event.origin));
+        if (location.origin !== ev.origin) {
+          let url = new URL(ev.origin);
+          let parts = url.hostname.split('.');
+          let domain = parts.slice(1).join('.');
+          let name = parts[0];
+          if (domain !== location.hostname.replace(/^www\./, '') || !state.projects.current.startsWith(`${name}:`)) return; // FIXME: Also check path.
+        }
+        if (!ev.source || typeof ev.source.postMessage !== 'function') return;
+        await respond({ project, path }, payload => ev.source.postMessage(payload, ev.origin));
       });
       if (state.collab.uid !== 'master') return;
       bus.on('projects:select:ready', async ({ project }) => await loadman.run('files.projectSelect', async () => {

@@ -16,6 +16,7 @@ self.addEventListener('message', async ev => {
 });
 self.addEventListener('fetch', async ev => {
   let url = new URL(ev.request.url);
+  if (url.searchParams.get('isolate') != null) return;
   let pathname = url.pathname;
   if (url.port && pathname.endsWith('.html')) return;
   let prefix = null;

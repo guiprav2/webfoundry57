@@ -5,7 +5,7 @@ import htmlsnap from 'https://esm.sh/@camilaprav/htmlsnap@0.0.16';
 import morphdom from 'https://esm.sh/morphdom';
 
 window.state = { map: new BiMap(), cursors: {}, overlays: {} };
-let wforigin = new URL(location.href).searchParams.get('isolate') != null ? `${location.protocol}//${location.hostname.split('.').slice(1).join('.')}` : location.origin;
+let wforigin = new URL(location.href).searchParams.get('isolate') != null ? `${location.protocol}//www.${location.hostname.split('.').slice(1).join('.')}` : location.origin;
 let post = data => parent.postMessage({ path: null, ...data, path: location.pathname.slice(1).split('/').slice(3).join('/') }, wforigin);
 addEventListener('message', async ev => {
   let { type, ...rest } = ev.data;
