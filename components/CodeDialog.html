@@ -123,7 +123,11 @@
     >
       <form method="dialog" wf-onsubmit="this.onSubmit(event)" class="flex flex-col">
         <div>{{this.props.title}}</div>
-        <div class="CodeDialog-editorWrapper mt-2 min-h-96 flex flex-col flex-1"></div>
+        <div class="CodeDialog-editorWrapper mt-2 min-h-96 flex flex-col flex-1">
+          <div class="flex flex-1 items-center justify-center rounded-md border border-slate-800/60 bg-slate-950/70 p-4 text-center text-sm italic text-slate-300">
+            Code editor placeholder. New experience coming soon.
+          </div>
+        </div>
         <div class="flex justify-end gap-1.5 mt-3">
           <button
             value="cancel"

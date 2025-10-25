@@ -1,54 +1,35 @@
-import prettier from '../other/prettier.js';
-import { mountCodeMirror } from '../other/codemirror.js';
-
 class CodeDialog {
   constructor(props) {
     this.props = props;
   }
 
-  onAttach = async () => {
-    if (!document.getElementById('CodeEditorStyles')) {
-      document.head.append(d.el('style', { id: 'CodeEditorStyles' }, `
-        .CodeMirror { background-color: #04060960 !important; height: 100%; }
-        .CodeMirror-gutters { background-color: #060a0f60 !important; }
-        .CodeMirror-activeline-background { background-color: #0009 !important; }
-        .CodeMirror-activeline .CodeMirror-gutter-elt { background-color: #0009 !important; }
-      `));
-    }
+  onAttach = () => {
     let wrapper = this.root.querySelector('.CodeDialog-editorWrapper');
-    let el = d.el('div', { class: 'flex-1' });
-    wrapper.innerHTML = '';
-    wrapper.append(el);
-    let value = this.props.initialValue;
-    if (value && (!this.props.mode || this.props.mode === 'html')) {
-      value = await prettier(value, { parser: this.props.mode || 'html' });
+    if (!wrapper) {
+      return;
     }
-    let settings = state?.settings?.opt || {};
-    let { editor, destroy, setKeyMap, setTheme, setMode } = await mountCodeMirror(el, {
-      mode: this.props.mode || 'html',
-      theme: settings.codeTheme || 'monokai',
-      keyMap: settings.vim ? 'vim' : 'default',
-      tabSize: settings.codeTabSize || 2,
-      fontSize: settings.codeFontSize || '16px',
-      lineWrapping: false,
+    wrapper.innerHTML = '';
+    let container = d.el('div', {
+      class: 'flex flex-1 flex-col gap-3 rounded-md border border-slate-800/60 bg-slate-950/70 p-4',
     });
-    this.editorHandle = { editor, destroy, setKeyMap, setTheme, setMode };
-    editor.setValue(value || '');
-    editor.getDoc?.().clearHistory?.();
-    editor.focus();
-    this.root.addEventListener('close', () => {
-      this.editorHandle?.destroy?.();
-      this.editorHandle = null;
-    }, { once: true });
+    let message = d.el('div', {
+      class: 'italic text-center text-slate-400 text-sm',
+    });
+    message.textContent = 'Code editing is temporarily unavailable while the new editor is being prepared.';
+    container.append(message);
+    if (this.props.initialValue) {
+      let preview = d.el('pre', {
+        class: 'CodeDialog-preview whitespace-pre-wrap break-words bg-slate-950/50 border border-slate-800/60 rounded-md p-3 text-xs text-slate-200',
+      });
+      preview.textContent = this.props.initialValue;
+      container.append(preview);
+    }
+    wrapper.append(container);
   };
 
-  onSubmit = async ev => {
+  onSubmit = ev => {
     ev.preventDefault();
-    let value = this.editorHandle?.editor.getValue();
-    if (value && (!this.props.mode || this.props.mode === 'html')) {
-      value = await prettier(value, { parser: this.props.mode || 'html' });
-    }
-    this.root.returnDetail = value;
+    this.root.returnDetail = this.props.initialValue ?? '';
     this.root.close(ev.submitter.value);
   };
 }
