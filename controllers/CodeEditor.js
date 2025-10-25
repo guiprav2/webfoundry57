@@ -412,15 +412,21 @@ export default class CodeEditor {
     }
     let caretEl = document.createElement('span');
     caretEl.className = 'CodeEditor-peerCaret animate-pulse pointer-events-none';
-    caretEl.style.display = 'inline-block';
-    caretEl.style.position = 'relative';
-    caretEl.style.width = '0';
+    caretEl.style.display = 'block';
+    caretEl.style.position = 'absolute';
+    caretEl.style.left = '-1px';
+    caretEl.style.top = '0';
     caretEl.style.height = `${cm.defaultTextHeight()}px`;
     caretEl.style.borderLeft = `2px solid ${resolveColor(presenceColor, 1)}`;
     caretEl.style.pointerEvents = 'none';
-    caretEl.style.top = '4px';
-    caretEl.style.marginLeft = '-1px';
-    let caret = cm.setBookmark(caretPos, { widget: caretEl, insertLeft: true, handleMouseEvents: false });
+    caretEl.style.transform = 'translate(0, -0.75rem)';
+    let container = document.createElement('span');
+    container.style.position = 'relative';
+    container.style.display = 'inline-block';
+    container.style.width = '0';
+    container.style.height = '0';
+    container.append(caretEl);
+    let caret = cm.setBookmark(caretPos, { widget: container, insertLeft: true, handleMouseEvents: false });
     markers.set(peer, { mark, caret, color: presenceColor });
     entry.selectionMarkers = markers;
   };
@@ -490,15 +496,21 @@ export default class CodeEditor {
     }
     let caretEl = document.createElement('span');
     caretEl.className = 'CodeEditor-selfCaret animate-pulse';
-    caretEl.style.display = 'inline-block';
-    caretEl.style.position = 'relative';
-    caretEl.style.width = '0';
+    caretEl.style.display = 'block';
+    caretEl.style.position = 'absolute';
+    caretEl.style.left = '-1px';
+    caretEl.style.top = '0';
     caretEl.style.height = `${cm.defaultTextHeight()}px`;
     caretEl.style.borderLeft = `2px solid ${resolveColor(colorName, 1)}`;
-    caretEl.style.top = '4px';
     caretEl.style.pointerEvents = 'none';
-    caretEl.style.marginLeft = '-1px';
-    let caret = cm.setBookmark(caretPos, { widget: caretEl, insertLeft: true, handleMouseEvents: false });
+    caretEl.style.transform = 'translate(0, -0.75rem)';
+    let container = document.createElement('span');
+    container.style.position = 'relative';
+    container.style.display = 'inline-block';
+    container.style.width = '0';
+    container.style.height = '0';
+    container.append(caretEl);
+    let caret = cm.setBookmark(caretPos, { widget: container, insertLeft: true, handleMouseEvents: false });
     entry.selfSelection = { mark, caret };
   };
 
