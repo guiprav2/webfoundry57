@@ -105,7 +105,7 @@ export default class CodeEditor {
     this.destroyEditorUI();
     if (!this.state.placeholderElement) {
       let placeholder = d.el('div', {
-        class: 'CodeEditor-placeholder flex flex-1 items-center justify-center rounded-md border border-slate-800/60 bg-slate-950/70 p-6 text-center text-sm italic text-slate-300',
+        class: 'CodeEditor-placeholder flex flex-1 items-center justify-center bg-black/20 p-6 text-center text-sm italic',
       });
       this.state.placeholderElement = placeholder;
     }
@@ -521,15 +521,9 @@ export default class CodeEditor {
     }
     this.destroyEditorUI();
     this.state.placeholderElement = null;
-    let root = d.el('div', {
-      class: 'CodeEditor-root flex h-full flex-col rounded-md border border-slate-800/60 bg-slate-950/70',
-    });
-    let editorContainer = d.el('div', {
-      class: 'CodeEditor-editor relative flex flex-1 min-h-0 overflow-hidden',
-    });
-    let editorInner = d.el('div', {
-      class: 'CodeEditor-editorInner flex-1 min-h-0',
-    });
+    let root = d.el('div', { class: 'CodeEditor-root flex h-full flex-col bg-black/20' });
+    let editorContainer = d.el('div', { class: 'CodeEditor-editor relative flex flex-1 min-h-0 overflow-hidden' });
+    let editorInner = d.el('div', { class: 'CodeEditor-editorInner flex-1 min-h-0' });
     editorContainer.append(editorInner);
     root.append(editorContainer);
     wrapper.replaceChildren(root);
@@ -590,7 +584,7 @@ export default class CodeEditor {
     } catch (err) {
       console.error(err);
       let textarea = d.el('textarea', {
-        class: 'CodeEditor-fallback w-full flex-1 min-h-0 resize-none border-0 bg-transparent p-4 text-sm text-slate-100 font-mono outline-none',
+        class: 'CodeEditor-fallback w-full flex-1 min-h-0 resize-none bg-transparent p-4 text-sm text-slate-100 font-mono outline-none',
       });
       textarea.value = value;
       textarea.addEventListener('input', this.handleFallbackInput);
@@ -721,12 +715,14 @@ export default class CodeEditor {
         return;
       }
       document.head.append(d.el('style', `
+        .CodeMirror { background-color: transparent !important }
         .CodeMirror-cursors { position: absolute !important }
         .CodeMirror-cursor { opacity: 0 !important }
         .CodeMirror-selected { background: transparent !important }
         .CodeMirror-measure { display: none }
         .CodeMirror-lines > [role="presentation"] > :nth-child(3) { position: absolute !important; pointer-events: none }
         .CodeMirror-line { padding-left: 3rem !important }
+        .CodeMirror-activeline-background { background-color: #060a0f80 !important }
       `));
       bus.on('files:select:ready', async ({ path }) => {
         if (!path) {
@@ -743,7 +739,6 @@ export default class CodeEditor {
         queueMicrotask(async () => await post('codeEditor.open'));
         return;
       }
-      this.renderPlaceholder('Select a file to open it.');
     },
 
     open: async () => {
@@ -810,7 +805,6 @@ export default class CodeEditor {
       this.state.saving = false;
       this.state.externalChange = false;
       this.destroyEditorUI();
-      this.renderPlaceholder('Select a file to open it.');
     },
 
     save: async ({ reason } = {}) => {

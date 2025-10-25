@@ -2811,6 +2811,26 @@
               <div class="space-y-2 mt-2 -ml-3">
                 <label
                   class="w-full text-left px-3 py-2 flex justify-between items-center rounded hover:bg-black/50 outline-none cursor-pointer"
+                  wf-if="state.settings.opt.su &amp;&amp; !state.collab.rtc"
+                >
+                  <div class="shrink-0">Cross-origin isolation</div>
+                  <div class="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      class="peer hidden"
+                      wf-disabled="loadman.busy()"
+                      wf-checked="state.settings.opt.isolate"
+                      wf-onclick="event.preventDefault(), post('settings.option', 'isolate')"
+                    />
+                    <div
+                      class="w-11 h-6 rounded-full peer-checked:bg-green-500 bg-black/50"
+                    ></div>
+                    <div
+                      class="absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform peer-checked:translate-x-5"
+                    ></div>
+                  </div> </label
+                ><label
+                  class="w-full text-left px-3 py-2 flex justify-between items-center rounded hover:bg-black/50 outline-none cursor-pointer"
                 >
                   <div class="shrink-0">Hide brand</div>
                   <div class="relative inline-flex items-center cursor-pointer">
@@ -2934,6 +2954,26 @@
                 </label>
 
                 <label
+                  class="w-full text-left px-3 py-2 flex justify-between items-center rounded hover:bg-black/50 outline-none cursor-pointer"
+                  wf-if="state.projects.current"
+                >
+                  <div class="shrink-0">Enable Peacock</div>
+                  <div class="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      class="peer hidden"
+                      wf-disabled="loadman.busy()"
+                      wf-checked="state.settings.popt.peacock"
+                      wf-onclick="event.preventDefault(), post('settings.projectOption', 'peacock')"
+                    />
+                    <div
+                      class="w-11 h-6 rounded-full peer-checked:bg-green-500 bg-black/50"
+                    ></div>
+                    <div
+                      class="absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform peer-checked:translate-x-5"
+                    ></div>
+                  </div> </label
+                ><label
                   class="w-full text-left px-3 py-2 flex justify-between items-center rounded hover:bg-black/50 outline-none cursor-pointer SettingsPanel-companionBtn"
                 >
                   <div class="shrink-0">Enable Companion</div>
@@ -2956,28 +2996,6 @@
 
                 <label
                   class="w-full text-left px-3 py-2 flex justify-between items-center rounded hover:bg-black/50 outline-none cursor-pointer"
-                  wf-if="!state.collab.rtc"
-                >
-                  <div class="shrink-0">Cross-origin isolation</div>
-                  <div class="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      class="peer hidden"
-                      wf-disabled="loadman.busy()"
-                      wf-checked="state.settings.opt.isolate"
-                      wf-onclick="event.preventDefault(), post('settings.option', 'isolate')"
-                    />
-                    <div
-                      class="w-11 h-6 rounded-full peer-checked:bg-green-500 bg-black/50"
-                    ></div>
-                    <div
-                      class="absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform peer-checked:translate-x-5"
-                    ></div>
-                  </div>
-                </label>
-
-                <label
-                  class="w-full text-left px-3 py-2 flex justify-between items-center rounded hover:bg-black/50 outline-none cursor-pointer"
                   wf-if="state.projects.current &amp;&amp; state.settings.opt.companion"
                 >
                   <div class="shrink-0">Enable Companion FS</div>
@@ -2988,28 +3006,6 @@
                       wf-disabled="loadman.busy()"
                       wf-checked="state.settings.popt.storage === 'cfs'"
                       wf-onclick="event.preventDefault(), post('settings.projectOption', 'storage', state.settings.popt.storage === 'cfs' ? 'local' : 'cfs')"
-                    />
-                    <div
-                      class="w-11 h-6 rounded-full peer-checked:bg-green-500 bg-black/50"
-                    ></div>
-                    <div
-                      class="absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform peer-checked:translate-x-5"
-                    ></div>
-                  </div>
-                </label>
-
-                <label
-                  class="w-full text-left px-3 py-2 flex justify-between items-center rounded hover:bg-black/50 outline-none cursor-pointer"
-                  wf-if="state.projects.current"
-                >
-                  <div class="shrink-0">Enable Peacock</div>
-                  <div class="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      class="peer hidden"
-                      wf-disabled="loadman.busy()"
-                      wf-checked="state.settings.popt.peacock"
-                      wf-onclick="event.preventDefault(), post('settings.projectOption', 'peacock')"
                     />
                     <div
                       class="w-11 h-6 rounded-full peer-checked:bg-green-500 bg-black/50"

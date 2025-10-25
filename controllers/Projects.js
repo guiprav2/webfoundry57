@@ -122,7 +122,7 @@ export default class Projects {
     select: project => {
       let { bus } = state.event;
       bus.emit('projects:select:start', { project });
-      if (this.state.list.indexOf(project) === -1) {
+      if (project && this.state.list.indexOf(project) === -1) {
         bus.emit('projects:select:error', { project, error: new Error(`Project not found: ${project}`) });
         return { success: false, reason: `Project not found` };
       }
