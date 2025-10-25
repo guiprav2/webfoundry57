@@ -54,8 +54,8 @@ async function trackCursors() {
     while (ids.length > ovs.length) {
       let i = ovs.length;
       let p = state.collab.rtc?.presence?.find?.(x => x.user === k);
-      let o = d.el('div', { class: ['wf-cursor hidden z-10 pointer-events-none'] });
-      ovs.push(new Boo(o, () => state.map.get(state.cursors[k][i]), { transitionClass: 'transition-all' }));
+      let o = d.el('div', { class: ['wf-cursor hidden z-1000 pointer-events-none', () => !p ? 'border border-blue-400' : `border border-${p.color}`] });
+      ovs.push(new Boo(o, () => state.map.get(state.cursors[k][i]), { transitionClass: 'transition-[left,right,top,bottom]' }));
     }
     while (ovs.length > ids.length) ovs.pop().disable();
     for (let x of ovs) !x.ov.parentElement && document.body.append(x.ov);

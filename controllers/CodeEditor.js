@@ -97,8 +97,45 @@ export default class CodeEditor {
   currentDocEntry = null;
   boundRTC = null;
 
-  renderPlaceholder = message => {
+  waitForWrapper = async () => {
+    // Wait for the CodeEditor host element to exist (peers can receive events before it renders).
     let wrapper = document.querySelector('#CodeEditor');
+    if (wrapper) {
+      return wrapper;
+    }
+    if (!document.body) {
+      return null;
+    }
+    let resolveWrapper;
+    let timeoutId;
+    let promise = new Promise(resolve => {
+      resolveWrapper = resolve;
+    });
+    let observer = new MutationObserver(() => {
+      let found = document.querySelector('#CodeEditor');
+      if (!found) {
+        return;
+      }
+      observer.disconnect();
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+      resolveWrapper(found);
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+    timeoutId = setTimeout(() => {
+      observer.disconnect();
+      resolveWrapper(null);
+    }, 500);
+    let result = await promise;
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+    return result;
+  };
+
+  renderPlaceholder = async message => {
+    let wrapper = await this.waitForWrapper();
     if (!wrapper) {
       return null;
     }
@@ -514,8 +551,8 @@ export default class CodeEditor {
     entry.selfSelection = { mark, caret };
   };
 
-  buildEditorShell = () => {
-    let wrapper = document.querySelector('#CodeEditor');
+  buildEditorShell = async () => {
+    let wrapper = await this.waitForWrapper();
     if (!wrapper) {
       return null;
     }
@@ -753,7 +790,11 @@ export default class CodeEditor {
         return;
       }
       this.state.loading = true;
-      this.renderPlaceholder(`Loading ${path}…`);
+      let placeholder = await this.renderPlaceholder(`Loading ${path}…`);
+      if (!placeholder) {
+        this.state.loading = false;
+        return;
+      }
       try {
         let text = '';
         if (!state.collab?.uid || state.collab.uid === 'master') {
@@ -771,7 +812,7 @@ export default class CodeEditor {
         this.state.currentValue = entry.text.toString();
         this.state.dirty = false;
         this.state.externalChange = false;
-        let shell = this.buildEditorShell();
+        let shell = await this.buildEditorShell();
         if (!shell) {
           this.state.loading = false;
           return;
@@ -791,7 +832,7 @@ export default class CodeEditor {
         this.state.loading = false;
         this.state.currentProject = null;
         this.state.currentPath = null;
-        this.renderPlaceholder('Failed to load file.');
+        await this.renderPlaceholder('Failed to load file.');
       }
     },
 
