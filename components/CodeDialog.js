@@ -1,6 +1,54 @@
 import prettier from '../other/prettier.js';
 import { mountCodeMirror } from '../other/codemirror.js';
 
+let COLOR_MAP = {
+  'red-600': '#dc2626',
+  'red-800': '#991b1b',
+  'orange-600': '#ea580c',
+  'orange-800': '#9a3412',
+  'amber-600': '#d97706',
+  'amber-800': '#92400e',
+  'yellow-600': '#ca8a04',
+  'yellow-800': '#854d0e',
+  'lime-600': '#65a30d',
+  'lime-800': '#3f6212',
+  'green-600': '#16a34a',
+  'green-800': '#166534',
+  'emerald-600': '#059669',
+  'emerald-800': '#065f46',
+  'teal-600': '#0d9488',
+  'teal-800': '#115e59',
+  'cyan-600': '#0891b2',
+  'cyan-800': '#155e75',
+  'sky-600': '#0284c7',
+  'sky-800': '#075985',
+  'blue-600': '#2563eb',
+  'blue-800': '#1e40af',
+  'indigo-600': '#4f46e5',
+  'indigo-800': '#3730a3',
+  'violet-600': '#7c3aed',
+  'violet-800': '#5b21b6',
+  'purple-600': '#9333ea',
+  'purple-800': '#6b21a8',
+  'fuchsia-600': '#c026d3',
+  'fuchsia-800': '#86198f',
+  'pink-600': '#db2777',
+  'pink-800': '#9d174d',
+  'rose-600': '#e11d48',
+  'rose-800': '#9f1239',
+};
+
+let resolveColor = (name, alpha = 1) => {
+  let hex = COLOR_MAP[name] || '#94a3b8';
+  if (alpha >= 1) {
+    return hex;
+  }
+  let r = parseInt(hex.slice(1, 3), 16);
+  let g = parseInt(hex.slice(3, 5), 16);
+  let b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};
+
 class CodeDialog {
   constructor(props) {
     this.props = props;
@@ -84,7 +132,11 @@ class CodeDialog {
       this.fallbackTextarea = fallback;
     }
     if (this.editorMount?.editor) {
-      queueMicrotask(() => this.editorMount?.editor?.refresh?.());
+      this.attachSelectionHandlers();
+      queueMicrotask(() => {
+        this.editorMount?.editor?.refresh?.();
+        this.handleCursorActivity();
+      });
     }
     await this.applyVim();
     let bus = state.event?.bus;
@@ -98,6 +150,7 @@ class CodeDialog {
     if (bus) {
       bus.off('settings:global:option:ready', this.handleSettingsOption);
     }
+    this.detachSelectionHandlers();
     if (this.editorMount) {
       this.editorMount.destroy();
       this.editorMount = null;
@@ -123,6 +176,93 @@ class CodeDialog {
     }
     this.root.returnDetail = value;
     this.root.close(ev.submitter.value);
+  };
+
+  clearLocalSelection = () => {
+    if (!this.selfSelection) {
+      return;
+    }
+    this.selfSelection.mark?.clear?.();
+    this.selfSelection.caret?.clear?.();
+    this.selfSelection = null;
+  };
+
+  renderLocalSelection = (anchor, head) => {
+    let cm = this.editorMount?.editor;
+    if (!cm) {
+      return;
+    }
+    this.clearLocalSelection();
+    let value = cm.getValue();
+    if (typeof value !== 'string') {
+      value = '';
+    }
+    let valueLength = value.length;
+    let anchorIndex = Math.max(0, Math.min(anchor ?? 0, valueLength));
+    let headIndex = Math.max(0, Math.min(head ?? anchorIndex, valueLength));
+    let colorName = state.collab?.rtc?.color || 'sky-600';
+    let from = cm.posFromIndex(Math.min(anchorIndex, headIndex));
+    let to = cm.posFromIndex(Math.max(anchorIndex, headIndex));
+    let caretPos = cm.posFromIndex(headIndex);
+    let mark = null;
+    if (anchorIndex !== headIndex) {
+      mark = cm.markText(from, to, {
+        css: `background: ${resolveColor(colorName, 0.25)}; border-radius: 2px;`,
+      });
+    }
+    let caretEl = document.createElement('span');
+    caretEl.className = 'CodeDialog-selfCaret animate-pulse';
+    caretEl.style.display = 'block';
+    caretEl.style.position = 'absolute';
+    caretEl.style.left = '-1px';
+    caretEl.style.top = '0';
+    caretEl.style.height = `${cm.defaultTextHeight()}px`;
+    caretEl.style.borderLeft = `2px solid ${resolveColor(colorName, 1)}`;
+    caretEl.style.pointerEvents = 'none';
+    caretEl.style.transform = 'translate(0, -0.75rem)';
+    let container = document.createElement('span');
+    container.style.position = 'relative';
+    container.style.display = 'inline-block';
+    container.style.width = '0';
+    container.style.height = '0';
+    container.append(caretEl);
+    let caret = cm.setBookmark(caretPos, { widget: container, insertLeft: true, handleMouseEvents: false });
+    this.selfSelection = { mark, caret };
+  };
+
+  handleCursorActivity = () => {
+    let cm = this.editorMount?.editor;
+    if (!cm) {
+      return;
+    }
+    let selections = cm.listSelections();
+    if (!selections?.length) {
+      return;
+    }
+    let primary = selections[0];
+    let anchorIndex = cm.indexFromPos(primary.anchor);
+    let headIndex = cm.indexFromPos(primary.head);
+    this.renderLocalSelection(anchorIndex, headIndex);
+  };
+
+  attachSelectionHandlers = () => {
+    let cm = this.editorMount?.editor;
+    if (!cm) {
+      return;
+    }
+    this.detachSelectionHandlers();
+    this.cursorHandler = () => this.handleCursorActivity();
+    cm.on('cursorActivity', this.cursorHandler);
+    this.handleCursorActivity();
+  };
+
+  detachSelectionHandlers = () => {
+    let cm = this.editorMount?.editor;
+    if (cm && this.cursorHandler) {
+      cm.off('cursorActivity', this.cursorHandler);
+    }
+    this.cursorHandler = null;
+    this.clearLocalSelection();
   };
 }
 
