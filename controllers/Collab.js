@@ -226,6 +226,11 @@ export default class Collab {
       if (state.projects.current !== project) throw new Error(`Wrong project: ${project}`);
       await rfiles.save(project, path, await ungzblob(await unb64(data)));
     },
+
+    codeEditorState: async ({ project, path }) => {
+      if (state.projects.current !== project) throw new Error(`Wrong project: ${project}`);
+      return await post('codeEditor.exportState', { project, path });
+    },
   };
 }
 

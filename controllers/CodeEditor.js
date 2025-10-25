@@ -2,6 +2,69 @@ import { isMedia, debounce } from '../other/util.js';
 import { mountCodeMirror } from '../other/codemirror.js';
 import rfiles from '../repos/rfiles.js';
 import { lookup as mimeLookup } from 'https://cdn.skypack.dev/mrmime';
+import * as Y from 'https://esm.sh/yjs@13.6.12?bundle';
+import { CodemirrorBinding } from 'https://esm.sh/y-codemirror?bundle';
+
+let UPDATE_SOURCE_REMOTE = Symbol('codeEditor.remote');
+let COLOR_MAP = {
+  'red-600': '#dc2626',
+  'red-800': '#991b1b',
+  'orange-600': '#ea580c',
+  'orange-800': '#9a3412',
+  'amber-600': '#d97706',
+  'amber-800': '#92400e',
+  'yellow-600': '#ca8a04',
+  'yellow-800': '#854d0e',
+  'lime-600': '#65a30d',
+  'lime-800': '#3f6212',
+  'green-600': '#16a34a',
+  'green-800': '#166534',
+  'emerald-600': '#059669',
+  'emerald-800': '#065f46',
+  'teal-600': '#0d9488',
+  'teal-800': '#115e59',
+  'cyan-600': '#0891b2',
+  'cyan-800': '#155e75',
+  'sky-600': '#0284c7',
+  'sky-800': '#075985',
+  'blue-600': '#2563eb',
+  'blue-800': '#1e40af',
+  'indigo-600': '#4f46e5',
+  'indigo-800': '#3730a3',
+  'violet-600': '#7c3aed',
+  'violet-800': '#5b21b6',
+  'purple-600': '#9333ea',
+  'purple-800': '#6b21a8',
+  'fuchsia-600': '#c026d3',
+  'fuchsia-800': '#86198f',
+  'pink-600': '#db2777',
+  'pink-800': '#9d174d',
+  'rose-600': '#e11d48',
+  'rose-800': '#9f1239',
+};
+
+let encodeUpdate = update => {
+  if (!update) return '';
+  let chars = Array.from(update, x => String.fromCharCode(x));
+  return btoa(chars.join(''));
+};
+
+let decodeUpdate = encoded => {
+  if (!encoded) return new Uint8Array();
+  let chars = atob(encoded);
+  let view = new Uint8Array(chars.length);
+  for (let i = 0; i < chars.length; i++) view[i] = chars.charCodeAt(i);
+  return view;
+};
+
+let resolveColor = (name, alpha = 1) => {
+  let hex = COLOR_MAP[name] || '#94a3b8';
+  if (alpha >= 1) return hex;
+  let r = parseInt(hex.slice(1, 3), 16);
+  let g = parseInt(hex.slice(3, 5), 16);
+  let b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};
 
 export default class CodeEditor {
   state = {
@@ -27,7 +90,12 @@ export default class CodeEditor {
     busSubscribed: false,
     fallbackTextarea: null,
     recentSaveAt: 0,
+    docs: new Map(),
+    collabBound: false,
   };
+
+  currentDocEntry = null;
+  boundRTC = null;
 
   renderPlaceholder = message => {
     let wrapper = document.querySelector('#CodeEditor');
@@ -48,6 +116,27 @@ export default class CodeEditor {
   };
 
   destroyEditorUI = () => {
+    if (this.currentDocEntry) {
+      let entry = this.currentDocEntry;
+      if (state.collab?.rtc) {
+        try {
+          state.collab.rtc.send({ type: 'codeEditor:selection', project: entry.project, path: entry.path, anchor: null, head: null });
+        } catch (err) {
+          console.error('CodeEditor selection clear failed', err);
+        }
+      }
+      if (entry.cursorHandler && entry.cm) {
+        entry.cm.off('cursorActivity', entry.cursorHandler);
+      }
+      if (entry.binding && entry.binding.destroy) {
+        entry.binding.destroy();
+      }
+      this.clearPeerSelections(entry);
+      entry.cm = null;
+      entry.binding = null;
+      entry.cursorHandler = null;
+      this.currentDocEntry = null;
+    }
     if (this.state.editorMount) {
       this.state.editorMount.destroy();
     }
@@ -58,6 +147,309 @@ export default class CodeEditor {
     this.state.editorMount = null;
     this.state.editorContainer = null;
     this.state.fallbackTextarea = null;
+  };
+
+  docKey = (project, path) => `${project}::${path}`;
+
+  getDocEntry = (project, path) => {
+    let key = this.docKey(project, path);
+    let entry = this.state.docs.get(key);
+    if (!entry) {
+      let doc = new Y.Doc();
+      let text = doc.getText('codemirror');
+      let undoManager = new Y.UndoManager(text);
+      entry = {
+        key,
+        project,
+        path,
+        doc,
+        text,
+        undoManager,
+        binding: null,
+        cm: null,
+        cursorHandler: null,
+        selectionMarkers: new Map(),
+        selectionBroadcastTimer: null,
+        bootstrapPromise: null,
+        initialized: false,
+        lastSelection: null,
+        lastSelectionBroadcastAt: 0,
+      };
+      doc.on('update', (update, origin) => this.handleYDocUpdate(entry, update, origin));
+      text.observe(() => this.handleYTextChange(entry));
+      this.state.docs.set(key, entry);
+    }
+    return entry;
+  };
+
+  initializeDoc = async (entry, initialText = '') => {
+    if (entry.initialized) {
+      if ((state.collab?.uid == null || state.collab.uid === 'master') && initialText !== undefined) {
+        let existing = entry.text.toString();
+        if (existing !== initialText) {
+          entry.doc.transact(() => {
+            entry.text.delete(0, entry.text.length);
+            if (initialText) entry.text.insert(0, initialText);
+          }, 'bootstrap');
+          entry.undoManager?.clear?.();
+        }
+      }
+      return entry;
+    }
+    if (entry.bootstrapPromise) {
+      await entry.bootstrapPromise;
+      return entry;
+    }
+    entry.bootstrapPromise = (async () => {
+      if (!state.collab?.rtc || state.collab.uid === 'master') {
+        entry.doc.transact(() => {
+          entry.text.delete(0, entry.text.length);
+          if (initialText) entry.text.insert(0, initialText);
+        }, 'bootstrap');
+        entry.initialized = true;
+        entry.undoManager?.clear?.();
+        return entry;
+      }
+      try {
+        let encoded = await post('collab.rpc', 'codeEditorState', { project: entry.project, path: entry.path });
+        if (encoded) {
+          let update = decodeUpdate(encoded);
+          Y.applyUpdate(entry.doc, update, UPDATE_SOURCE_REMOTE);
+          entry.initialized = true;
+          entry.undoManager?.clear?.();
+          return entry;
+        }
+      } catch (err) {
+        console.error('CodeEditor doc sync failed', err);
+      }
+      entry.doc.transact(() => {
+        entry.text.delete(0, entry.text.length);
+        if (initialText) entry.text.insert(0, initialText);
+      }, 'bootstrap');
+      entry.initialized = true;
+      entry.undoManager?.clear?.();
+      return entry;
+    })();
+    await entry.bootstrapPromise;
+    entry.bootstrapPromise = null;
+    return entry;
+  };
+
+  handleYDocUpdate = (entry, update, origin) => {
+    if (!update?.length) {
+      return;
+    }
+    if (origin === UPDATE_SOURCE_REMOTE) {
+      return;
+    }
+    if (!state.collab?.rtc || !this.state.collabBound) {
+      return;
+    }
+    let payload = {
+      type: 'codeEditor:update',
+      project: entry.project,
+      path: entry.path,
+      update: encodeUpdate(update),
+    };
+    try {
+      state.collab.rtc.send(payload);
+    } catch (err) {
+      console.error('CodeEditor broadcast failed', err);
+    }
+  };
+
+  handleYTextChange = entry => {
+    if (this.state.currentProject !== entry.project || this.state.currentPath !== entry.path) {
+      return;
+    }
+    this.state.currentValue = entry.text.toString();
+    this.updateDirtyState();
+    if (state.collab?.uid == null || state.collab.uid === 'master') {
+      this.scheduleSave();
+    }
+  };
+
+  applyRemoteUpdate = async ({ project, path, update }) => {
+    try {
+      let entry = this.getDocEntry(project, path);
+      let decoded = decodeUpdate(update);
+      Y.applyUpdate(entry.doc, decoded, UPDATE_SOURCE_REMOTE);
+      entry.initialized = true;
+    } catch (err) {
+      console.error('CodeEditor apply update failed', err);
+    }
+  };
+
+  ensureCollabListeners = () => {
+    let rtc = state.collab?.rtc;
+    if (!rtc || !rtc.events) {
+      return;
+    }
+    if (this.boundRTC === rtc) {
+      return;
+    }
+    this.boundRTC = rtc;
+    rtc.events.on('codeEditor:update', async payload => await this.applyRemoteUpdate(payload));
+    rtc.events.on('codeEditor:selection', payload => this.applyRemoteSelection(payload));
+    rtc.events.on('presence:leave', () => this.cleanupPeerSelections());
+    rtc.events.on('presence:update', () => this.cleanupPeerSelections());
+  };
+
+  bindEditorToDoc = entry => {
+    if (!this.state.editorMount?.editor) {
+      return;
+    }
+    let cm = this.state.editorMount.editor;
+    if (entry.binding && entry.binding.destroy) {
+      entry.binding.destroy();
+    }
+    if (entry.cursorHandler && entry.cm) {
+      entry.cm.off('cursorActivity', entry.cursorHandler);
+    }
+    let currentValue = entry.text.toString();
+    if (cm.getValue() !== currentValue) {
+      cm.setValue(currentValue);
+    }
+    entry.binding = new CodemirrorBinding(entry.text, cm, undefined, { yUndoManager: entry.undoManager });
+    entry.cm = cm;
+    entry.cursorHandler = () => this.handleCursorActivity(entry);
+    cm.on('cursorActivity', entry.cursorHandler);
+    this.currentDocEntry = entry;
+    this.state.currentValue = currentValue;
+    this.handleCursorActivity(entry);
+    this.broadcastSelection(entry);
+  };
+
+  handleCursorActivity = entry => {
+    if (!entry?.cm) {
+      return;
+    }
+    let selections = entry.cm.listSelections();
+    if (!selections?.length) {
+      return;
+    }
+    let primary = selections[0];
+    let anchorIndex = entry.cm.indexFromPos(primary.anchor);
+    let headIndex = entry.cm.indexFromPos(primary.head);
+    entry.lastSelection = { anchor: anchorIndex, head: headIndex };
+    this.scheduleSelectionBroadcast(entry);
+  };
+
+  scheduleSelectionBroadcast = entry => {
+    if (!state.collab?.rtc || !state.collab.rtc.send) {
+      return;
+    }
+    if (!entry.lastSelection) {
+      return;
+    }
+    if (entry.selectionBroadcastTimer) {
+      return;
+    }
+    entry.selectionBroadcastTimer = setTimeout(() => {
+      entry.selectionBroadcastTimer = null;
+      this.broadcastSelection(entry);
+    }, 60);
+  };
+
+  broadcastSelection = entry => {
+    if (!state.collab?.rtc || !entry.lastSelection) {
+      return;
+    }
+    try {
+      state.collab.rtc.send({
+        type: 'codeEditor:selection',
+        project: entry.project,
+        path: entry.path,
+        anchor: entry.lastSelection.anchor,
+        head: entry.lastSelection.head,
+      });
+    } catch (err) {
+      console.error('CodeEditor selection broadcast failed', err);
+    }
+  };
+
+  applyRemoteSelection = payload => {
+    if (!payload) {
+      return;
+    }
+    let peer = payload.peer;
+    if (!peer || peer === state.collab?.uid) {
+      return;
+    }
+    let entry = this.currentDocEntry;
+    if (!entry || !entry.cm) {
+      return;
+    }
+    if (entry.project !== payload.project || entry.path !== payload.path) {
+      return;
+    }
+    let markers = entry.selectionMarkers || new Map();
+    if (markers.has(peer)) {
+      let prev = markers.get(peer);
+      prev.mark?.clear?.();
+      prev.caret?.clear?.();
+    }
+    if (payload.anchor == null || payload.head == null) {
+      markers.delete(peer);
+      return;
+    }
+    let cm = entry.cm;
+    let anchor = Math.max(0, Math.min(payload.anchor, cm.getValue().length));
+    let head = Math.max(0, Math.min(payload.head, cm.getValue().length));
+    let from = cm.posFromIndex(Math.min(anchor, head));
+    let to = cm.posFromIndex(Math.max(anchor, head));
+    let caretPos = cm.posFromIndex(head);
+    let presenceColor = state.collab?.rtc?.presence?.find?.(x => x.user === peer)?.color;
+    let mark = null;
+    if (anchor !== head) {
+      mark = cm.markText(from, to, {
+        css: `background: ${resolveColor(presenceColor, 0.25)}; border-radius: 2px;`,
+      });
+    }
+    let caretEl = document.createElement('span');
+    caretEl.className = 'CodeEditor-peerCaret pointer-events-none block';
+    caretEl.style.borderLeft = `2px solid ${resolveColor(presenceColor, 1)}`;
+    caretEl.style.marginLeft = '-1px';
+    caretEl.style.height = `${cm.defaultTextHeight()}px`;
+    caretEl.style.transform = 'translateY(-2px)';
+    let caret = cm.setBookmark(caretPos, { widget: caretEl, insertLeft: true, handleMouseEvents: false });
+    markers.set(peer, { mark, caret, color: presenceColor });
+    entry.selectionMarkers = markers;
+  };
+
+  cleanupPeerSelections = () => {
+    let entry = this.currentDocEntry;
+    if (!entry) {
+      return;
+    }
+    if (!state.collab?.rtc) {
+      this.clearPeerSelections(entry);
+      this.boundRTC = null;
+      return;
+    }
+    let active = new Set((state.collab.rtc.presence || []).map(x => x.user));
+    for (let [peer, handles] of entry.selectionMarkers.entries()) {
+      if (!active.has(peer)) {
+        handles.mark?.clear?.();
+        handles.caret?.clear?.();
+        entry.selectionMarkers.delete(peer);
+      }
+    }
+  };
+
+  clearPeerSelections = entry => {
+    if (!entry?.selectionMarkers) {
+      return;
+    }
+    if (entry.selectionBroadcastTimer) {
+      clearTimeout(entry.selectionBroadcastTimer);
+      entry.selectionBroadcastTimer = null;
+    }
+    for (let [, handles] of entry.selectionMarkers.entries()) {
+      handles.mark?.clear?.();
+      handles.caret?.clear?.();
+    }
+    entry.selectionMarkers.clear();
   };
 
   buildEditorShell = () => {
@@ -187,11 +579,17 @@ export default class CodeEditor {
   };
 
   scheduleSave = () => {
+    if (state.collab?.uid && state.collab.uid !== 'master') {
+      return;
+    }
     if (!this.state.dirty || this.state.loading || this.state.saving) {
       return;
     }
     if (!this.debouncedAutoSave) {
       this.debouncedAutoSave = debounce(async () => {
+        if (state.collab?.uid && state.collab.uid !== 'master') {
+          return;
+        }
         if (!this.state.dirty || this.state.loading || this.state.saving) {
           return;
         }
@@ -238,13 +636,17 @@ export default class CodeEditor {
       addEventListener('keydown', this.handleKeyDown);
       this.state.handlersAttached = true;
     }
-    if (!this.state.busSubscribed) {
-      let bus = state.event?.bus;
-      if (bus) {
-        bus.on('settings:global:option:ready', this.handleSettingsOption);
-        this.state.busSubscribed = true;
-      }
+    let bus = state.event?.bus;
+    if (bus && !this.state.busSubscribed) {
+      bus.on('settings:global:option:ready', this.handleSettingsOption);
+      bus.on('collab:presence:update', () => {
+        this.ensureCollabListeners();
+        this.cleanupPeerSelections();
+      });
+      bus.on('collab:apply:ready', () => this.ensureCollabListeners());
+      this.state.busSubscribed = true;
     }
+    this.ensureCollabListeners();
   };
 
   actions = {
@@ -277,6 +679,7 @@ export default class CodeEditor {
         queueMicrotask(async () => await post('codeEditor.open'));
         return;
       }
+      this.renderPlaceholder('Select a file to open it.');
     },
 
     open: async () => {
@@ -300,8 +703,10 @@ export default class CodeEditor {
         let text = await blob.text();
         this.state.currentProject = project;
         this.state.currentPath = path;
-        this.state.initialValue = text;
-        this.state.currentValue = text;
+        let entry = this.getDocEntry(project, path);
+        await this.initializeDoc(entry, text);
+        this.state.initialValue = entry.text.toString();
+        this.state.currentValue = entry.text.toString();
         this.state.dirty = false;
         this.state.externalChange = false;
         let shell = this.buildEditorShell();
@@ -309,9 +714,16 @@ export default class CodeEditor {
           this.state.loading = false;
           return;
         }
-        await this.mountEditor(text, path);
-        await this.applyVim();
+        await this.mountEditor(this.state.currentValue, path);
+        if (this.state.editorMount?.editor) {
+          this.bindEditorToDoc(entry);
+          this.cleanupPeerSelections();
+          await this.applyVim();
+        }
         this.state.loading = false;
+        if (state.collab?.uid == null || state.collab.uid === 'master') {
+          this.scheduleSave();
+        }
       } catch (err) {
         console.error(err);
         this.state.loading = false;
@@ -331,9 +743,13 @@ export default class CodeEditor {
       this.state.saving = false;
       this.state.externalChange = false;
       this.destroyEditorUI();
+      this.renderPlaceholder('Select a file to open it.');
     },
 
     save: async ({ reason } = {}) => {
+      if (state.collab?.uid && state.collab.uid !== 'master') {
+        return;
+      }
       if (!this.state.currentProject || !this.state.currentPath) {
         return;
       }
@@ -376,6 +792,25 @@ export default class CodeEditor {
         return;
       }
       await this.actions.open();
+    },
+
+    exportState: async ({ project, path }) => {
+      if (!project || !path) {
+        return '';
+      }
+      let entry = this.getDocEntry(project, path);
+      if (!entry.initialized) {
+        try {
+          let blob = await rfiles.load(project, path);
+          let text = blob ? await blob.text() : '';
+          await this.initializeDoc(entry, text);
+        } catch (err) {
+          console.error('CodeEditor exportState load failed', err);
+          await this.initializeDoc(entry, '');
+        }
+      }
+      let update = Y.encodeStateAsUpdate(entry.doc);
+      return encodeUpdate(update);
     },
 
     change: async () => {},
