@@ -131,6 +131,7 @@ export default class CodeEditor {
       if (entry.binding && entry.binding.destroy) {
         entry.binding.destroy();
       }
+      this.clearLocalSelection(entry);
       this.clearPeerSelections(entry);
       entry.cm = null;
       entry.binding = null;
@@ -169,6 +170,7 @@ export default class CodeEditor {
         cm: null,
         cursorHandler: null,
         selectionMarkers: new Map(),
+        selfSelection: null,
         selectionBroadcastTimer: null,
         bootstrapPromise: null,
         initialized: false,
@@ -333,6 +335,7 @@ export default class CodeEditor {
     let anchorIndex = entry.cm.indexFromPos(primary.anchor);
     let headIndex = entry.cm.indexFromPos(primary.head);
     entry.lastSelection = { anchor: anchorIndex, head: headIndex };
+    this.renderLocalSelection(entry, anchorIndex, headIndex);
     this.scheduleSelectionBroadcast(entry);
   };
 
@@ -414,9 +417,9 @@ export default class CodeEditor {
     caretEl.style.width = '0';
     caretEl.style.height = `${cm.defaultTextHeight()}px`;
     caretEl.style.borderLeft = `2px solid ${resolveColor(presenceColor, 1)}`;
-    caretEl.style.margin = '0';
-    caretEl.style.top = '4px';
     caretEl.style.pointerEvents = 'none';
+    caretEl.style.top = '4px';
+    caretEl.style.marginLeft = '-1px';
     let caret = cm.setBookmark(caretPos, { widget: caretEl, insertLeft: true, handleMouseEvents: false });
     markers.set(peer, { mark, caret, color: presenceColor });
     entry.selectionMarkers = markers;
@@ -455,6 +458,48 @@ export default class CodeEditor {
       handles.caret?.clear?.();
     }
     entry.selectionMarkers.clear();
+  };
+
+  clearLocalSelection = entry => {
+    if (!entry?.selfSelection) {
+      return;
+    }
+    entry.selfSelection.mark?.clear?.();
+    entry.selfSelection.caret?.clear?.();
+    entry.selfSelection = null;
+  };
+
+  renderLocalSelection = (entry, anchor, head) => {
+    if (!entry?.cm) {
+      return;
+    }
+    this.clearLocalSelection(entry);
+    let cm = entry.cm;
+    let valueLength = cm.getValue().length;
+    let anchorIndex = Math.max(0, Math.min(anchor ?? 0, valueLength));
+    let headIndex = Math.max(0, Math.min(head ?? anchorIndex, valueLength));
+    let colorName = state.collab?.rtc?.color || 'sky-600';
+    let from = cm.posFromIndex(Math.min(anchorIndex, headIndex));
+    let to = cm.posFromIndex(Math.max(anchorIndex, headIndex));
+    let caretPos = cm.posFromIndex(headIndex);
+    let mark = null;
+    if (anchorIndex !== headIndex) {
+      mark = cm.markText(from, to, {
+        css: `background: ${resolveColor(colorName, 0.25)}; border-radius: 2px;`,
+      });
+    }
+    let caretEl = document.createElement('span');
+    caretEl.className = 'CodeEditor-selfCaret animate-pulse';
+    caretEl.style.display = 'inline-block';
+    caretEl.style.position = 'relative';
+    caretEl.style.width = '0';
+    caretEl.style.height = `${cm.defaultTextHeight()}px`;
+    caretEl.style.borderLeft = `2px solid ${resolveColor(colorName, 1)}`;
+    caretEl.style.top = '4px';
+    caretEl.style.pointerEvents = 'none';
+    caretEl.style.marginLeft = '-1px';
+    let caret = cm.setBookmark(caretPos, { widget: caretEl, insertLeft: true, handleMouseEvents: false });
+    entry.selfSelection = { mark, caret };
   };
 
   buildEditorShell = () => {
@@ -665,6 +710,8 @@ export default class CodeEditor {
       }
       document.head.append(d.el('style', `
         .CodeMirror-cursors { position: absolute !important }
+        .CodeMirror-cursor { opacity: 0 !important }
+        .CodeMirror-selected { background: transparent !important }
         .CodeMirror-measure { display: none }
         .CodeMirror-lines > [role="presentation"] > :nth-child(3) { position: absolute !important; pointer-events: none }
         .CodeMirror-line { padding-left: 3rem !important }
