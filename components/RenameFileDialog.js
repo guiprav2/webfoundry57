@@ -18,8 +18,8 @@ class RenameFileDialog {
 
   onSubmit = ev => {
     ev.preventDefault();
-    this.root.returnDetail = this.value.trim();
-    this.root.close(ev.submitter.value);
+    this.root.parentElement.returnDetail = this.value.trim();
+    this.root.parentElement.close(ev.submitter.value);
   };
 }
 
