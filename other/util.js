@@ -38,7 +38,7 @@ export async function selectFile(accept) {
   let { promise: p, resolve: res } = Promise.withResolvers();
   let input = d.el('input', { type: 'file', /*accept,*/ class: 'hidden' });
   input.addEventListener('change', ev => res(input.files[0]));
-  top.document.body.append(input);
+  document.body.append(input);
   input.click();
   input.remove();
   return p;

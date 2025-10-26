@@ -40,27 +40,37 @@ window.rawctrls = Object.fromEntries(
 );
 
 let components = Object.fromEntries(
-  (
-    await Promise.all(
-      Object.entries(templates).map(async ([k, v]) =>
-        k.startsWith('components/')
-          ? [
-              [
-                k.replace('.html', '.js'),
-                scripts.includes(k.replace('.html', '.js'))
-                  ? (await import('../' + k.replace('.html', '.js'))).default
-                  : class GenericComponent {
-                      constructor(props) {
-                        this.props = props;
-                      }
-                    },
-              ],
-            ]
-          : [],
-      ),
-    )
-  ).flat(),
+  await Promise.all(
+    scripts
+      .filter(x => x.startsWith('components/') && x.endsWith('.js'))
+      .map(async x => [x, (await import('../' + x)).default]),
+  ),
 );
+
+let componentTemplateCache = {};
+
+function getComponentMarkup(name) {
+  if (!componentTemplateCache[name]) {
+    let foundMarkup = null;
+    for (let [path, html] of Object.entries(templates)) {
+      if (!path.startsWith('components/')) {
+        continue;
+      }
+      let doc = new DOMParser().parseFromString(html, 'text/html');
+      let element = doc.getElementById(name);
+      if (!element) {
+        continue;
+      }
+      foundMarkup = element.outerHTML;
+      break;
+    }
+    if (!foundMarkup) {
+      throw new Error(`Component template not found for ${name}`);
+    }
+    componentTemplateCache[name] = foundMarkup;
+  }
+  return componentTemplateCache[name];
+}
 
 window.renderTemplate = (x, component) => {
   let templ = templates[x];
@@ -70,11 +80,21 @@ window.renderTemplate = (x, component) => {
   return compile(templRoot.firstElementChild);
 };
 
-window.renderComponent = (x, props = {}) => {
-  x = `components/${x}.html`;
-  let Component = components[x.replace('.html', '.js')];
+window.renderComponent = (name, props = {}) => {
+  let scriptKey = `components/${name}.js`;
+  let Component = components[scriptKey];
+  if (!Component) {
+    Component = components[scriptKey] = class GenericComponent {
+      constructor(componentProps) {
+        this.props = componentProps;
+      }
+    };
+  }
+  let markup = getComponentMarkup(name);
   Component.prototype.render = function () {
-    this.root = renderTemplate(x, true);
+    let wrapper = document.createElement('div');
+    wrapper.innerHTML = markup;
+    this.root = compile(wrapper.firstElementChild);
     this.root.ctx ??= {};
     this.root.ctx.this = this;
     return this.root;
@@ -103,7 +123,7 @@ function wfevalLoop(n, x) {
 window.arrayify = x => (Array.isArray(x) ? x : x == null ? [] : [x]);
 
 window.showModal = async (x, props) => {
-  let dialog = renderComponent(x, props);
+  let dialog = d.el('dialog', { class: 'bg-transparent' }, renderComponent(x, props));
   dialog.open = false;
   let { promise: p, resolve: res } = Promise.withResolvers();
   document.body.append(dialog);

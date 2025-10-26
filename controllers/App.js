@@ -13,16 +13,14 @@ export default class App {
       }
       this.state.demo = location.search.includes('demo');
       if (this.state.demo) document.body.classList.add('text-xs');
-      if (top === window) {
-        sessionStorage.webfoundryTabId ??= crypto.randomUUID();
-        await navigator.serviceWorker.register('sw.js');
-        await navigator.serviceWorker.ready;
-        if (!navigator.serviceWorker.controller) return location.reload();
-        let register = () => navigator.serviceWorker.controller.postMessage({ type:'webfoundry-register-tab', tabId: sessionStorage.webfoundryTabId });
-        navigator.serviceWorker.addEventListener('controllerchange', register);
-        setInterval(register, 1000);
-        register();
-      }
+      sessionStorage.webfoundryTabId ??= crypto.randomUUID();
+      await navigator.serviceWorker.register('/sw.js');
+      await navigator.serviceWorker.ready;
+      if (!navigator.serviceWorker.controller) return location.reload();
+      let register = () => navigator.serviceWorker.controller.postMessage({ type:'webfoundry-register-tab', tabId: sessionStorage.webfoundryTabId });
+      navigator.serviceWorker.addEventListener('controllerchange', register);
+      setInterval(register, 1000);
+      register();
       this.state.mobile = (() => {
         if (typeof navigator === 'undefined') return false;
         if (navigator.userAgentData?.mobile) return true;

@@ -93,8 +93,8 @@ export default class MediaGalleryDialog {
 
   submit = ev => {
     ev.preventDefault();
-    this.root.returnDetail = '../' + this.selected;
-    this.root.close(ev.submitter.value);
+    this.root.parentElement.returnDetail = '../' + this.selected;
+    this.root.parentElement.close(ev.submitter.value);
   };
 };
 
