@@ -1,0 +1,732 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Dialogs.html</title>
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1"
+    />
+    <script>
+      window.rootPrefix = /^\/(files|preview)\//.test(location.pathname)
+        ? location.pathname.split('/').slice(0, 4).join('/')
+        : '/';
+    </script>
+    <script type="module" src="../webfoundry/ifdesigner.js"></script>
+    <script src="../webfoundry/head.js"></script>
+  </head>
+  <body
+    class="flex flex-col [&amp;&gt;div:first-child]:flex-1 min-h-screen"
+    style="display: none"
+  >
+    <div class="bg-neutral-100">
+      <div class="grid justify-center xl:grid-cols-3 p-4">
+        <div class="p-8 flex flex-col items-center gap-6">
+          <div class="text-3xl">Loading</div>
+
+          <div
+            id="Loading"
+            class="outline-none rounded-lg shadow-xl text-neutral-100 bg-[#091017] w-64 p-3 min-w-64 py-2"
+          >
+            <div>{{this.props.msg || 'Loading...'}}</div>
+          </div>
+        </div>
+
+        <div class="p-8 flex flex-col items-center gap-6">
+          <div class="text-3xl">InfoDialog</div>
+          <div
+            id="InfoDialog"
+            class="outline-none rounded-lg shadow-xl text-neutral-100 bg-[#091017] w-64 p-3 pt-2 min-w-64"
+          >
+            <form method="dialog">
+              <div>{{this.props.title}}</div>
+              <div class="flex gap-1.5 mt-3">
+                <button
+                  value="ok"
+                  class="flex-1 outline-none rounded px-3 py-1 bg-[#0071b2] hover:bg-[#008ad9] transition-colors disabled:hover:bg-[#0071b2]"
+                >
+                  OK
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+        <div class="p-8 flex flex-col items-center gap-6">
+          <div class="text-3xl">ConfirmationDialog</div>
+
+          <div
+            id="ConfirmationDialog"
+            class="outline-none rounded-lg shadow-xl text-neutral-100 bg-[#091017] w-64 p-3 pt-2 min-w-64"
+          >
+            <form method="dialog">
+              <div>{{this.props.title}}</div>
+              <div class="flex gap-1.5 mt-3">
+                <button
+                  value="no"
+                  class="flex-1 outline-none rounded px-3 py-1 bg-[#121d2b] hover:bg-[#1a2a40] transition-colors disabled:hover:bg-[#121d2b] disabled:opacity-50"
+                >
+                  No
+                </button>
+                <button
+                  value="yes"
+                  class="flex-1 outline-none rounded px-3 py-1 bg-[#0071b2] hover:bg-[#008ad9] transition-colors disabled:hover:bg-[#0071b2] disabled:opacity-50"
+                >
+                  Yes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <div class="p-8 flex flex-col items-center gap-6">
+          <div class="text-3xl">PromptDialog</div>
+
+          <div
+            id="PromptDialog"
+            class="outline-none rounded-lg shadow-xl text-neutral-100 bg-[#091017] p-3 pt-2"
+            wf-class="{{this.props.short ? 'w-64' : 'w-[30vw]'}}"
+          >
+            <form
+              method="dialog"
+              wf-onkeydown="this.onKeyDown(event)"
+              wf-onsubmit="this.onSubmit(event)"
+            >
+              <div>{{this.props.title}}</div>
+              <input
+                wf-if="!this.props.multiline"
+                class="outline-none mt-2 w-full rounded px-2 py-1 bg-[#2b2d3130] disabled:opacity-50 focus:bg-[#2b2d3150]"
+                wf-onattach="_1.select()"
+                wf-placeholder="this.props.placeholder || 'Value'"
+                value="{{this.value}}"
+              />
+              <textarea
+                wf-if="this.props.multiline"
+                class="outline-none mt-2 w-full rounded py-1 bg-[#2b2d3130] disabled:opacity-50 focus:bg-[#2b2d3150] min-h-32"
+                wf-onattach="_1.select()"
+                wf-placeholder="this.props.placeholder || 'Value'"
+                value="  {{this.value}}
+"
+              >
+  {{this.value}}
+</textarea
+              >
+              <div class="flex gap-1.5 mt-3">
+                <button
+                  value="cancel"
+                  class="flex-1 outline-none rounded px-3 py-1 bg-[#121d2b] hover:bg-[#1a2a40] transition-colors disabled:hover:bg-[#121d2b] disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  value="ok"
+                  class="flex-1 outline-none rounded px-3 py-1 bg-[#0071b2] hover:bg-[#008ad9] transition-colors disabled:hover:bg-[#0071b2] disabled:opacity-50"
+                  wf-disabled="!this.valid"
+                >
+                  OK
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+        <div class="p-8 flex flex-col items-center gap-6">
+          <div class="text-3xl">CreateFileDialog</div>
+
+          <div
+            id="CreateFileDialog"
+            class="outline-none rounded-lg shadow-xl text-neutral-100 bg-[#091017] w-64 p-3 pt-2"
+          >
+            <form
+              method="dialog"
+              wf-onkeydown="this.onKeyDown(event)"
+              wf-onsubmit="this.onSubmit(event)"
+            >
+              <div class="flex items-center gap-3">
+                <div>New:</div>
+                <select
+                  class="outline-none bg-transparent"
+                  wf-onchange="this.onChangeType(event)"
+                  value=""
+                >
+                  <option value="file" selected="">File</option>
+                  <option value="folder">Folder</option>
+                </select>
+              </div>
+              <input
+                class="outline-none mt-2 w-full rounded px-2 py-1 bg-[#2b2d3130] disabled:opacity-50 focus:bg-[#2b2d3150]"
+                placeholder="Name"
+                value="{{this.value}}"
+              />
+              <div
+                class="text-yellow-500 mt-2"
+                wf-if="this.value &amp;&amp; !this.valid"
+              >
+                <span class="nf nf-fa-warning"></span>
+                Name cannot contain colons or slashes, and cannot end in
+                <span class="font-bold">.jsx</span> (unsupported format).
+              </div>
+              <div class="flex gap-1.5 mt-3">
+                <button
+                  value="cancel"
+                  class="flex-1 outline-none rounded px-3 py-1 bg-[#121d2b] hover:bg-[#1a2a40] transition-colors disabled:hover:bg-[#121d2b] disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  value="ok"
+                  class="flex-1 outline-none rounded px-3 py-1 bg-[#0071b2] hover:bg-[#008ad9] transition-colors disabled:opacity-50 disabled:hover:bg-[#0071b2]"
+                  wf-disabled="!this.valid"
+                >
+                  OK
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+        <div class="p-8 flex flex-col items-center gap-6">
+          <div class="text-3xl">FileExtensionWarningDialog</div>
+
+          <div
+            id="FileExtensionWarningDialog"
+            class="outline-none rounded-lg shadow-xl text-neutral-100 bg-[#091017] w-64 p-3 pt-2 min-w-[420px]"
+          >
+            <form method="dialog">
+              <div>HTML or text file?</div>
+              <div class="mt-2">
+                You've entered a file name with no extension. Are you sure you
+                want to create a text file with no extension? To use the visual
+                editor, you must create an HTML file instead.
+              </div>
+              <div class="flex justify-end gap-1.5 mt-3">
+                <button
+                  value="text"
+                  class="outline-none rounded px-8 py-1 bg-[#121d2b] hover:bg-[#1a2a40] transition-colors disabled:hover:bg-[#121d2b] disabled:opacity-50"
+                >
+                  Text file
+                </button>
+                <button
+                  value="html"
+                  class="outline-none rounded px-8 py-1 bg-[#0071b2] hover:bg-[#008ad9] transition-colors disabled:hover:bg-[#0071b2] disabled:opacity-50"
+                >
+                  HTML file
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+        <div class="p-8 flex flex-col items-center gap-6">
+          <div class="text-3xl">RenameFileDialog</div>
+
+          <div
+            id="RenameFileDialog"
+            class="outline-none rounded-lg shadow-xl text-neutral-100 bg-[#091017] w-64 p-3 pt-2"
+          >
+            <form
+              method="dialog"
+              wf-onkeydown="this.onKeyDown(event)"
+              wf-onsubmit="this.onSubmit(event)"
+            >
+              <div class="flex items-center gap-3">Rename file</div>
+              <input
+                class="outline-none mt-2 w-full rounded px-2 py-1 bg-[#2b2d3130] disabled:opacity-50 focus:bg-[#2b2d3150]"
+                placeholder="Name"
+                wf-value="this.value"
+                value=""
+              />
+              <div
+                wf-if="this.value.trim() &amp;&amp; !this.valid"
+                class="text-yellow-500 mt-2"
+              >
+                <span class="nf nf-fa-warning"></span>
+                Name cannot contain colons or slashes, and cannot end in
+                <span class="font-bold"> .jsx </span>
+                (unsupported format).
+              </div>
+              <div class="flex gap-1.5 mt-3">
+                <button
+                  value="cancel"
+                  class="flex-1 outline-none rounded px-3 py-1 bg-[#121d2b] hover:bg-[#1a2a40] transition-colors disabled:hover:bg-[#121d2b] disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  value="ok"
+                  class="flex-1 outline-none rounded px-3 py-1 bg-[#0071b2] hover:bg-[#008ad9] transition-colors disabled:hover:bg-[#0071b2] disabled:opacity-50"
+                  wf-disabled="!this.valid"
+                >
+                  OK
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+        <div class="p-8 flex flex-col items-center gap-6">
+          <div class="text-3xl">ChangeSrcDialog</div>
+
+          <div
+            id="ChangeSrcDialog"
+            class="outline-none rounded-lg shadow-xl text-neutral-100 bg-[#091017] w-[30vw] p-3 pt-2"
+          >
+            <form
+              method="dialog"
+              wf-onkeydown="this.onKeyDown(event)"
+              wf-onsubmit="this.onSubmit(event)"
+            >
+              <div>Change src</div>
+              <input
+                placeholder="src"
+                class="outline-none mt-2 w-full rounded px-2 py-1 bg-[#2b2d3130] disabled:opacity-50 focus:bg-[#2b2d3150]"
+                value="{{this.srcValue}}"
+              />
+              <input
+                placeholder="src expression"
+                class="outline-none mt-2 w-full rounded px-2 py-1 bg-[#2b2d3130] disabled:opacity-50 focus:bg-[#2b2d3150]"
+                value="{{this.exprValue}}"
+              />
+              <div class="flex gap-1.5 mt-3 justify-end">
+                <button
+                  value="cancel"
+                  class="outline-none rounded px-3 py-1 bg-[#121d2b] hover:bg-[#1a2a40] transition-colors disabled:hover:bg-[#121d2b] disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  value="ok"
+                  class="outline-none rounded px-3 py-1 bg-[#0071b2] hover:bg-[#008ad9] transition-colors disabled:hover:bg-[#0071b2] disabled:opacity-50"
+                >
+                  OK
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+        <div class="p-8 flex flex-col items-center gap-6">
+          <div class="text-3xl">EventHandlersDialog</div>
+
+          <div
+            id="EventHandlersDialog"
+            class="outline-none rounded-lg shadow-xl text-neutral-100 bg-[#091017] p-3 pt-2"
+          >
+            <form
+              method="dialog"
+              wf-onkeyup="this.onKeyUp(event)"
+              wf-onkeydown="this.onKeyDown(event)"
+              wf-onsubmit="this.onSubmit(event)"
+            >
+              <div>Set event handlers</div>
+              <div wf-map="handler of this.handlers">
+                <div class="mt-2 flex gap-1.5">
+                  <input
+                    class="outline-none rounded px-2 py-1 bg-[#2b2d3130] disabled:opacity-50 focus:bg-[#2b2d3150] w-40"
+                    placeholder="Event"
+                    value="{{handler.name}}"
+                  />
+                  <input
+                    class="outline-none w-full rounded px-2 py-1 bg-[#2b2d3130] disabled:opacity-50 focus:bg-[#2b2d3150]"
+                    placeholder="Handler"
+                    value="{{handler.expr}}"
+                  />
+                </div>
+              </div>
+              <div class="flex gap-1.5 mt-3">
+                <button
+                  value="cancel"
+                  class="flex-1 outline-none rounded px-3 py-1 bg-[#121d2b] hover:bg-[#1a2a40] transition-colors disabled:hover:bg-[#121d2b] disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  value="ok"
+                  class="flex-1 outline-none rounded px-3 py-1 bg-[#0071b2] hover:bg-[#008ad9] transition-colors disabled:hover:bg-[#0071b2] disabled:opacity-50"
+                >
+                  OK
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <div class="p-8 flex flex-col items-center gap-6">
+          <div class="text-3xl">Collaborate</div>
+
+          <div
+            id="Collaborate"
+            class="outline-none rounded-lg shadow-xl text-neutral-100 bg-[#091017] p-3 pt-2 min-w-64 w-96"
+          >
+            <form method="dialog" wf-onsubmit="this.submit(event)">
+              <div class="mb-1">Realtime Collaboration</div>
+              <div class="mb-1">
+                Share the link below to start collaborating.
+              </div>
+              <input
+                class="outline-none rounded px-2 py-1 bg-[#2b2d3130] disabled:opacity-50 focus:bg-[#2b2d3150] w-full"
+                value="{{this.link}}"
+                wf-onclick="this.selectLink(event)"
+                wf-onkeydown="this.linkKeyDown(event)"
+              />
+              <div
+                class="text-sm mt-1 text-green-400"
+                wf-if="this.collab?.presence?.length &gt; 1"
+              >
+                {{this.collab.presence.length - 1}} clients connected.
+              </div>
+              <div class="flex gap-1.5 mt-3">
+                <button
+                  value="cancel"
+                  class="flex-1 outline-none rounded px-3 py-1 bg-[#121d2b] hover:bg-[#1a2a40] transition-colors disabled:hover:bg-[#121d2b] disabled:opacity-50"
+                >
+                  Cancel</button
+                ><button
+                  type="button"
+                  class="flex-1 outline-none rounded px-3 py-1 bg-[#121d2b] hover:bg-[#1a2a40] transition-colors disabled:hover:bg-[#121d2b]"
+                  wf-onclick="this.copyLink(event)"
+                  value=""
+                >
+                  Copy Link
+                </button>
+                <button
+                  value="ok"
+                  class="flex-1 outline-none rounded px-3 py-1 bg-[#0071b2] hover:bg-[#008ad9] transition-colors disabled:hover:bg-[#0071b2] disabled:opacity-50"
+                >
+                  OK
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+        <div class="p-8 flex flex-col items-center gap-6">
+          <div class="text-3xl">NetlifyApiKeyDialog</div>
+
+          <div
+            id="NetlifyApiKeyDialog"
+            class="outline-none rounded-lg shadow-xl bg-[#091017] w-96 text-neutral-100 p-3 pt-2"
+          >
+            <form
+              method="dialog"
+              wf-onkeydown="this.onKeyDown(event)"
+              wf-onsubmit="this.onSubmit(event)"
+              class="flex flex-col gap-1.5"
+            >
+              <div class="">Netlify API Key</div>
+              <input
+                type="password"
+                placeholder="Enter your Netlify API key"
+                class="w-full rounded px-3 py-2 bg-[#2b2d3130] outline-none"
+                value="{{this.value}}"
+              />
+              <div class="flex gap-2 justify-end">
+                <button
+                  value="cancel"
+                  class="rounded px-4 py-2 bg-[#121d2b] hover:bg-[#1a2a40] outline-none text-sm"
+                >
+                  Cancel
+                </button>
+                <button
+                  value="ok"
+                  class="outline-none rounded bg-[#0071b2] hover:bg-[#008ad9] transition-colors disabled:opacity-50 disabled:hover:bg-[#0071b2] px-4 py-1"
+                  wf-disabled="!this.valid"
+                >
+                  OK
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+        <div class="p-8 flex flex-col items-center gap-6">
+          <div class="text-3xl">NetlifyDeployDialog</div>
+
+          <div
+            id="NetlifyDeployDialog"
+            class="outline-none rounded-lg shadow-xl bg-[#091017] w-96 text-neutral-100 p-3 pt-2"
+          >
+            <form
+              method="dialog"
+              wf-onkeydown="this.onKeyDown(event)"
+              wf-onsubmit="this.onSubmit(event)"
+              class="flex flex-col gap-1.5"
+            >
+              <div class="">Netlify Deploy</div>
+              <img
+                wf-if="!this.sites"
+                class="block w-12 mx-auto my-4"
+                src="../media/loading.svg"
+              />
+              <div class="mb-4" wf-if="this.sites">
+                <label class="block mb-1 text-sm">Select Site</label>
+                <select
+                  class="w-full rounded px-3 py-2 bg-[#2b2d3130] focus:bg-[#2b2d3150] outline-none"
+                  wf-value="this.selected"
+                  value=""
+                >
+                  <option
+                    value=""
+                    wf-if="!this.sites || this.sites.length === 0"
+                    disabled=""
+                  >
+                    No sites available
+                  </option>
+                  <option value="new" selected="">Create new site</option>
+                  <option wf-map="site of this.sites" value="{{site.id}}">
+                    {{site.ssl_url.slice('https://'.length)}}
+                  </option>
+                </select>
+              </div>
+
+              <!-- New Site Creation Section -->
+              <div class="mb-4" wf-if="this.selected === 'new'">
+                <label class="block mb-1 text-sm">New Site Name</label>
+                <input
+                  type="text"
+                  placeholder="Enter new site name"
+                  class="w-full rounded px-3 py-2 bg-[#2b2d3130] focus:bg-[#2b2d3150] outline-none"
+                  value="{{this.newSiteName}}"
+                />
+              </div>
+
+              <!-- Buttons -->
+              <div class="flex gap-2 justify-end">
+                <button
+                  value="cancel"
+                  class="rounded px-4 py-2 bg-[#121d2b] hover:bg-[#1a2a40] outline-none text-sm"
+                >
+                  Cancel</button
+                ><button
+                  value="key"
+                  class="rounded px-4 py-2 bg-[#121d2b] hover:bg-[#1a2a40] outline-none text-sm"
+                >
+                  Change API Key
+                </button>
+                <button
+                  value="ok"
+                  class="rounded px-4 py-2 bg-[#0071b2] hover:bg-[#008ad9] outline-none text-sm disabled:opacity-50"
+                  wf-disabled="!this.valid"
+                >
+                  Deploy
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+        <div class="p-8 flex flex-col items-center gap-6">
+          <div class="text-3xl">NetlifyPostDeployDialog</div>
+
+          <div
+            id="NetlifyPostDeployDialog"
+            class="outline-none rounded-lg shadow-xl text-neutral-100 bg-[#091017] w-64 p-3 pt-2 min-w-64"
+          >
+            <form method="dialog">
+              <div>Netlify Deploy</div>
+              <div wf-if="this.props.success">Deployment successful.</div>
+              <div class="text-red-400" wf-if="!this.props.success">
+                Deployment failed. Check your Netlify dashboard for details.
+              </div>
+              <div class="flex gap-1.5 mt-3">
+                <button
+                  value="visit"
+                  class="flex-1 outline-none rounded px-3 py-1 bg-[#121d2b] hover:bg-[#1a2a40] transition-colors disabled:hover:bg-[#121d2b] disabled:opacity-50"
+                  wf-if="this.props.success"
+                >
+                  Visit Site
+                </button>
+                <button
+                  value="ok"
+                  class="flex-1 outline-none rounded px-3 py-1 bg-[#0071b2] hover:bg-[#008ad9] transition-colors disabled:hover:bg-[#0071b2] disabled:opacity-50"
+                >
+                  OK
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+      <div class="grid justify-center"></div>
+      <div class="grid justify-center xl:grid-cols-3">
+        <div class="p-8 flex flex-col items-center gap-6 xl:col-span-2">
+          <div class="text-3xl">CodeDialog</div>
+
+          <div
+            id="CodeDialog"
+            class="outline-none rounded-lg shadow-xl text-neutral-100 bg-[#091017] w-64 p-3 pt-2 w-[62vw]"
+            wf-onattach="this.onAttach()"
+            wf-ondetach="this.onDetach()"
+          >
+            <form
+              method="dialog"
+              wf-onsubmit="this.onSubmit(event)"
+              class="flex flex-col gap-3"
+            >
+              <div class="flex items-center justify-between gap-3">
+                <div class="text-base font-medium truncate">
+                  {{this.props.title}}
+                </div>
+                <div class="flex items-center gap-2">
+                  <button
+                    type="button"
+                    class="CodeDialog-vimToggle outline-none rounded px-3 py-1 text-xs border border-slate-700/70 bg-slate-900/70 hover:bg-slate-900"
+                    wf-onclick="this.toggleVim()"
+                    aria-pressed="false"
+                    value=""
+                  >
+                    Vim Off
+                  </button>
+                </div>
+              </div>
+              <div
+                class="CodeDialog-editorWrapper min-h-96 flex flex-col flex-1 gap-2"
+              >
+                <div
+                  class="CodeDialog-editor flex-1 min-h-72 rounded-md border border-slate-800/60 bg-slate-950/70"
+                ></div>
+                <div class="CodeDialog-status text-xs text-slate-400 hidden">
+                  Vim mode toggles apply globally.
+                </div>
+              </div>
+              <div class="flex justify-end gap-1.5 mt-1">
+                <button
+                  value="cancel"
+                  class="outline-none rounded px-8 py-1 bg-[#121d2b] hover:bg-[#1a2a40] transition-colors disabled:hover:bg-[#121d2b] disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  value="ok"
+                  class="outline-none rounded px-8 py-1 bg-[#0071b2] hover:bg-[#008ad9] transition-colors disabled:hover:bg-[#0071b2] disabled:opacity-50"
+                >
+                  OK
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+        <div class="p-8 flex flex-col items-center gap-6">
+          <div class="text-3xl">MediaGalleryDialog</div>
+
+          <div
+            id="MediaGalleryDialog"
+            class="outline-none rounded shadow-xl text-neutral-100 bg-[#091017]"
+            wf-class="{{`w-[${Math.min(70, 40 + (this.media.length / 5) * 30)}vw]`}}"
+          >
+            <form
+              method="dialog"
+              wf-onkeydown="this.keytoggle(event)"
+              wf-onkeyup="this.keytoggle(event)"
+              wf-onsubmit="this.submit(event)"
+            >
+              <div class="flex items-center gap-3 px-3">
+                <div>Media Gallery:</div>
+                <select
+                  class="outline-none bg-transparent *:bg-[#121212] *:text-neutral-100"
+                  value=""
+                >
+                  <option
+                    wf-map="x of this.folders"
+                    value="{{x}}"
+                    wf-selected="this.selectedFolder === x"
+                  >
+                    {{x}}
+                  </option>
+                </select>
+                <div class="flex">
+                  <button
+                    type="button"
+                    class="nf nf-fa-cloud_upload text-2xl hover:bg-black/70 outline-none rounded-b px-3 pt-1 pb-2"
+                    wf-onclick="this.upload(event)"
+                    wf-if="this.media.length"
+                    value=""
+                  ></button>
+                  <button
+                    type="button"
+                    class="text-2xl hover:bg-black/70 outline-none rounded-b px-3 pt-1 pb-2"
+                    wf-onclick="this.ai(event)"
+                    value=""
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      width="1em"
+                      height="1em"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        fill="currentColor"
+                        d="m9 4l2.5 5.5L17 12l-5.5 2.5L9 20l-2.5-5.5L1 12l5.5-2.5zm0 4.83L8 11l-2.17 1L8 13l1 2.17L10 13l2.17-1L10 11zM19 9l-1.26-2.74L15 5l2.74-1.25L19 1l1.25 2.75L23 5l-2.75 1.26zm0 14l-1.26-2.74L15 19l2.74-1.25L19 15l1.25 2.75L23 19l-2.75 1.26z"
+                      ></path>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+              <a
+                href="#"
+                class="flex-1 flex flex-col justify-center items-center gap-4 p-24"
+                wf-if="!this.media.length"
+                wf-onclick="this.upload(event)"
+                wf-ondrop="this.drop(event)"
+                wf-ondragover="event.preventDefault()"
+              >
+                <i class="nf nf-fa-cloud_upload text-5xl"></i>
+                <div class="italic">
+                  Folder empty. Select a different folder or upload a media file
+                  here.
+                </div>
+              </a>
+              <div
+                class="max-h-[80vh] overflow-auto grid gap-6 px-4 pt-3 pb-1 grid-cols-3"
+                wf-class="{{replaces grid-cols-3: `grid-cols-${Math.max(3, Math.min(5, this.media.length))}`}}"
+                wf-if="this.media.length"
+              >
+                <div wf-map="x of this.media">
+                  <a
+                    href="#"
+                    class="aspect-square flex justify-center items-center outline rounded overflow-hidden bg-black/80"
+                    wf-onclick="((!event.ctrlKey &amp;&amp; event.preventDefault()), this.selected = x), d.update()"
+                    wf-class="{{this.selected === x &amp;&amp; 'outline-4 outline-blue-500'}} {{!(this.selected === x) &amp;&amp; 'outline-2_outline-neutral-500'}}"
+                  >
+                    <img
+                      wf-if="this.typeFor(x) === 'image'"
+                      wf-src="this.srcFor(x)"
+                      class="border border-transparent max-h-full"
+                    />
+                    <video
+                      wf-if="this.typeFor(x) === 'video'"
+                      wf-src="this.srcFor(x)"
+                      wf-onclick="this.audiovisualClick(event)"
+                      wf-class="{{!this.ctrlKey &amp;&amp; 'pointer-events-none'}}"
+                      class="border border-transparent max-h-full"
+                      controls=""
+                      hidden=""
+                    ></video>
+                    <audio
+                      wf-if="this.typeFor(x) === 'audio'"
+                      wf-src="this.srcFor(x)"
+                      wf-class="{{!this.ctrlKey &amp;&amp; 'pointer-events-none'}}"
+                      class="max-w-full border border-transparent max-h-full"
+                      controls=""
+                      hidden=""
+                    ></audio>
+                    <div class="hidden"></div>
+                  </a>
+                  <div class="truncate text-center px-3 pt-2 pb-1">
+                    {{x.split('/').at(-1)}}
+                  </div>
+                </div>
+              </div>
+              <div class="flex gap-1.5 justify-end p-3">
+                <button
+                  value="cancel"
+                  class="outline-none rounded px-8 py-1 bg-[#121d2b] hover:bg-[#1a2a40] transition-colors disabled:hover:bg-[#121d2b] disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  value="ok"
+                  class="outline-none rounded px-8 py-1 bg-[#0071b2] hover:bg-[#008ad9] transition-colors disabled:hover:bg-[#0071b2] disabled:opacity-50"
+                  wf-disabled="!this.selected"
+                >
+                  OK
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
