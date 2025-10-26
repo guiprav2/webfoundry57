@@ -260,6 +260,46 @@
           </div>
         </div>
         <div class="p-8 flex flex-col items-center gap-6">
+          <div class="text-3xl">ChangeValueDialog</div>
+
+          <div
+            id="ChangeValueDialog"
+            class="outline-none rounded-lg shadow-xl text-neutral-100 bg-[#091017] w-[30vw] p-3 pt-2"
+          >
+            <form
+              method="dialog"
+              wf-onkeydown="this.onKeyDown(event)"
+              wf-onsubmit="this.onSubmit(event)"
+            >
+              <div>Change value</div>
+              <input
+                placeholder="Value"
+                class="outline-none mt-2 w-full rounded px-2 py-1 bg-[#2b2d3130] disabled:opacity-50 focus:bg-[#2b2d3150]"
+                value="{{this.value}}"
+              />
+              <input
+                placeholder="Value expression"
+                class="outline-none mt-2 w-full rounded px-2 py-1 bg-[#2b2d3130] disabled:opacity-50 focus:bg-[#2b2d3150]"
+                value="{{this.exprValue}}"
+              />
+              <div class="flex gap-1.5 mt-3 justify-end">
+                <button
+                  value="cancel"
+                  class="outline-none rounded px-3 py-1 bg-[#121d2b] hover:bg-[#1a2a40] transition-colors disabled:hover:bg-[#121d2b] disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  value="ok"
+                  class="outline-none rounded px-3 py-1 bg-[#0071b2] hover:bg-[#008ad9] transition-colors disabled:hover:bg-[#0071b2] disabled:opacity-50"
+                >
+                  OK
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+        <div class="p-8 flex flex-col items-center gap-6">
           <div class="text-3xl">ChangeSrcDialog</div>
 
           <div
@@ -292,6 +332,58 @@
                 <button
                   value="ok"
                   class="outline-none rounded px-3 py-1 bg-[#0071b2] hover:bg-[#008ad9] transition-colors disabled:hover:bg-[#0071b2] disabled:opacity-50"
+                >
+                  OK
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+        <div class="p-8 flex flex-col items-center gap-6">
+          <div class="text-3xl">SetComponentDialog</div>
+
+          <div
+            id="SetComponentDialog"
+            class="outline-none rounded-lg shadow-xl text-neutral-100 bg-[#091017] p-3 pt-2"
+          >
+            <form
+              method="dialog"
+              wf-onkeyup="this.onKeyUp(event)"
+              wf-onkeydown="this.onKeyDown(event)"
+              wf-onsubmit="this.onSubmit(event)"
+            >
+              <div>Set component</div>
+              <select
+                class="mt-2 w-full px-2 py-1 bg-[#2b2d3130] rounded focus:bg-[#2b2d3150]"
+                wf-value="this.component"
+              >
+                <option value="">Select a component</option>
+                <option wf-map="item of this.components" value="{{item.value}}">{{item.label}}</option>
+              </select>
+              <div wf-map="prop of this.componentProps">
+                <div class="mt-2 flex gap-1.5">
+                  <input
+                    class="outline-none rounded px-2 py-1 disabled:opacity-50 w-40 bg-[#2b2d3130] focus:bg-[#2b2d3150]"
+                    placeholder="Prop"
+                    value="{{prop.name}}"
+                  />
+                  <input
+                    class="outline-none w-full rounded px-2 py-1 bg-[#2b2d3130] disabled:opacity-50 focus:bg-[#2b2d3150]"
+                    placeholder="Value / expression"
+                    value="{{prop.expr}}"
+                  />
+                </div>
+              </div>
+              <div class="flex gap-1.5 mt-3">
+                <button
+                  value="cancel"
+                  class="flex-1 outline-none rounded px-3 py-1 bg-[#121d2b] hover:bg-[#1a2a40] transition-colors disabled:hover:bg-[#121d2b] disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  value="ok"
+                  class="flex-1 outline-none rounded px-3 py-1 bg-[#0071b2] hover:bg-[#008ad9] transition-colors disabled:hover:bg-[#0071b2] disabled:opacity-50"
                 >
                   OK
                 </button>

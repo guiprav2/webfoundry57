@@ -10,7 +10,7 @@ class CreateFileDialog {
     ev.target.closest('form').querySelector('[value="ok"]').click();
   };
 
-  onSubmit = ev => { ev.preventDefault(); this.root.returnDetail = [this.type.trim(), this.value]; this.root.close(ev.submitter.value) };
+  onSubmit = ev => { ev.preventDefault(); this.root.parentElement.returnDetail = [this.type.trim(), this.value]; this.root.parentElement.close(ev.submitter.value) };
 }
 
 export default CreateFileDialog;

@@ -174,8 +174,8 @@ class CodeDialog {
     if (value == null) {
       value = this.props.initialValue ?? '';
     }
-    this.root.returnDetail = value;
-    this.root.close(ev.submitter.value);
+    this.root.parentElement.returnDetail = value;
+    this.root.parentElement.close(ev.submitter.value);
   };
 
   clearLocalSelection = () => {

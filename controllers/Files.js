@@ -373,7 +373,7 @@ export default class Files {
         showModal('Loading', { msg: 'Importing ZIP...' });
         await rfiles.importZip(project, file);
         await post('files.injectBuiltins');
-        await post('files.generateReflections');
+        await post('files.reflect');
         await post('files.load');
         document.querySelector('dialog')?.remove?.();
       }
