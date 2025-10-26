@@ -355,21 +355,23 @@
               <div>Set component</div>
               <select
                 class="mt-2 w-full px-2 py-1 bg-[#2b2d3130] rounded focus:bg-[#2b2d3150]"
-                wf-value="this.component"
+                value=""
               >
-                <option value="">Select a component</option>
-                <option wf-map="item of this.components" value="{{item.value}}">{{item.label}}</option>
+                <option value="" selected="">Select a component</option>
+                <option wf-map="item of this.components" value="{{item.value}}">
+                  {{item.label}}
+                </option>
               </select>
               <div wf-map="prop of this.componentProps">
                 <div class="mt-2 flex gap-1.5">
                   <input
                     class="outline-none rounded px-2 py-1 disabled:opacity-50 w-40 bg-[#2b2d3130] focus:bg-[#2b2d3150]"
-                    placeholder="Prop"
+                    placeholder="Property"
                     value="{{prop.name}}"
                   />
                   <input
                     class="outline-none w-full rounded px-2 py-1 bg-[#2b2d3130] disabled:opacity-50 focus:bg-[#2b2d3150]"
-                    placeholder="Value / expression"
+                    placeholder="Expression"
                     value="{{prop.expr}}"
                   />
                 </div>
@@ -713,6 +715,7 @@
                     wf-map="x of this.folders"
                     value="{{x}}"
                     wf-selected="this.selectedFolder === x"
+                    selected=""
                   >
                     {{x}}
                   </option>

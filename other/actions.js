@@ -1949,6 +1949,77 @@ let actions = window.actions = {
     },
   },
 
+  setComponent: {
+    shortcut: 'V',
+    disabled: ({ cur = 'master' }) => [!state.designer.open && `Designer closed.`, state.designer.open && state.designer.current.cursors[cur]?.length !== 1 && `A single element must be selected.`],
+    parameters: { type: 'object', properties: { cur: { type: 'string' }, component: { type: 'string' }, componentProps: { type: 'object' } } },
+    handler: async ({ cur = 'master', component, componentProps } = {}) => {
+      let frame = state.designer.current;
+      let el = frame.map.get(frame.cursors[cur][0]);
+      if (!el) return;
+      let prevComponent = el.getAttribute('wf-component');
+      let prevComponentId = typeof prevComponent === 'string' && prevComponent.includes('#') ? prevComponent.split('#').pop().trim() : (prevComponent?.trim?.() || null);
+      let prevPropsAttr = el.getAttribute('wf-props');
+      let prevProps = null;
+      try {
+        prevProps = prevPropsAttr ? JSON.parse(prevPropsAttr) : null;
+      } catch (err) {
+        prevProps = null;
+      }
+      if (component === undefined && componentProps === undefined) {
+        let [btn, nextComponent, nextProps] = await showModal('SetComponentDialog', { component: prevComponentId, componentProps: prevProps });
+        if (btn !== 'ok') return;
+        component = nextComponent;
+        componentProps = nextProps;
+      }
+      let normalizedComponent = typeof component === 'string' ? component.trim() : component;
+      if (normalizedComponent === '') normalizedComponent = null;
+      if (normalizedComponent !== null && normalizedComponent !== undefined && typeof normalizedComponent !== 'string') normalizedComponent = String(normalizedComponent);
+      if (normalizedComponent === undefined) normalizedComponent = prevComponentId ?? null;
+      if (typeof normalizedComponent === 'string' && normalizedComponent.includes('#')) normalizedComponent = normalizedComponent.split('#').pop();
+      let propsObject = null;
+      if (Array.isArray(componentProps)) {
+        let entries = {};
+        for (let item of componentProps) {
+          if (!item) continue;
+          let name = typeof item.name === 'string' ? item.name.trim() : '';
+          let expr = item.expr;
+          let exprStr = expr == null ? '' : String(expr).trim();
+          if (!name || !exprStr) continue;
+          let asNumber = /^-?\d+(?:\.\d+)?$/.test(exprStr) ? Number(exprStr) : null;
+          entries[name] = asNumber !== null ? asNumber : exprStr;
+        }
+        if (Object.keys(entries).length) propsObject = entries;
+      } else if (componentProps && typeof componentProps === 'object') {
+        let entries = {};
+        for (let [name, expr] of Object.entries(componentProps)) {
+          let propName = typeof name === 'string' ? name.trim() : '';
+          let propExpr = expr == null ? '' : String(expr).trim();
+          if (!propName || !propExpr) continue;
+          let asNumber = /^-?\d+(?:\.\d+)?$/.test(propExpr) ? Number(propExpr) : null;
+          entries[propName] = asNumber !== null ? asNumber : propExpr;
+        }
+        if (Object.keys(entries).length) propsObject = entries;
+      }
+      if (!normalizedComponent) propsObject = null;
+      let nextComponentAttr = normalizedComponent ? normalizedComponent : null;
+      let nextPropsAttr = propsObject ? JSON.stringify(propsObject) : null;
+      if ((prevComponent || null) === (nextComponentAttr || null) && (prevPropsAttr || null) === (nextPropsAttr || null)) return;
+      if (state.collab.uid !== 'master') return state.collab.rtc.send({ type: 'cmd', k: 'setComponent', cur, component: nextComponentAttr, componentProps: propsObject });
+      let targetKey = frame.map.getKey(el);
+      await post('designer.pushHistory', cur, async apply => {
+        await ifeval(({ args }) => {
+          let el = state.map.get(args.target);
+          if (!el) return;
+          let componentVal = args.apply ? args.nextComponent : args.prevComponent;
+          let propsVal = args.apply ? args.nextProps : args.prevProps;
+          if (componentVal) el.setAttribute('wf-component', componentVal); else el.removeAttribute('wf-component');
+          if (propsVal) el.setAttribute('wf-props', propsVal); else el.removeAttribute('wf-props');
+        }, { target: targetKey, prevComponent, prevProps: prevPropsAttr, nextComponent: nextComponentAttr, nextProps: nextPropsAttr, apply });
+      });
+    },
+  },
+
   setDisabledExpression: {
     shortcut: 'D',
     disabled: ({ cur = 'master' }) => [!state.designer.open && `Designer closed.`, state.designer.open && !state.designer.current.cursors[cur]?.length && `No elements selected.`],

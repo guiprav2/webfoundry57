@@ -3,6 +3,7 @@ import rfiles from '../repos/rfiles.js';
 
 let componentEntriesFromTemplates = templates => {
   let entries = [];
+  let seen = new Set();
   for (let [path, html] of Object.entries(templates || {})) {
     if (!path.startsWith('components/')) {
       continue;
@@ -28,13 +29,12 @@ let componentEntriesFromTemplates = templates => {
       if (!el.id) {
         continue;
       }
+      if (seen.has(el.id)) {
+        continue;
+      }
+      seen.add(el.id);
       let file = path.slice('components/'.length);
-      entries.push({
-        value: `${path}#${el.id}`,
-        label: `${el.id} (${file})`,
-        id: el.id,
-        path,
-      });
+      entries.push({ value: el.id, label: `${el.id} (${file})`, id: el.id });
     }
   }
   return entries.sort((a, b) => a.label.localeCompare(b.label));
@@ -48,36 +48,25 @@ let normalizeComponentValue = (value, entries) => {
   if (!cleaned) {
     return '';
   }
-  let parts = cleaned.split('#');
-  if (parts.length === 2) {
-    let [path, id] = parts;
-    if (path && !path.startsWith('components/')) {
-      path = `components/${path}`;
-    }
-    if (path && id) {
-      let reconstructed = `${path}#${id}`;
-      let match = entries.find(x => x.value === reconstructed);
-      if (match) {
-        return match.value;
-      }
-    }
-  }
-  let exact = entries.find(x => x.value === cleaned);
+  let candidate = cleaned.includes('#') ? cleaned.split('#').pop() : cleaned;
+  let exact = entries.find(x => x.value === candidate) || entries.find(x => x.value === cleaned);
   if (exact) {
     return exact.value;
   }
-  let fallback = entries.find(x => x.id === cleaned) || entries.find(x => x.value.endsWith(`#${cleaned}`));
+  let fallback = entries.find(x => x.id === candidate) || entries.find(x => x.id === cleaned);
   if (fallback) {
     return fallback.value;
   }
-  if (parts.length === 2) {
-    let [, id] = parts;
-    let fallbackById = entries.find(x => x.id === id);
-    if (fallbackById) {
-      return fallbackById.value;
-    }
+  let lowerCandidate = candidate.toLowerCase ? candidate.toLowerCase() : candidate;
+  let ciMatch = entries.find(x => (x.value || '').toLowerCase() === lowerCandidate);
+  if (ciMatch) {
+    return ciMatch.value;
   }
-  return '';
+  let ciFallback = entries.find(x => (x.id || '').toLowerCase() === lowerCandidate);
+  if (ciFallback) {
+    return ciFallback.value;
+  }
+  return candidate;
 };
 
 class SetComponentDialog {
@@ -89,6 +78,7 @@ class SetComponentDialog {
     this.componentProps = this.normalizeProps(this.props.componentProps);
     this.ensureTrailingBlank(false);
     this.loadComponents();
+    setTimeout(() => d.el(this.root.querySelector('select'), { value: d.binding({ get: () => this.component, set: x => this.component = x }) }));
   }
 
   loadComponents = async () => {
@@ -145,12 +135,12 @@ class SetComponentDialog {
           continue;
         }
         let name = typeof item.name === 'string' ? item.name : '';
-        let expr = typeof item.expr === 'string' ? item.expr : '';
+        let expr = item.expr == null ? '' : String(item.expr);
         list.push({ name, expr });
       }
     } else if (props && typeof props === 'object') {
       for (let [name, expr] of Object.entries(props)) {
-        list.push({ name, expr: typeof expr === 'string' ? expr : '' });
+        list.push({ name, expr: expr == null ? '' : String(expr) });
       }
     }
     if (!list.length) {
