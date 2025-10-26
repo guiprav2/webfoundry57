@@ -44,7 +44,7 @@ export default class Designer {
       if (frame.preview) path = path.slice('pages/'.length);
       let fullpath = `/${frame.preview ? 'preview' : 'files'}/${sessionStorage.webfoundryTabId}/${name}:${uuid}/${path}`;
       if (!state.settings.opt.isolate) return fullpath;
-      let sub = (name || '').toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+      let sub = `${name}-${uuid}`.toLowerCase().replace(/[^a-z0-9:-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
       let host = location.hostname;
       let parts = host.split('.');
       let root;
@@ -53,8 +53,7 @@ export default class Designer {
       else if (/^webfoundry\d+\.webfoundry\.app$/i.test(host)) root = parts.slice(-2).join('.');
       else if (/\.webfoundry\.app$/i.test(host)) root = parts.slice(-2).join('.');
       else root = parts.slice(-2).join('.');
-      let newHost = /^localhost/.test(root) ? root : `${sub}.${root}`;
-      return `${location.protocol}//${newHost}${fullpath}?isolate=${location.origin}`;
+      return `${location.protocol}//${sub}.${root}${fullpath}?isolate=${location.origin}`;
     },
 
     get current() { return this.list.find(x => x.path === state.files.current) },
@@ -124,9 +123,9 @@ export default class Designer {
           let url = new URL(ev.origin);
           let parts = url.hostname.split('.');
           let domain = parts.slice(1).join('.');
-          let name = parts[0];
+          let project = parts[0];
           if (!/^webfoundry.app|webfoundry\d+\.netlify\.app|localhost$/.test(domain)) return;
-          if (!state.projects.current?.startsWith(`${name}:`)) return; // FIXME: Also check path.
+          if (state.projects.current?.replaceAll?.(':', '-') !== project) return; // FIXME: Also check path.
         }
         let project = state.projects.current;
         let frame = this.state.list.find(x => x.path === ev.data.path);
