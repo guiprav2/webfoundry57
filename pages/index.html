@@ -85,7 +85,7 @@
         ></button>
         <button
           class="outline-none nf border-b border-black/50 transition-all hover:bg-black/70 w-12 md:w-16 h-12 md:h-16 IconsSidebar-playBtn nf-fa-play"
-          wf-if="state.designer.open &amp;&amp; !state.designer.current?.preview"
+          wf-if="state.designer.open &amp;&amp; state.files.current.startsWith('pages/') &amp;&amp; !state.designer.current?.preview"
           wf-onclick="post('designer.togglePreview')"
           value=""
         ></button>

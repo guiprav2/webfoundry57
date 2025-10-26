@@ -84,7 +84,7 @@ export default class Files {
         }
       });
       bus.on('files:create:ready', async ({ path }) => {
-        await new Promise(pres => setTimeout(pres, 1000));
+        await post('files.load');
         await post('files.select', path);
       });
       bus.on('files:mv:ready', async ({ path, newPath }) => {
@@ -160,6 +160,7 @@ export default class Files {
       let project = state.projects.current;
       let { bus } = state.event;
       bus.emit('files:create:start');
+      let ai = !!name;
       if (!name) {
         let btn;
         [btn, type, name] = await showModal('CreateFileDialog');
@@ -176,6 +177,11 @@ export default class Files {
         if (btn2 !== 'yes') { bus.emit('files:create:abort', { project, path, name }); return { success: false, reason: `File already exists` } }
       }
       if (type === 'file') {
+        if (name.endsWith('.html') && !fullpath.includes('/')) {
+          bus.emit('files:create:abort', { project, path, name });
+          !ai && await showModal('InfoDialog', { title: `HTML files are not allowed in the root directory.` });
+          return { success: false, reason: `HTML files are not allowed in the root directory` };
+        }
         let defaultContent = '';
         if (fullpath.startsWith('controllers/') && fullpath.endsWith('.js')) defaultContent = defaultCtrl(fullpath);
         if (fullpath.endsWith('.html')) defaultContent = defaultHtml({ title: name });

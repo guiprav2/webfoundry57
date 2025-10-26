@@ -101,10 +101,7 @@ export default class Designer {
         this.state.gfontsreg = idx;
       }
       bus.on('projects:select:ready', async () => await post('designer.reset'));
-      bus.on('files:select:ready', async ({ path }) => {
-        if (!/^(components|pages)\/.*\.html$/.test(path)) return;
-        await post('designer.select', path);
-      });
+      bus.on('files:select:ready', async ({ path }) => await post('designer.select', path));
       //bus.on('settings:projects:option:ready', async () => await post('designer.refresh'));
       bus.on('files:change', async ({ path }) => {
         if (!state.projects.current) return; // ???
@@ -158,7 +155,7 @@ export default class Designer {
     },
 
     select: async path => {
-      if (this.state.list.find(x => x.path === path) || !path?.startsWith?.('pages/')) return;
+      if (this.state.list.find(x => x.path === path) || !path?.endsWith?.('.html')) return;
       let { bus } = state.event;
       let project = state.projects.current;
       let p = Promise.withResolvers();
