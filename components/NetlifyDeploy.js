@@ -32,10 +32,8 @@ class NetlifyDeploy {
 
   onSubmit = ev => {
     ev.preventDefault();
-    this.root.returnDetail = this.selected !== 'new'
-      ? ['existing', this.selected]
-      : ['new', this.newSiteName.trim()];
-    this.root.close(ev.submitter.value);
+    this.root.parentElement.returnDetail = this.selected !== 'new' ? ['existing', this.selected] : ['new', this.newSiteName.trim()];
+    this.root.parentElement.close(ev.submitter.value);
   };
 }
 

@@ -20,7 +20,7 @@ class EventHandlersDialog {
     ev.target.closest('form').querySelector('[value="ok"]').click();
   };
 
-  onSubmit = ev => { ev.preventDefault(); this.clearEmpty(); this.root.returnDetail = this.handlers.slice(0, -1); this.root.close(ev.submitter.value) };
+  onSubmit = ev => { ev.preventDefault(); this.clearEmpty(); this.root.parentElement.returnDetail = this.handlers.slice(0, -1); this.root.parentElement.close(ev.submitter.value) };
 }
 
 export default EventHandlersDialog;

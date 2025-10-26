@@ -34,8 +34,8 @@ class Collaborate {
 
   submit = ev => {
     ev.preventDefault();
-    this.root.returnDetail = this.collab;
-    this.root.close(ev.submitter.value);
+    this.root.parentElement.returnDetail = this.collab;
+    this.root.parentElement.close(ev.submitter.value);
   };
 }
 

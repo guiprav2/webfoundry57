@@ -227,6 +227,7 @@ export default class Files {
       let { bus } = state.event;
       bus.emit('files:mv:start');
       let isDir = path.endsWith('/');
+      let newName;
       if (!newPath) {
         let btn;
         [btn, newName] = await showModal('RenameFileDialog', { initialValue: path.split('/').at(isDir ? -2 : -1) });

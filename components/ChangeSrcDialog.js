@@ -15,8 +15,8 @@ class ChangeSrcDialog {
 
   onSubmit = ev => {
     ev.preventDefault();
-    this.root.returnDetail = [this.srcValue, this.exprValue];
-    this.root.close(ev.submitter.value);
+    this.root.parentElement.returnDetail = [this.srcValue, this.exprValue];
+    this.root.parentElement.close(ev.submitter.value);
   };
 }
 
