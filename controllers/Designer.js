@@ -115,6 +115,10 @@ export default class Designer {
         path = path.slice(`${name}/`.length);
         if (state.files.current === path) { await post('files.select', null); this.state.list = this.state.list.filter(x => x.path !== path); d.update() }
       });
+      bus.on('files:reflect:ready', async ({ project, templates }) => {
+        if (state.projects.current !== project) return;
+        for (let x of this.state.list) x.el?.contentWindow?.postMessage?.({ type: 'templates', templates }, new URL(x.el.src).origin);
+      });
       addEventListener('message', async ev => {
         if (location.origin !== ev.origin) {
           let url = new URL(ev.origin);
@@ -132,6 +136,7 @@ export default class Designer {
             frame.ready = true;
             frame.resolve();
             await post('designer.sync', frame);
+            await post('files.reflect'); // For templates.
             break;
           case 'htmlsnap': {
             this.state.current.snap = ev.data.snap;

@@ -8,6 +8,7 @@ window.state = { map: new BiMap(), cursors: {}, overlays: {} };
 let wforigin = new URL(location.href).searchParams.get('isolate') || location.origin;
 if (/^(\w+\.)?(webfoundry.app|webfoundry\d+\.netlify\.app|localhost)$/.test(wforigin)) throw new Error(`Bad isolation origin`);
 let post = data => parent.postMessage({ path: null, ...data, path: location.pathname.slice(1).split('/').slice(3).join('/') }, wforigin);
+let components = {};
 addEventListener('message', async ev => {
   let { type, ...rest } = ev.data;
   if (type !== 'state' || ev.origin !== wforigin) return;
@@ -39,11 +40,38 @@ addEventListener('message', async ev => {
     post({ type: 'eval:res', rpcid: ev.data.rpcid, error: err.toString() });
   }
 });
+addEventListener('message', async ev => {
+  if (ev.data.type !== 'templates' || ev.origin !== wforigin) return;
+  components = {};
+  for (let x of Object.values(ev.data.templates)) {
+    let doc = new DOMParser().parseFromString(x, 'text/html');
+    for (let y of doc.querySelectorAll('[id]')) {
+      if (y.parentElement.closest('[id]')) continue;
+      components[y.id] = y;
+    }
+  }
+  expandComponents();
+});
+function expandComponents() {
+  for (let x of document.querySelectorAll('[wf-component]')) {
+    let k = x.getAttribute('wf-component');
+    let c = components[k]?.cloneNode?.(true);
+    if (!c) continue;
+    c.setAttribute('wf-component', k);
+    x.getAttribute('wf-props') && c.setAttribute('wf-props', x.getAttribute('wf-props'));
+    if (x.outerHTML === c.outerHTML) continue;
+    x.replaceWith(c);
+    // FIXME: state.map.set(state.map.getKey(x), c);
+  }
+}
 addEventListener('mousedown', async ev => {
   document.activeElement.blur();
   ev.preventDefault();
-  if (!ev.shiftKey) post({ type: 'action', key: 'changeSelection', cur: state.collab.uid, s: [state.map.getKey(ev.target)] });
-  else post({ type: 'action', key: 'changeSelection', cur: state.collab.uid, s: [...new Set([...state.cursors[state.collab.uid] || [], state.map.getKey(ev.target)])] });
+  let { target } = ev;
+  let croot = target.closest('[wf-component]');
+  if (croot) target = croot;
+  if (!ev.shiftKey) post({ type: 'action', key: 'changeSelection', cur: state.collab.uid, s: [state.map.getKey(target)] });
+  else post({ type: 'action', key: 'changeSelection', cur: state.collab.uid, s: [...new Set([...state.cursors[state.collab.uid] || [], state.map.getKey(target)])] });
 });
 addEventListener('keydown', ev => post({ type: 'keydown', key: ev.key, ctrlKey: ev.ctrlKey, shiftKey: ev.shiftKey }));
 async function trackCursors() {
@@ -67,11 +95,16 @@ let snap = () => {
   state.map = map;
   let doc = new DOMParser().parseFromString(snap, 'text/html');
   doc.querySelectorAll('.wf-cursor').forEach(x => x.remove());
+  for (let x of doc.querySelectorAll('[wf-component]')) {
+    let props = x.getAttribute('wf-props') || '';
+    if (props) props = ` wf-props="${props.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}"`;
+    x.outerHTML = `<${x.tagName.toLowerCase()} data-htmlsnap="${x.getAttribute('data-htmlsnap')}" wf-component="${x.getAttribute('wf-component')}"${props}></${x.tagName.toLowerCase()}>`;
+  }
   if (doc.documentElement.outerHTML === state.snap) return;
   snap = state.snap = doc.documentElement.outerHTML;
   post({ type: 'htmlsnap', snap });
 };
-let mutobs = new MutationObserver(snap);
+let mutobs = new MutationObserver(() => { expandComponents(); snap() });
 mutobs.observe(document, { attributes: true, subtree: true, childList: true, characterData: true });
 snap();
 post({ type: 'ready', status: 200 });

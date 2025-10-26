@@ -255,13 +255,17 @@ export default class Files {
     },
 
     reflect: debounce(async () => {
+      let { bus } = state.event;
       let project = state.projects.current;
+      bus.emit('files:reflect:start', { project });
       let files = await rfiles.list(project);
-      let templ = {};
-      for (let x of files.filter(x => x.endsWith('.html'))) templ[x] = await (await rfiles.load(project, x)).text();
-      await rfiles.save(project, 'webfoundry/templates.json', new Blob([JSON.stringify(templ)], { type: 'application/json' }));
-      await rfiles.save(project, 'webfoundry/scripts.json', new Blob([JSON.stringify(files.filter(x => x.endsWith('.js')))], { type: 'application/json' }));
-    }, 1000),
+      let templates = {};
+      for (let x of files.filter(x => x.endsWith('.html'))) templates[x] = await (await rfiles.load(project, x)).text();
+      await rfiles.save(project, 'webfoundry/templates.json', new Blob([JSON.stringify(templates)], { type: 'application/json' }));
+      let scripts = files.filter(x => x.endsWith('.js'));
+      await rfiles.save(project, 'webfoundry/scripts.json', new Blob([JSON.stringify(scripts)], { type: 'application/json' }));
+      bus.emit('files:reflect:ready', { project, templates, scripts });
+    }, 200),
 
     push: async () => await loadman.run('files.push', async () => {
       let { bus } = state.event;

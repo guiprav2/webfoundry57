@@ -8,7 +8,7 @@
       content="width=device-width, initial-scale=1, maximum-scale=1"
     />
   </head>
-  <body class="min-h-screen">
+  <body class="flex flex-col [&>div:first-child]:flex-1 min-h-screen">
     <script type="module">
       (async () => {
         window.rootPrefix = /^\/(files|preview)\//.test(location.pathname) ? location.pathname.split('/').slice(0, 4).join('/') : '/';
@@ -63,7 +63,7 @@
           import(`${rootPrefix}/webfoundry/dominant.js`),
           import(`${rootPrefix}/webfoundry/app.js`),
         ]);
-        document.body.append(md.default.el(mapp.default));
+        document.body.prepend(md.default.el(mapp.default));
         parent.postMessage({ path: `pages/${location.pathname.slice(1).split('/').slice(3).join('/')}`, type: 'ready', status: 200 }, wforigin);
       })();
     </script>
