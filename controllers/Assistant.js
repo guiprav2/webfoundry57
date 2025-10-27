@@ -41,7 +41,7 @@ export default class Assistant {
 
     start: async (tutorial = false) => {
       try {
-        this.state.tutorial = [];
+        this.state.tutorial = tutorial && [];
         this.state.initializing = true;
         d.update();
         let prefix = location.pathname.includes('/files/') ? '../' : '';
@@ -80,6 +80,7 @@ export default class Assistant {
           precision: `When requested to select an element, make sure it's the right target by checking its HTML. If confused, ask for clarifications.`,
           imageContent: `When asked to select or manipulate a specific image by visual content, remind the user you have no access to image contents, ask for other instructions such as CSS classes, attributes, or image URL.`,
           imageGeneration: `When asked to generate images, make sure to probe the user to understand exactly the style as well as what they want before generating.`,
+          codeEditor: `The code editor can change quickly (both contents and visible portion due to scrolling). Call the appropriate functions before answering every single user query for up-to-date context.`,
           iconsSidebar: `To the left there's a sidebar with icons for Projects (4 boxes icon), Files (folder icon; only visible when a project is open), Styles (pencil icon; only visible in visual editor mode), Play/Stop icons (enters or leaves page preview mode; only visible in page visual editor mode), Settings/Config (3 vertical dots); the cross icon temporarily closes the sidebar.`,
           projectsPanel: `Lists previously created projects. Blue Create button lets users create new ones, pencil and trash can icons next to project names let users rename or delete a project.`,
           filesPanel: `Lists project files and directories. Blue Create button lets users create new files and directories in the project root. The plus icon, pencil icon, and trash can icon next to specific files and directories lets users create files and subdirectories inside existing directories, rename or delete a file. Dragging and dropping also works for moving files between directories.`,

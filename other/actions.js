@@ -1,6 +1,7 @@
 import completion from 'https://esm.sh/@camilaprav/kittygpt@0.0.65/completion.js';
 import confetti from 'https://esm.sh/canvas-confetti';
 import { loadman, joinPath } from '../other/util.js';
+import rfiles from '../repos/rfiles.js';
 import { lookup as mimeLookup } from 'https://esm.sh/mrmime';
 
 let PEXELS_API_KEY = 'TvQp9hqct3J5XlyGjBUtt0TlgqiCd1UtDuJlvhl4HzfOt53BrvwuCq6b';
@@ -160,6 +161,458 @@ let actions = window.actions = {
       },
     },
     handler: async ({ path }) => await post('files.select', path),
+  },
+
+  getFileLineCount: {
+    description: `LLM-only. Returns the total number of lines in a project file.`,
+    disabled: () => [
+      !state.projects.current && `Project not open`,
+      state.collab.uid !== 'master' && `Peers can't read files.`,
+    ],
+    parameters: {
+      type: 'object',
+      properties: {
+        path: { type: 'string', description: `Full path relative to project root (defaults to the currently selected file)` },
+      },
+    },
+    handler: async ({ path = state.files.current } = {}) => {
+      if (!path) throw new Error('No file specified or selected.');
+      let { lineCount } = await loadFileLines(path);
+      return { success: true, path, lineCount };
+    },
+  },
+
+  readFileLines: {
+    description: `LLM-only. Reads a specific inclusive 1-based line range from a file.`,
+    disabled: () => [
+      !state.projects.current && `Project not open`,
+      state.collab.uid !== 'master' && `Peers can't read files.`,
+    ],
+    parameters: {
+      type: 'object',
+      properties: {
+        path: { type: 'string', description: `Full path relative to project root (defaults to the currently selected file)` },
+        startLine: { type: 'number', description: `First line to read (1-based, defaults to 1)` },
+        endLine: { type: 'number', description: `Last line to read (inclusive)` },
+        count: { type: 'number', description: `Number of lines to read starting at startLine (ignored if endLine provided)` },
+      },
+    },
+    handler: async ({ path = state.files.current, startLine = 1, endLine = null, count = null } = {}) => {
+      if (!path) throw new Error('No file specified or selected.');
+      let start = Number(startLine);
+      if (!Number.isFinite(start)) start = 1;
+      start = Math.max(1, Math.floor(start));
+      let resolvedEnd = endLine;
+      if (count != null) {
+        let span = Number(count);
+        if (!Number.isFinite(span) || span < 1) throw new Error('count must be a positive integer.');
+        span = Math.floor(span);
+        resolvedEnd = start + span - 1;
+      }
+      if (resolvedEnd == null) resolvedEnd = start;
+      let end = Number(resolvedEnd);
+      if (!Number.isFinite(end)) end = start;
+      end = Math.max(start, Math.floor(end));
+      let { lines, lineCount } = await loadFileLines(path);
+      if (lineCount === 0) {
+        return { success: true, path, totalLines: 0, startLine: null, endLine: null, hasMoreBefore: false, hasMoreAfter: false, lines: [] };
+      }
+      let maxLine = lineCount;
+      let actualStart = Math.max(1, Math.min(start, maxLine));
+      let actualEnd = Math.max(actualStart, Math.min(end, maxLine));
+      let slice = [];
+      for (let idx = actualStart - 1; idx < actualEnd; idx++) {
+        let content = lines[idx] ?? '';
+        slice.push({ lineNumber: idx + 1, content });
+      }
+      let hasMoreBefore = actualStart > 1;
+      let hasMoreAfter = actualEnd < lineCount;
+      return {
+        success: true,
+        path,
+        totalLines: lineCount,
+        startLine: actualStart,
+        endLine: actualEnd,
+        hasMoreBefore,
+        hasMoreAfter,
+        lines: slice,
+      };
+    },
+  },
+
+  readFile: {
+    description: `LLM-only. Reads the entire contents of a text file.`,
+    disabled: () => [
+      !state.projects.current && `Project not open`,
+      state.collab.uid !== 'master' && `Peers can't read files.`,
+    ],
+    parameters: {
+      type: 'object',
+      properties: {
+        path: { type: 'string', description: `Full path relative to project root (defaults to the currently selected file)` },
+      },
+    },
+    handler: async ({ path = state.files.current } = {}) => {
+      if (!path) throw new Error('No file specified or selected.');
+      let { text, lineCount } = await loadFileLines(path);
+      return { success: true, path, lineCount, content: text };
+    },
+  },
+
+  searchFilesSubstring: {
+    description: `LLM-only. Searches project files for a substring and returns surrounding context lines.`,
+    disabled: () => [
+      !state.projects.current && `Project not open`,
+      state.collab.uid !== 'master' && `Peers can't read files.`,
+    ],
+    parameters: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: `Substring to search for (required)` },
+        context: { type: 'number', description: `Number of context lines to include before and after each match (defaults to 2)` },
+        caseSensitive: { type: 'boolean', description: `If true, match using case-sensitive comparison (defaults to false)` },
+        paths: { type: 'array', items: { type: 'string' }, description: `Optional list of file paths to limit the search` },
+        maxResults: { type: 'number', description: `Maximum number of matches to return (defaults to 20)` },
+      },
+      required: ['query'],
+    },
+    handler: async ({ query, context = 2, caseSensitive = false, paths = [], maxResults = 20 } = {}) => {
+      let textQuery = query == null ? '' : String(query);
+      if (!textQuery.length) throw new Error('query must be a non-empty string.');
+      let radius = Number(context);
+      if (!Number.isFinite(radius) || radius < 0) radius = 2;
+      radius = Math.floor(radius);
+      let limit = Number(maxResults);
+      if (!Number.isFinite(limit) || limit < 1) limit = 20;
+      limit = Math.floor(limit);
+      let pathFilter = null;
+      if (Array.isArray(paths) && paths.length) {
+        let sanitizedPaths = [];
+        for (let value of paths) {
+          if (value == null) continue;
+          let str = String(value);
+          if (!str.length) continue;
+          sanitizedPaths.push(str);
+        }
+        if (sanitizedPaths.length) pathFilter = new Set(sanitizedPaths);
+      }
+      let project = state.projects.current;
+      let allPaths = await rfiles.list(project);
+      if (pathFilter) {
+        let availablePaths = new Set(allPaths);
+        for (let candidate of pathFilter) {
+          if (!availablePaths.has(candidate)) throw new Error(`File not found: ${candidate}`);
+        }
+      }
+      let needle = caseSensitive ? textQuery : textQuery.toLowerCase();
+      let results = [];
+      let scannedFiles = 0;
+      let truncated = false;
+      for (let path of allPaths) {
+        if (pathFilter && !pathFilter.has(path)) continue;
+        if (shouldSkipSearchPath(path)) continue;
+        let type = mimeLookup(path) || '';
+        if (!isLikelyTextFile(path, type)) continue;
+        let fileData;
+        try {
+          fileData = await loadFileLines(path);
+        } catch (err) {
+          continue;
+        }
+        let lines = fileData.lines;
+        let lineCount = fileData.lineCount;
+        scannedFiles++;
+        if (lineCount === 0) continue;
+        for (let idx = 0; idx < lineCount; idx++) {
+          let line = lines[idx] ?? '';
+          let hay = caseSensitive ? line : line.toLowerCase();
+          if (!hay.includes(needle)) continue;
+          let from = Math.max(0, idx - radius);
+          let to = Math.min(lineCount - 1, idx + radius);
+          let snippet = [];
+          for (let j = from; j <= to; j++) snippet.push({ lineNumber: j + 1, content: lines[j] ?? '' });
+          let matchCount = 0;
+          let searchIndex = 0;
+          while (needle.length) {
+            let foundIndex = hay.indexOf(needle, searchIndex);
+            if (foundIndex === -1) break;
+            matchCount++;
+            searchIndex = foundIndex + needle.length;
+          }
+          results.push({ path, lineNumber: idx + 1, line, context: snippet, matchCountInLine: matchCount });
+          if (results.length >= limit) { truncated = true; break; }
+        }
+        if (truncated) break;
+      }
+      return {
+        success: true,
+        query: textQuery,
+        caseSensitive,
+        context: radius,
+        maxResults: limit,
+        scannedFiles,
+        totalFiles: allPaths.length,
+        truncated,
+        results,
+      };
+    },
+  },
+
+  getVisibleEditorContext: {
+    description: `LLM-only. Returns the lines currently visible in the code editor plus optional surrounding context.`,
+    disabled: () => [
+      !rawctrls?.codeEditor?.state?.currentPath && `No file open in the code editor.`,
+    ],
+    parameters: {
+      type: 'object',
+      properties: {
+        context: { type: 'number', description: `Number of extra lines to include before and after the visible region (defaults to 3)` },
+      },
+    },
+    handler: async ({ context = 3 } = {}) => {
+      let editorCtrl = rawctrls?.codeEditor;
+      if (!editorCtrl) throw new Error('Code editor unavailable.');
+      let path = editorCtrl.state.currentPath;
+      if (!path) throw new Error('Code editor is not focused on a file.');
+      let project = editorCtrl.state.currentProject;
+      let radius = Number(context);
+      if (!Number.isFinite(radius) || radius < 0) radius = 3;
+      radius = Math.floor(radius);
+      let cm = editorCtrl.currentDocEntry?.cm;
+      if (cm) {
+        let totalLines = cm.lineCount();
+        let viewport = cm.getViewport ? cm.getViewport() : null;
+        if (!viewport) throw new Error('Unable to determine visible range.');
+        let firstVisible = Math.max(0, Math.min(viewport.from ?? 0, totalLines ? totalLines - 1 : 0));
+        let lastVisible = Math.max(firstVisible, Math.min((viewport.to ?? firstVisible + 1) - 1, totalLines - 1));
+        let startIndex = Math.max(0, firstVisible - radius);
+        let endIndex = Math.min(totalLines - 1, lastVisible + radius);
+        let lines = [];
+        for (let idx = startIndex; idx <= endIndex; idx++) {
+          let content = cm.getLine(idx) ?? '';
+          lines.push({ lineNumber: idx + 1, content });
+        }
+        return {
+          success: true,
+          path,
+          project,
+          totalLines,
+          firstVisibleLine: firstVisible + 1,
+          lastVisibleLine: lastVisible + 1,
+          contextRadius: radius,
+          lines,
+        };
+      }
+      if (editorCtrl.state.fallbackTextarea) {
+        let text = editorCtrl.state.fallbackTextarea.value ?? '';
+        let lines = splitLines(text).map((content, idx) => ({ lineNumber: idx + 1, content }));
+        return {
+          success: true,
+          path,
+          project,
+          totalLines: lines.length,
+          firstVisibleLine: 1,
+          lastVisibleLine: lines.length,
+          contextRadius: radius,
+          lines,
+          note: 'CodeMirror inactive; returning entire fallback textarea contents.',
+        };
+      }
+      throw new Error('Code editor not ready.');
+    },
+  },
+
+  jumpToEditorLine: {
+    description: `LLM-only. Moves the cursor to the requested line (and optional column) in the active code editor without altering content.`,
+    disabled: () => [
+      !rawctrls?.codeEditor?.state?.currentPath && `No file open in the code editor.`,
+    ],
+    parameters: {
+      type: 'object',
+      properties: {
+        line: { type: 'number', description: `1-based line to jump to (required)` },
+        column: { type: 'number', description: `1-based column to focus (defaults to 1)` },
+      },
+      required: ['line'],
+    },
+    handler: async ({ line, column = 1 } = {}) => {
+      let ctx = ensureEditorContext();
+      let requestedLine = Number(line);
+      if (!Number.isFinite(requestedLine)) throw new Error('line must be a number.');
+      let requestedColumn = column == null ? 1 : Number(column);
+      if (!Number.isFinite(requestedColumn)) requestedColumn = 1;
+      requestedLine = Math.max(1, Math.floor(requestedLine));
+      requestedColumn = Math.max(1, Math.floor(requestedColumn));
+      let cm = ctx.cm;
+      if (cm) {
+        let totalLines = cm.lineCount();
+        let zeroLine = Math.max(0, Math.min(requestedLine - 1, Math.max(0, totalLines - 1)));
+        let lineText = cm.getLine(zeroLine) || '';
+        let maxColumn = lineText.length + 1;
+        let targetColumn = Math.max(1, Math.min(requestedColumn, maxColumn));
+        let ch = targetColumn - 1;
+        cm.focus();
+        cm.setCursor({ line: zeroLine, ch });
+        if (cm.scrollIntoView) cm.scrollIntoView({ line: zeroLine, ch }, 100);
+        return { success: true, path: ctx.path, project: ctx.project, line: zeroLine + 1, column: ch + 1, totalLines, columnClamped: targetColumn !== requestedColumn };
+      }
+      if (ctx.textarea) {
+        let raw = ctx.textarea.value || '';
+        let lines = fallbackBuildLineIndex(raw);
+        let pos = fallbackResolveLinePosition(lines, requestedLine, requestedColumn);
+        ctx.textarea.focus();
+        ctx.textarea.setSelectionRange(pos.index, pos.index);
+        return { success: true, path: ctx.path, project: ctx.project, line: pos.lineNumber, column: pos.column, totalLines: lines.length, columnClamped: pos.column !== requestedColumn };
+      }
+      throw new Error('Code editor not ready.');
+    },
+  },
+
+  setEditorSelection: {
+    description: `LLM-only. Updates the selection range in the active code editor using 1-based line and column coordinates.`,
+    disabled: () => [
+      !rawctrls?.codeEditor?.state?.currentPath && `No file open in the code editor.`,
+    ],
+    parameters: {
+      type: 'object',
+      properties: {
+        startLine: { type: 'number', description: `1-based starting line (required)` },
+        startColumn: { type: 'number', description: `1-based starting column (defaults to 1)` },
+        endLine: { type: 'number', description: `1-based ending line (defaults to startLine)` },
+        endColumn: { type: 'number', description: `1-based ending column (defaults to startColumn)` },
+      },
+      required: ['startLine'],
+    },
+    handler: async ({ startLine, startColumn = 1, endLine = null, endColumn = null } = {}) => {
+      let ctx = ensureEditorContext();
+      let sLine = Number(startLine);
+      if (!Number.isFinite(sLine)) throw new Error('startLine must be a number.');
+      let sCol = startColumn == null ? 1 : Number(startColumn);
+      if (!Number.isFinite(sCol)) sCol = 1;
+      let eLine = endLine == null ? sLine : Number(endLine);
+      if (!Number.isFinite(eLine)) eLine = sLine;
+      let eCol = endColumn == null ? (endLine == null ? sCol : 1) : Number(endColumn);
+      if (!Number.isFinite(eCol)) eCol = 1;
+      sLine = Math.max(1, Math.floor(sLine));
+      eLine = Math.max(1, Math.floor(eLine));
+      sCol = Math.max(1, Math.floor(sCol));
+      eCol = Math.max(1, Math.floor(eCol));
+      let cm = ctx.cm;
+      if (cm) {
+        let totalLines = cm.lineCount();
+        let startZero = Math.max(0, Math.min(sLine - 1, Math.max(0, totalLines - 1)));
+        let endZero = Math.max(0, Math.min(eLine - 1, Math.max(0, totalLines - 1)));
+        let startText = cm.getLine(startZero) || '';
+        let endText = cm.getLine(endZero) || '';
+        let startMaxCol = startText.length + 1;
+        let endMaxCol = endText.length + 1;
+        let startCh = Math.max(0, Math.min(sCol - 1, startMaxCol - 1));
+        let endCh = Math.max(0, Math.min(eCol - 1, endMaxCol - 1));
+        let anchor = { line: startZero, ch: startCh };
+        let head = { line: endZero, ch: endCh };
+        cm.focus();
+        cm.setSelection(anchor, head);
+        if (cm.scrollIntoView) {
+          cm.scrollIntoView(anchor, 80);
+          if (endLine != null || endColumn != null) cm.scrollIntoView(head, 80);
+        }
+        return {
+          success: true,
+          path: ctx.path,
+          project: ctx.project,
+          startLine: anchor.line + 1,
+          startColumn: anchor.ch + 1,
+          endLine: head.line + 1,
+          endColumn: head.ch + 1,
+          totalLines,
+        };
+      }
+      if (ctx.textarea) {
+        let raw = ctx.textarea.value || '';
+        let lines = fallbackBuildLineIndex(raw);
+        let startPos = fallbackResolveLinePosition(lines, sLine, sCol);
+        let endPos = fallbackResolveLinePosition(lines, eLine, eCol);
+        let anchorIndex = Math.min(startPos.index, endPos.index);
+        let headIndex = Math.max(startPos.index, endPos.index);
+        ctx.textarea.focus();
+        ctx.textarea.setSelectionRange(anchorIndex, headIndex);
+        if (ctx.entry) ctx.entry.lastSelection = { anchor: anchorIndex, head: headIndex };
+        return {
+          success: true,
+          path: ctx.path,
+          project: ctx.project,
+          startLine: anchorIndex === startPos.index ? startPos.lineNumber : endPos.lineNumber,
+          startColumn: anchorIndex === startPos.index ? startPos.column : endPos.column,
+          endLine: headIndex === endPos.index ? endPos.lineNumber : startPos.lineNumber,
+          endColumn: headIndex === endPos.index ? endPos.column : startPos.column,
+          totalLines: lines.length,
+        };
+      }
+      throw new Error('Code editor not ready.');
+    },
+  },
+
+  insertTextAtCursor: {
+    description: `LLM-only. Inserts or replaces text at the current cursor/selection without recreating the entire document.`,
+    disabled: () => [
+      !rawctrls?.codeEditor?.state?.currentPath && `No file open in the code editor.`,
+      state.collab?.uid && state.collab.uid !== 'master' && `Peers can't edit files.`,
+    ],
+    parameters: {
+      type: 'object',
+      properties: {
+        text: { type: 'string', description: `Text to insert (required)` },
+        replaceSelection: { type: 'boolean', description: `When false, collapses selection before inserting` },
+        selectInserted: { type: 'boolean', description: `If true, select the inserted text` },
+      },
+      required: ['text'],
+    },
+    handler: async ({ text, replaceSelection = true, selectInserted = false } = {}) => {
+      let payload = text == null ? '' : String(text);
+      let ctx = ensureEditorContext({ requireWritable: true });
+      let cm = ctx.cm;
+      if (cm) {
+        cm.focus();
+        if (!replaceSelection && cm.somethingSelected && cm.somethingSelected()) {
+          let collapses = cm.listSelections().map(sel => ({ anchor: sel.head, head: sel.head }));
+          cm.setSelections(collapses, 0);
+        }
+        let selectionMode = selectInserted ? 'around' : 'end';
+        cm.replaceSelection(payload, selectionMode);
+        let cursor = cm.getCursor();
+        return {
+          success: true,
+          path: ctx.path,
+          project: ctx.project,
+          cursorLine: cursor.line + 1,
+          cursorColumn: cursor.ch + 1,
+          length: payload.length,
+        };
+      }
+      if (ctx.textarea) {
+        let textarea = ctx.textarea;
+        textarea.focus();
+        let start = textarea.selectionStart ?? 0;
+        let end = textarea.selectionEnd ?? start;
+        if (!replaceSelection) end = start;
+        textarea.setRangeText(payload, start, end, selectInserted ? 'select' : 'end');
+        textarea.dispatchEvent(new Event('input', { bubbles: true }));
+        let newPos = textarea.selectionStart ?? 0;
+        let raw = textarea.value || '';
+        let lines = fallbackBuildLineIndex(raw);
+        let cursorInfo = fallbackLineColumnFromIndex(lines, newPos);
+        if (ctx.entry) ctx.entry.lastSelection = { anchor: textarea.selectionStart, head: textarea.selectionEnd };
+        return {
+          success: true,
+          path: ctx.path,
+          project: ctx.project,
+          cursorLine: cursorInfo.line,
+          cursorColumn: cursorInfo.column,
+          length: payload.length,
+        };
+      }
+      throw new Error('Code editor not ready.');
+    },
   },
 
   undo: {
@@ -2235,6 +2688,121 @@ let actions = window.actions = {
 
   throwConfetti: { description: `Use only when dictated by cue instructions or the user really deserves it or sounds excited.`, handler: () => { confetti() } },
 };
+
+async function loadFileText(path) {
+  if (state.collab?.uid && state.collab.uid !== 'master') throw new Error(`Peers can't read files directly.`);
+  if (!state.projects.current) throw new Error('Project not open.');
+  if (!path) throw new Error('No file specified.');
+  if (path.endsWith('/')) throw new Error(`Path is a directory: ${path}`);
+  let project = state.projects.current;
+  let blob = await rfiles.load(project, path);
+  if (!blob) throw new Error(`File not found: ${path}`);
+  let type = mimeLookup(path) || blob.type || '';
+  if (!isLikelyTextFile(path, type)) throw new Error(`Binary files are not supported: ${path}`);
+  try {
+    return await blob.text();
+  } catch (err) {
+    throw new Error(`Unable to read ${path}: ${err?.message || err}`);
+  }
+}
+
+async function loadFileLines(path) {
+  let text = await loadFileText(path);
+  let lines = splitLines(text);
+  return { text, lines, lineCount: lines.length };
+}
+
+function splitLines(text) {
+  if (text == null) return [];
+  let normalized = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  if (normalized === '') return [];
+  return normalized.split('\n');
+}
+
+function isLikelyTextFile(path, type = '') {
+  if (!path) return false;
+  let lower = path.toLowerCase();
+  if (!type) {
+    if (/(\.png|\.jpe?g|\.gif|\.bmp|\.ico|\.pdf|\.zip|\.rar|\.7z|\.mp[34]|\.ogg|\.wav|\.flac|\.woff2?|\.ttf|\.eot|\.otf)$/i.test(lower)) return false;
+    return true;
+  }
+  if (/^text\//i.test(type)) return true;
+  if (/(javascript|json|xml|svg|yaml|x-sh|x-python|x-shellscript)/i.test(type)) return true;
+  if (/(image|audio|video|font|zip|gzip|pdf|msword|vnd)/i.test(type)) return false;
+  return true;
+}
+
+function shouldSkipSearchPath(path) {
+  if (!path) return true;
+  if (path.endsWith('/')) return true;
+  if (/^webfoundry\//.test(path)) return true;
+  if (/^wf\.uiconfig\.json$/i.test(path)) return true;
+  if (/\.sw.$/.test(path)) return true;
+  if (/^index\.html$/i.test(path)) return true;
+  if (/^\.git\//.test(path)) return true;
+  if (/(^|\/)node_modules\//.test(path)) return true;
+  return false;
+}
+
+function ensureEditorContext({ requireWritable = false } = {}) {
+  let editorCtrl = rawctrls?.codeEditor;
+  if (!editorCtrl) throw new Error('Code editor unavailable.');
+  let path = editorCtrl.state.currentPath;
+  if (!path) throw new Error('Code editor is not focused on a file.');
+  if (requireWritable && state.collab?.uid && state.collab.uid !== 'master') throw new Error(`Peers can't edit files.`);
+  let entry = editorCtrl.currentDocEntry || null;
+  let cm = entry?.cm || null;
+  let textarea = editorCtrl.state.fallbackTextarea || null;
+  return { editorCtrl, entry, cm, textarea, path, project: editorCtrl.state.currentProject };
+}
+
+function fallbackBuildLineIndex(text) {
+  let lines = [];
+  let start = 0;
+  let len = text.length;
+  for (let i = 0; i < len; i++) {
+    let ch = text[i];
+    if (ch === '\r') {
+      lines.push({ start, end: i });
+      if (text[i + 1] === '\n') i++;
+      start = i + 1;
+      continue;
+    }
+    if (ch === '\n') {
+      lines.push({ start, end: i });
+      start = i + 1;
+    }
+  }
+  if (start <= len) lines.push({ start, end: len });
+  if (!lines.length) lines.push({ start: 0, end: len });
+  return lines;
+}
+
+function fallbackResolveLinePosition(lines, line, column) {
+  let totalLines = lines.length;
+  let requestedLine = Math.max(1, Math.min(Math.floor(line) || 1, totalLines));
+  let info = lines[requestedLine - 1];
+  let lineLength = Math.max(0, info.end - info.start);
+  let requestedColumn = column == null ? 1 : Number(column);
+  if (!Number.isFinite(requestedColumn) || requestedColumn < 1) requestedColumn = 1;
+  if (requestedColumn > lineLength + 1) requestedColumn = lineLength + 1;
+  let index = info.start + requestedColumn - 1;
+  return { index, lineNumber: requestedLine, column: requestedColumn, lineLength };
+}
+
+function fallbackLineColumnFromIndex(lines, index) {
+  if (!lines.length) return { line: 1, column: 1 };
+  let last = lines[lines.length - 1];
+  let maxIndex = last.end;
+  let clampedIndex = Math.max(0, Math.min(Number(index) || 0, maxIndex));
+  for (let i = 0; i < lines.length; i++) {
+    let info = lines[i];
+    if (clampedIndex <= info.end) {
+      return { line: i + 1, column: clampedIndex - info.start + 1 };
+    }
+  }
+  return { line: lines.length, column: last.end - last.start + 1 };
+}
 
 let ifeval = (fn, args) => new Promise((resolve, reject) => {
   let frame = state.designer.current;
