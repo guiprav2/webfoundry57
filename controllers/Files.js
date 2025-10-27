@@ -291,7 +291,7 @@ export default class Files {
       let project = state.projects.current;
       let key = localStorage.getItem('webfoundry:netlifyApiKey');
       if (!key) {
-        let [btn, x] = await showModal('NetlifyApiKey', { key });
+        let [btn, x] = await showModal('NetlifyApiKeyDialog', { key });
         if (btn !== 'ok') return;
         key = x;
         localStorage.setItem('webfoundry:netlifyApiKey', key);
@@ -299,10 +299,10 @@ export default class Files {
       let siteId = localStorage.getItem(`webfoundry:netlifySiteId:${project}`);
       let btn, type, x;
       while (true) {
-        [btn, type, x] = await showModal('NetlifyDeploy', { key, id: siteId });
+        [btn, type, x] = await showModal('NetlifyDeployDialog', { key, id: siteId });
         if (btn === 'key') {
           let key = localStorage.getItem('webfoundry:netlifyApiKey');
-          let [btn, x] = await showModal('NetlifyApiKey', { key });
+          let [btn, x] = await showModal('NetlifyApiKeyDialog', { key });
           if (btn !== 'ok') continue;
           key = x;
           localStorage.setItem('webfoundry:netlifyApiKey', key);
@@ -311,7 +311,7 @@ export default class Files {
         if (btn !== 'ok') return;
         break;
       }
-      showModal('Loading', { msg: 'Compressing files...' });
+      showModal('LoadingDialog', { msg: 'Compressing files...' });
       const blob = await rfiles.exportZip(project);
       document.querySelector('dialog')?.remove?.();
       const headers = { Authorization: `Bearer ${key}` };
@@ -322,7 +322,7 @@ export default class Files {
           body: JSON.stringify({ name: x }),
         });
         if (!res.ok) {
-          await showModal('NetlifyPostDeploy', { success: false });
+          await showModal('NetlifyPostDeployDialog', { success: false });
           return;
         }
         const json = await res.json();
@@ -332,7 +332,7 @@ export default class Files {
       }
       localStorage.setItem(`webfoundry:netlifySiteId:${project}`, siteId);
       const uploadStart = Date.now();
-      showModal('Loading', { msg: 'Deploying to Netlify...' });
+      showModal('LoadingDialog', { msg: 'Deploying to Netlify...' });
       try {
         await fetch(`https://api.netlify.com/api/v1/sites/${siteId}/deploys`, {
           method: 'POST',
@@ -359,13 +359,13 @@ export default class Files {
       try {
         let x = await checkDeployStatus();
         document.querySelector('dialog')?.remove?.();
-        let [btn] = await showModal('NetlifyPostDeploy', { success: true });
+        let [btn] = await showModal('NetlifyPostDeployDialog', { success: true });
         let url = x.ssl_urll || x.url;
         url = this.state.current && !this.state.current.endsWith('/index.html') ? `${url}/${this.state.current.slice('pages/'.length)}` : url;
         btn === 'visit' && open(url, siteId);
       } catch (err) {
         console.error(err);
-        await showModal('NetlifyPostDeploy', { success: false });
+        await showModal('NetlifyPostDeployDialog', { success: false });
       }
     },
 
@@ -375,7 +375,7 @@ export default class Files {
       input.onchange = async () => {
         let [file] = input.files;
         if (!file) return;
-        showModal('Loading', { msg: 'Importing ZIP...' });
+        showModal('LoadingDialog', { msg: 'Importing ZIP...' });
         await rfiles.importZip(project, file);
         await post('files.injectBuiltins');
         await post('files.reflect');
@@ -389,7 +389,7 @@ export default class Files {
 
     exportZip: async () => {
       let project = state.projects.current;
-      showModal('Loading', { msg: 'Exporting ZIP...' });
+      showModal('LoadingDialog', { msg: 'Exporting ZIP...' });
       let blob = await rfiles.exportZip(project);
       document.querySelector('dialog')?.remove?.();
       let a = d.html`<a class="hidden" ${{ download: `${project.split(':')[0]}.zip`, href: URL.createObjectURL(blob) }}>`;

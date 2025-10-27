@@ -102,7 +102,7 @@ export default class Designer {
       }
       bus.on('projects:select:ready', async () => await post('designer.reset'));
       bus.on('files:select:ready', async ({ path }) => await post('designer.select', path));
-      //bus.on('settings:projects:option:ready', async () => await post('designer.refresh'));
+      bus.on('settings:projects:option:ready', async () => await post('designer.refresh'));
       bus.on('files:change', async ({ path }) => {
         if (!state.projects.current) return; // ???
         let name = state.projects.current.split(':')[0];
