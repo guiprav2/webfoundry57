@@ -1,8 +1,8 @@
 class SetSrcDialog {
   constructor(props) {
-    this.props = props;
-    this.srcValue = this.props.initialSrcValue ?? '';
-    this.exprValue = this.props.initialExprValue ?? '';
+    this.props = props || {};
+    this.srcValue = typeof this.props.initialSrcValue === 'string' ? this.props.initialSrcValue : '';
+    this.exprValue = typeof this.props.initialExprValue === 'string' ? this.props.initialExprValue : '';
   }
 
   onKeyDown = ev => {
@@ -15,8 +15,14 @@ class SetSrcDialog {
 
   onSubmit = ev => {
     ev.preventDefault();
-    this.root.parentElement.returnDetail = [this.srcValue, this.exprValue];
-    this.root.parentElement.close(ev.submitter.value);
+    let dialog = this.root?.parentElement;
+    if (!dialog) {
+      return;
+    }
+    let src = (this.srcValue ?? '').trim();
+    let expr = (this.exprValue ?? '').trim();
+    dialog.returnDetail = [src || null, expr || null];
+    dialog.close(ev.submitter.value);
   };
 }
 

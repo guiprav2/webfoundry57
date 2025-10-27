@@ -1625,24 +1625,37 @@ let actions = window.actions = {
     },
   },
 
-  changeMediaSrc: {
+  setMediaSrc: {
     shortcut: 's',
     disabled: ({ cur = 'master' }) => [!state.designer.open && `Designer closed.`, state.designer.open && !state.designer.current.cursors[cur]?.length && `No elements selected.`],
-    parameters: { type: 'object', properties: { cur: { type: 'string' }, url: { type: 'string' } } },
-    handler: async ({ cur = 'master', url } = {}) => {
+    parameters: { type: 'object', properties: { cur: { type: 'string' }, src: { type: ['string', 'null'] }, expr: { type: ['string', 'null'] } } },
+    handler: async ({ cur = 'master', src, expr } = {}) => {
       let frame = state.designer.current;
       let targets = frame.cursors[cur].map(x => frame.map.get(x)).filter(Boolean);
       if (!targets.length) return;
       let prevSrcs = targets.map(x => x.getAttribute('src'));
-      if (url == null) {
-        let [btn, val] = await showModal('PromptDialog', { title: 'Change media source', label: 'URL', initialValue: prevSrcs[0] });
+      let prevExprs = targets.map(x => x.getAttribute('wf-src'));
+      if (src == null && expr == null) {
+        let [btn, nextSrc, nextExpr] = await showModal('SetSrcDialog', { initialSrcValue: prevSrcs[0] || '', initialExprValue: prevExprs[0] || '' });
         if (btn !== 'ok') return;
-        url = val;
+        src = nextSrc;
+        expr = nextExpr;
       }
-      if (state.collab.uid !== 'master') return state.collab.rtc.send({ type: 'cmd', k: 'changeMediaSrc', cur, url });
+      let normalizedSrc = typeof src === 'string' ? src.trim() : '';
+      let normalizedExpr = typeof expr === 'string' ? expr.trim() : '';
+      let newSrc = normalizedSrc || null;
+      let newExpr = normalizedExpr || null;
+      let unchanged = targets.every((_, idx) => {
+        let prevSrc = prevSrcs[idx] || null;
+        let prevExpr = prevExprs[idx] || null;
+        return prevSrc === newSrc && prevExpr === newExpr;
+      });
+      if (unchanged) return;
+      if (state.collab.uid !== 'master') return state.collab.rtc.send({ type: 'cmd', k: 'setMediaSrc', cur, src: newSrc, expr: newExpr });
 
-      let mime = mimeLookup(url);
-      let newTag = mime?.startsWith?.('audio/') ? 'audio' : mime?.startsWith?.('video/') ? 'video' : 'img';
+      let mimeSource = newExpr ? null : newSrc;
+      let mime = mimeSource ? mimeLookup(mimeSource) : null;
+      let newTag = mime?.startsWith?.('audio/') ? 'audio' : mime?.startsWith?.('video/') ? 'video' : mimeSource ? 'img' : null;
       let targetKeys = targets.map(x => frame.map.getKey(x));
       let parentKeys = targets.map(x => frame.map.getKey(x.parentElement));
       let idxs = targets.map(x => [...x.parentElement.children].indexOf(x));
@@ -1651,6 +1664,17 @@ let actions = window.actions = {
       await post('designer.pushHistory', cur, async apply => {
         if (apply && !newKeys.length) {
           newKeys = await ifeval(async ({ args }) => {
+            let setSrcAttr = (node, srcVal, exprVal) => {
+              if (!node) return;
+              if (exprVal) {
+                node.setAttribute('wf-src', exprVal);
+              } else {
+                node.removeAttribute('wf-src');
+              }
+              let resolved = srcVal != null ? srcVal : null;
+              if (resolved) node.setAttribute('src', resolved);
+              else node.removeAttribute('src');
+            };
             let result = [];
             for (let n = 0; n < args.targets.length; n++) {
               let el = state.map.get(args.targets[n]);
@@ -1659,7 +1683,7 @@ let actions = window.actions = {
               if (!el || !p) continue;
               let tag = args.newTag && args.newTag !== el.tagName.toLowerCase() ? args.newTag : el.tagName.toLowerCase();
               if (tag === el.tagName.toLowerCase()) {
-                el.setAttribute('src', args.url);
+                setSrcAttr(el, args.src, args.expr);
                 result.push(state.map.getKey(el));
                 continue;
               }
@@ -1667,17 +1691,28 @@ let actions = window.actions = {
               for (let a of el.attributes) clone.setAttribute(a.name, a.value);
               clone.className = el.className;
               clone.innerHTML = el.innerHTML;
-              clone.setAttribute('src', args.url);
+              setSrcAttr(clone, args.src, args.expr);
               if (p.children[i] === el) p.replaceChild(clone, el);
               else p.insertBefore(clone, p.children[i] || null);
               result.push(clone);
             }
             await new Promise(pres => setTimeout(pres));
             return result.map(x => state.map.getKey(x));
-          }, { targets: targetKeys, parents: parentKeys, idxs, url, newTag });
+          }, { targets: targetKeys, parents: parentKeys, idxs, src: newSrc, expr: newExpr, newTag });
           await actions.changeSelection.handler({ cur, s: newKeys });
         } else if (apply) {
           await ifeval(({ args }) => {
+            let setSrcAttr = (node, srcVal, exprVal) => {
+              if (!node) return;
+              if (exprVal) {
+                node.setAttribute('wf-src', exprVal);
+              } else {
+                node.removeAttribute('wf-src');
+              }
+              let resolved = srcVal != null ? srcVal : null;
+              if (resolved) node.setAttribute('src', resolved);
+              else node.removeAttribute('src');
+            };
             for (let n = 0; n < args.targets.length; n++) {
               let el = state.map.get(args.targets[n]);
               let clone = state.map.get(args.newKeys[n]);
@@ -1687,12 +1722,23 @@ let actions = window.actions = {
               if (clone && el && el.tagName.toLowerCase() !== clone.tagName.toLowerCase()) {
                 if (p.children[i] === el) p.replaceChild(clone, el);
               }
-              (clone || el)?.setAttribute('src', args.url);
+              setSrcAttr(clone || el, args.src, args.expr);
             }
-          }, { targets: targetKeys, parents: parentKeys, idxs, newKeys, url });
+          }, { targets: targetKeys, parents: parentKeys, idxs, newKeys, src: newSrc, expr: newExpr });
           await actions.changeSelection.handler({ cur, s: newKeys });
         } else {
           await ifeval(({ args }) => {
+            let setSrcAttr = (node, srcVal, exprVal) => {
+              if (!node) return;
+              if (exprVal) {
+                node.setAttribute('wf-src', exprVal);
+              } else {
+                node.removeAttribute('wf-src');
+              }
+              let resolved = srcVal != null ? srcVal : null;
+              if (resolved) node.setAttribute('src', resolved);
+              else node.removeAttribute('src');
+            };
             for (let n = 0; n < args.targets.length; n++) {
               let el = state.map.get(args.targets[n]);
               let clone = state.map.get(args.newKeys[n]);
@@ -1702,10 +1748,11 @@ let actions = window.actions = {
               if (clone && el && clone.tagName.toLowerCase() !== el.tagName.toLowerCase()) {
                 if (p.children[i] === clone) p.replaceChild(el, clone);
               }
-              let prev = args.prevSrcs[n];
-              if (prev) el.setAttribute('src', prev); else el.removeAttribute('src');
+              let prevSrc = args.prevSrcs[n] || null;
+              let prevExpr = args.prevExprs[n] || null;
+              setSrcAttr(el, prevSrc, prevExpr);
             }
-          }, { targets: targetKeys, parents: parentKeys, idxs, newKeys, prevSrcs });
+          }, { targets: targetKeys, parents: parentKeys, idxs, newKeys, prevSrcs, prevExprs });
           await actions.changeSelection.handler({ cur, s: targetKeys });
         }
       });
@@ -1713,7 +1760,7 @@ let actions = window.actions = {
   },
 
   // TODO: Test if possible to create a "list gallery media" function and reply using the success object in a usable way.
-  changeMediaSrcFromGallery: {
+  setMediaSrcFromGallery: {
     shortcut: 'S',
     disabled: ({ cur = 'master' }) => [!state.designer.open && `Designer closed.`, state.designer.open && !state.designer.current.cursors[cur]?.length && `No elements selected.`],
     parameters: { type: 'object', properties: { cur: { type: 'string' } } },
@@ -1721,7 +1768,7 @@ let actions = window.actions = {
       let frame = state.designer.current;
       let [btn, url] = await showModal('MediaGalleryDialog');
       if (btn !== 'ok' || !url) return;
-      if (state.collab.uid !== 'master') return state.collab.rtc.send({ type: 'cmd', k: 'changeMediaSrcFromGallery', cur, url });
+      if (state.collab.uid !== 'master') return state.collab.rtc.send({ type: 'cmd', k: 'setMediaSrcFromGallery', cur, url });
 
       let mime = mimeLookup(url);
       let newTag = mime?.startsWith?.('audio/') ? 'audio' : mime?.startsWith?.('video/') ? 'video' : 'img';
@@ -1772,7 +1819,9 @@ let actions = window.actions = {
               if (clone && el && el.tagName.toLowerCase() !== clone.tagName.toLowerCase()) {
                 if (p.children[i] === el) p.replaceChild(clone, el);
               }
-              (clone || el)?.setAttribute('src', args.url);
+              let target = clone || el;
+              if (!target) continue;
+              target.setAttribute('src', args.url);
             }
           }, { targets: targetKeys, parents: parentKeys, idxs, newKeys, url });
           await actions.changeSelection.handler({ cur, s: newKeys });
@@ -1790,7 +1839,7 @@ let actions = window.actions = {
               let prev = args.prevSrcs[n];
               if (prev) el.setAttribute('src', prev); else el.removeAttribute('src');
             }
-          }, { targets: targetKeys, parents: parentKeys, idxs, newKeys, prevSrcs });
+          }, { targets: targetKeys, parents: parentKeys, idxs, newKeys, prevSrcs, prevExprs });
           await actions.changeSelection.handler({ cur, s: targetKeys });
         }
       });
