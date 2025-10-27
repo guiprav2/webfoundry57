@@ -10,11 +10,8 @@ import { defaultHead } from '../other/templates.js';
 
 let TAILWIND_HUES = ['red', 'orange', 'amber', 'yellow', 'lime', 'green', 'emerald', 'teal', 'cyan', 'sky', 'blue', 'indigo', 'violet', 'purple', 'fuchsia', 'pink', 'rose', 'slate', 'gray', 'zinc', 'neutral', 'stone'];
 let TAILWIND_SHADES = ['50', '100', '200', '300', '400', '500', '600', '700', '800', '900', '950'];
-let TAILWIND_HUE_SET = new Set(TAILWIND_HUES);
-let TAILWIND_SHADE_SET = new Set(TAILWIND_SHADES);
 let TEXT_COLOR_RE = new RegExp(`^text-(${TAILWIND_HUES.join('|')})-(${TAILWIND_SHADES.join('|')})$`);
 let BG_COLOR_RE = new RegExp(`^bg-(${TAILWIND_HUES.join('|')})-(${TAILWIND_SHADES.join('|')})$`);
-let DEFAULT_SHADE = '500';
 
 let parseHueArgs = (args, fallbackCur) => {
   if (!args.length) return { cur: fallbackCur, hue: null };

@@ -1068,7 +1068,7 @@
                   >
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                      wf-onclick="post('designer.toggleCssClass', null, 'gfont')"
+                      wf-onclick="post('designer.toolbar', 'toggleCssClass', { cls: null, conflict: 'gfont' })"
                       value=""
                     >
                       <div>Unset</div></button
@@ -1118,7 +1118,7 @@
                     ><button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
                       wf-if="!/display|handwriting/i.test(state.designer.gfontCategory)"
-                      wf-onclick="post('designer.toggleCssClass', { 'Sans-serif': 'font-sans', Serif: 'font-serif', Monospace: 'font-mono' }[state.designer.gfontCategory])"
+                      wf-onclick="post('designer.toolbar', 'toggleCssClass', { cls: { 'Sans-serif': 'font-sans', Serif: 'font-serif', Monospace: 'font-mono' }[state.designer.gfontCategory], conflict: 'gfont' })"
                       value=""
                     >
                       <div>Use default</div>
@@ -1140,7 +1140,7 @@
                       class="w-full text-left flex justify-between items-center p-3 text-lg outline-none"
                       wf-map="x of state.designer.gfonts || []"
                       wf-onattach="post('designer.gfontSample', _1, x.name)"
-                      wf-onclick="post('designer.toggleCssClass', `gfont-[${x.name.replaceAll(' ', '_')}]`, 'gfont')"
+                      wf-onclick="post('designer.toolbar', 'toggleCssClass', { cls: `gfont-[${x.name.replaceAll(' ', '_')}]`, conflict: 'gfont' })"
                       value=""
                     >
                       <div>{{x.name}}</div>
@@ -1170,7 +1170,7 @@
                 >
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                    wf-onclick="post('designer.toggleCssClass', 'text-xs', 'textSize')"
+                    wf-onclick="post('designer.toolbar', 'toggleCssClass', { cls: 'text-xs', conflict: 'textSize' })"
                     value=""
                   >
                     <div>Extra Small</div>
@@ -1183,7 +1183,7 @@
                   </button>
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                    wf-onclick="post('designer.toggleCssClass', 'text-sm', 'textSize')"
+                    wf-onclick="post('designer.toolbar', 'toggleCssClass', { cls: 'text-sm', conflict: 'textSize' })"
                     value=""
                   >
                     <div>Small</div>
@@ -1196,7 +1196,7 @@
                   </button>
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                    wf-onclick="post('designer.toggleCssClass', 'text-base', 'textSize')"
+                    wf-onclick="post('designer.toolbar', 'toggleCssClass', { cls: 'text-base', conflict: 'textSize' })"
                     value=""
                   >
                     <div>Base</div>
@@ -1209,7 +1209,7 @@
                   </button>
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                    wf-onclick="post('designer.toggleCssClass', 'text-md', 'textSize')"
+                    wf-onclick="post('designer.toolbar', 'toggleCssClass', { cls: 'text-md', conflict: 'textSize' })"
                     value=""
                   >
                     <div>Medium</div>
@@ -1222,7 +1222,7 @@
                   </button>
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                    wf-onclick="post('designer.toggleCssClass', 'text-lg', 'textSize')"
+                    wf-onclick="post('designer.toolbar', 'toggleCssClass', { cls: 'text-lg', conflict: 'textSize' })"
                     value=""
                   >
                     <div>Large</div>
@@ -1235,7 +1235,7 @@
                   </button>
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                    wf-onclick="post('designer.toggleCssClass', 'text-xl', 'textSize')"
+                    wf-onclick="post('designer.toolbar', 'toggleCssClass', { cls: 'text-xl', conflict: 'textSize' })"
                     value=""
                   >
                     <div>Extra Large</div>
@@ -1248,7 +1248,7 @@
                   </button>
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                    wf-onclick="post('designer.toggleCssClass', 'text-2xl', 'textSize')"
+                    wf-onclick="post('designer.toolbar', 'toggleCssClass', { cls: 'text-2xl', conflict: 'textSize' })"
                     value=""
                   >
                     <div>2 Extra Large</div>
@@ -1261,7 +1261,7 @@
                   </button>
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                    wf-onclick="post('designer.toggleCssClass', 'text-3xl', 'textSize')"
+                    wf-onclick="post('designer.toolbar', 'toggleCssClass', { cls: 'text-3xl', conflict: 'textSize' })"
                     value=""
                   >
                     <div>3 Extra Large</div>
@@ -1274,7 +1274,7 @@
                   </button>
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                    wf-onclick="post('designer.toggleCssClass', 'text-4xl', 'textSize')"
+                    wf-onclick="post('designer.toolbar', 'toggleCssClass', { cls: 'text-4xl', conflict: 'textSize' })"
                     value=""
                   >
                     <div>4 Extra Large</div>
@@ -1287,7 +1287,7 @@
                   </button>
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                    wf-onclick="post('designer.toggleCssClass', 'text-5xl', 'textSize')"
+                    wf-onclick="post('designer.toolbar', 'toggleCssClass', { cls: 'text-5xl', conflict: 'textSize' })"
                     value=""
                   >
                     <div>5 Extra Large</div>
@@ -1300,7 +1300,7 @@
                   </button>
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                    wf-onclick="post('designer.toggleCssClass', 'text-6xl', 'textSize')"
+                    wf-onclick="post('designer.toolbar', 'toggleCssClass', { cls: 'text-6xl', conflict: 'textSize' })"
                     value=""
                   >
                     <div>6 Extra Large</div>
@@ -1313,7 +1313,7 @@
                   </button>
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                    wf-onclick="post('designer.toggleCssClass', 'text-7xl', 'textSize')"
+                    wf-onclick="post('designer.toolbar', 'toggleCssClass', { cls: 'text-7xl', conflict: 'textSize' })"
                     value=""
                   >
                     <div>7 Extra Large</div>
@@ -1341,7 +1341,7 @@
                 >
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                    wf-onclick="post('designer.toggleCssClass', 'font-thin', 'fontWeight')"
+                    wf-onclick="post('designer.toolbar', 'toggleCssClass', { cls: 'font-thin', conflict: 'fontWeight' })"
                     value=""
                   >
                     <div>Thin</div>
@@ -1353,7 +1353,7 @@
                     </div></button
                   ><button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                    wf-onclick="post('designer.toggleCssClass', 'font-extralight', 'fontWeight')"
+                    wf-onclick="post('designer.toolbar', 'toggleCssClass', { cls: 'font-extralight', conflict: 'fontWeight' })"
                     value=""
                   >
                     <div>Extra Light</div>
@@ -1365,7 +1365,7 @@
                     </div></button
                   ><button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                    wf-onclick="post('designer.toggleCssClass', 'font-light', 'fontWeight')"
+                    wf-onclick="post('designer.toolbar', 'toggleCssClass', { cls: 'font-light', conflict: 'fontWeight' })"
                     value=""
                   >
                     <div>Light</div>
@@ -1377,7 +1377,7 @@
                     </div></button
                   ><button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                    wf-onclick="post('designer.toggleCssClass', 'font-normal', 'fontWeight')"
+                    wf-onclick="post('designer.toolbar', 'toggleCssClass', { cls: 'font-normal', conflict: 'fontWeight' })"
                     value=""
                   >
                     <div>Normal</div>
@@ -1389,7 +1389,7 @@
                     </div></button
                   ><button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                    wf-onclick="post('designer.toggleCssClass', 'font-medium', 'fontWeight')"
+                    wf-onclick="post('designer.toolbar', 'toggleCssClass', { cls: 'font-medium', conflict: 'fontWeight' })"
                     value=""
                   >
                     <div>Medium</div>
@@ -1401,7 +1401,7 @@
                     </div></button
                   ><button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                    wf-onclick="post('designer.toggleCssClass', 'font-semibold', 'fontWeight')"
+                    wf-onclick="post('designer.toolbar', 'toggleCssClass', { cls: 'font-semibold', conflict: 'fontWeight' })"
                     value=""
                   >
                     <div>Semibold</div>
@@ -1413,7 +1413,7 @@
                     </div></button
                   ><button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                    wf-onclick="post('designer.toggleCssClass', 'font-bold', 'fontWeight')"
+                    wf-onclick="post('designer.toolbar', 'toggleCssClass', { cls: 'font-bold', conflict: 'fontWeight' })"
                     value=""
                   >
                     <div>Bold</div>
@@ -1425,7 +1425,7 @@
                     </div></button
                   ><button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                    wf-onclick="post('designer.toggleCssClass', 'italic', 'italic')"
+                    wf-onclick="post('designer.toolbar', 'toggleCssClass', { cls: 'italic', conflict: 'italic' })"
                     value=""
                   >
                     <div>Italic</div>
@@ -1437,7 +1437,7 @@
                     </div></button
                   ><button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                    wf-onclick="post('designer.toggleCssClass', 'not-italic', 'italic')"
+                    wf-onclick="post('designer.toolbar', 'toggleCssClass', { cls: 'not-italic', conflict: 'italic' })"
                     value=""
                   >
                     <div>Not Italic</div>
@@ -1449,7 +1449,7 @@
                     </div></button
                   ><button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                    wf-onclick="post('designer.toggleCssClass', 'underline', 'decoration')"
+                    wf-onclick="post('designer.toolbar', 'toggleCssClass', { cls: 'underline', conflict: 'decoration' })"
                     value=""
                   >
                     <div>Underline</div>
@@ -1461,7 +1461,7 @@
                     </div></button
                   ><button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                    wf-onclick="post('designer.toggleCssClass', 'line-through', 'decoration')"
+                    wf-onclick="post('designer.toolbar', 'toggleCssClass', { cls: 'line-through', conflict: 'decoration' })"
                     value=""
                   >
                     <div>Line Through</div>
@@ -1489,7 +1489,7 @@
                 >
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                    wf-onclick="post('designer.toggleCssClass', 'tracking-tighter', 'tracking')"
+                    wf-onclick="post('designer.toolbar', 'toggleCssClass', { cls: 'tracking-tighter', conflict: 'tracking' })"
                     value=""
                   >
                     <div>Tighter</div>
@@ -1502,7 +1502,7 @@
                   </button>
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                    wf-onclick="post('designer.toggleCssClass', 'tracking-tight', 'tracking')"
+                    wf-onclick="post('designer.toolbar', 'toggleCssClass', { cls: 'tracking-tight', conflict: 'tracking' })"
                     value=""
                   >
                     <div>Tight</div>
@@ -1515,7 +1515,7 @@
                   </button>
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                    wf-onclick="post('designer.toggleCssClass', 'tracking-normal', 'tracking')"
+                    wf-onclick="post('designer.toolbar', 'toggleCssClass', { cls: 'tracking-normal', conflict: 'tracking' })"
                     value=""
                   >
                     <div>Normal</div>
@@ -1528,7 +1528,7 @@
                   </button>
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                    wf-onclick="post('designer.toggleCssClass', 'tracking-wide', 'tracking')"
+                    wf-onclick="post('designer.toolbar', 'toggleCssClass', { cls: 'tracking-wide', conflict: 'tracking' })"
                     value=""
                   >
                     <div>Wide</div>
@@ -1541,7 +1541,7 @@
                   </button>
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                    wf-onclick="post('designer.toggleCssClass', 'tracking-wider', 'tracking')"
+                    wf-onclick="post('designer.toolbar', 'toggleCssClass', { cls: 'tracking-wider', conflict: 'tracking' })"
                     value=""
                   >
                     <div>Wider</div>
@@ -1554,7 +1554,7 @@
                   </button>
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                    wf-onclick="post('designer.toggleCssClass', 'tracking-widest', 'tracking')"
+                    wf-onclick="post('designer.toolbar', 'toggleCssClass', { cls: 'tracking-widest', conflict: 'tracking' })"
                     value=""
                   >
                     <div>Widest</div>
@@ -1584,7 +1584,7 @@
                   <div class="max-h-96 overflow-auto *:hover:bg-[#091017]">
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                      wf-onclick="post('designer.toggleHue', 'red')"
+                      wf-onclick="post('designer.toolbar', 'toggleHue', { hue: 'red' })"
                       value=""
                     >
                       <div class="flex items-center gap-3">
@@ -1600,7 +1600,7 @@
                     </button>
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                      wf-onclick="post('designer.toggleHue', 'orange')"
+                      wf-onclick="post('designer.toolbar', 'toggleHue', { hue: 'orange' })"
                       value=""
                     >
                       <div class="flex items-center gap-3">
@@ -1618,7 +1618,7 @@
                     </button>
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                      wf-onclick="post('designer.toggleHue', 'amber')"
+                      wf-onclick="post('designer.toolbar', 'toggleHue', { hue: 'amber' })"
                       value=""
                     >
                       <div class="flex items-center gap-3">
@@ -1634,7 +1634,7 @@
                     </button>
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                      wf-onclick="post('designer.toggleHue', 'yellow')"
+                      wf-onclick="post('designer.toolbar', 'toggleHue', { hue: 'yellow' })"
                       value=""
                     >
                       <div class="flex items-center gap-3">
@@ -1652,7 +1652,7 @@
                     </button>
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                      wf-onclick="post('designer.toggleHue', 'lime')"
+                      wf-onclick="post('designer.toolbar', 'toggleHue', { hue: 'lime' })"
                       value=""
                     >
                       <div class="flex items-center gap-3">
@@ -1668,7 +1668,7 @@
                     </button>
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                      wf-onclick="post('designer.toggleHue', 'green')"
+                      wf-onclick="post('designer.toolbar', 'toggleHue', { hue: 'green' })"
                       value=""
                     >
                       <div class="flex items-center gap-3">
@@ -1684,7 +1684,7 @@
                     </button>
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                      wf-onclick="post('designer.toggleHue', 'emerald')"
+                      wf-onclick="post('designer.toolbar', 'toggleHue', { hue: 'emerald' })"
                       value=""
                     >
                       <div class="flex items-center gap-3">
@@ -1702,7 +1702,7 @@
                     </button>
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                      wf-onclick="post('designer.toggleHue', 'teal')"
+                      wf-onclick="post('designer.toolbar', 'toggleHue', { hue: 'teal' })"
                       value=""
                     >
                       <div class="flex items-center gap-3">
@@ -1718,7 +1718,7 @@
                     </button>
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                      wf-onclick="post('designer.toggleHue', 'cyan')"
+                      wf-onclick="post('designer.toolbar', 'toggleHue', { hue: 'cyan' })"
                       value=""
                     >
                       <div class="flex items-center gap-3">
@@ -1734,7 +1734,7 @@
                     </button>
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                      wf-onclick="post('designer.toggleHue', 'sky')"
+                      wf-onclick="post('designer.toolbar', 'toggleHue', { hue: 'sky' })"
                       value=""
                     >
                       <div class="flex items-center gap-3">
@@ -1750,7 +1750,7 @@
                     </button>
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                      wf-onclick="post('designer.toggleHue', 'blue')"
+                      wf-onclick="post('designer.toolbar', 'toggleHue', { hue: 'blue' })"
                       value=""
                     >
                       <div class="flex items-center gap-3">
@@ -1766,7 +1766,7 @@
                     </button>
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                      wf-onclick="post('designer.toggleHue', 'indigo')"
+                      wf-onclick="post('designer.toolbar', 'toggleHue', { hue: 'indigo' })"
                       value=""
                     >
                       <div class="flex items-center gap-3">
@@ -1784,7 +1784,7 @@
                     </button>
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                      wf-onclick="post('designer.toggleHue', 'violet')"
+                      wf-onclick="post('designer.toolbar', 'toggleHue', { hue: 'violet' })"
                       value=""
                     >
                       <div class="flex items-center gap-3">
@@ -1802,7 +1802,7 @@
                     </button>
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                      wf-onclick="post('designer.toggleHue', 'purple')"
+                      wf-onclick="post('designer.toolbar', 'toggleHue', { hue: 'purple' })"
                       value=""
                     >
                       <div class="flex items-center gap-3">
@@ -1820,7 +1820,7 @@
                     </button>
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                      wf-onclick="post('designer.toggleHue', 'fuchsia')"
+                      wf-onclick="post('designer.toolbar', 'toggleHue', { hue: 'fuchsia' })"
                       value=""
                     >
                       <div class="flex items-center gap-3">
@@ -1838,7 +1838,7 @@
                     </button>
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                      wf-onclick="post('designer.toggleHue', 'pink')"
+                      wf-onclick="post('designer.toolbar', 'toggleHue', { hue: 'pink' })"
                       value=""
                     >
                       <div class="flex items-center gap-3">
@@ -1854,7 +1854,7 @@
                     </button>
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                      wf-onclick="post('designer.toggleHue', 'rose')"
+                      wf-onclick="post('designer.toolbar', 'toggleHue', { hue: 'rose' })"
                       value=""
                     >
                       <div class="flex items-center gap-3">
@@ -1870,7 +1870,7 @@
                     </button>
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                      wf-onclick="post('designer.toggleHue', 'slate')"
+                      wf-onclick="post('designer.toolbar', 'toggleHue', { hue: 'slate' })"
                       value=""
                     >
                       <div class="flex items-center gap-3">
@@ -1886,7 +1886,7 @@
                     </button>
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                      wf-onclick="post('designer.toggleHue', 'gray')"
+                      wf-onclick="post('designer.toolbar', 'toggleHue', { hue: 'gray' })"
                       value=""
                     >
                       <div class="flex items-center gap-3">
@@ -1902,7 +1902,7 @@
                     </button>
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                      wf-onclick="post('designer.toggleHue', 'zinc')"
+                      wf-onclick="post('designer.toolbar', 'toggleHue', { hue: 'zinc' })"
                       value=""
                     >
                       <div class="flex items-center gap-3">
@@ -1918,7 +1918,7 @@
                     </button>
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                      wf-onclick="post('designer.toggleHue', 'neutral')"
+                      wf-onclick="post('designer.toolbar', 'toggleHue', { hue: 'neutral' })"
                       value=""
                     >
                       <div class="flex items-center gap-3">
@@ -1936,7 +1936,7 @@
                     </button>
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                      wf-onclick="post('designer.toggleHue', 'stone')"
+                      wf-onclick="post('designer.toolbar', 'toggleHue', { hue: 'stone' })"
                       value=""
                     >
                       <div class="flex items-center gap-3">
@@ -1971,7 +1971,7 @@
                 >
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                    wf-onclick="post('designer.setShade', 50)"
+                    wf-onclick="post('designer.toolbar', 'setShade', { shade: 50 })"
                     value=""
                   >
                     <div class="flex items-center gap-3">
@@ -1990,7 +1990,7 @@
                   </button>
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                    wf-onclick="post('designer.setShade', 100)"
+                    wf-onclick="post('designer.toolbar', 'setShade', { shade: 100 })"
                     value=""
                   >
                     <div class="flex items-center gap-3">
@@ -2009,7 +2009,7 @@
                   </button>
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                    wf-onclick="post('designer.setShade', 200)"
+                    wf-onclick="post('designer.toolbar', 'setShade', { shade: 200 })"
                     value=""
                   >
                     <div class="flex items-center gap-3">
@@ -2028,7 +2028,7 @@
                   </button>
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                    wf-onclick="post('designer.setShade', 300)"
+                    wf-onclick="post('designer.toolbar', 'setShade', { shade: 300 })"
                     value=""
                   >
                     <div class="flex items-center gap-3">
@@ -2047,7 +2047,7 @@
                   </button>
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                    wf-onclick="post('designer.setShade', 400)"
+                    wf-onclick="post('designer.toolbar', 'setShade', { shade: 400 })"
                     value=""
                   >
                     <div class="flex items-center gap-3">
@@ -2066,7 +2066,7 @@
                   </button>
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                    wf-onclick="post('designer.setShade', 500)"
+                    wf-onclick="post('designer.toolbar', 'setShade', { shade: 500 })"
                     value=""
                   >
                     <div class="flex items-center gap-3">
@@ -2085,7 +2085,7 @@
                   </button>
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                    wf-onclick="post('designer.setShade', 600)"
+                    wf-onclick="post('designer.toolbar', 'setShade', { shade: 600 })"
                     value=""
                   >
                     <div class="flex items-center gap-3">
@@ -2104,7 +2104,7 @@
                   </button>
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                    wf-onclick="post('designer.setShade', 700)"
+                    wf-onclick="post('designer.toolbar', 'setShade', { shade: 700 })"
                     value=""
                   >
                     <div class="flex items-center gap-3">
@@ -2123,7 +2123,7 @@
                   </button>
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                    wf-onclick="post('designer.setShade', 800)"
+                    wf-onclick="post('designer.toolbar', 'setShade', { shade: 800 })"
                     value=""
                   >
                     <div class="flex items-center gap-3">
@@ -2142,7 +2142,7 @@
                   </button>
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                    wf-onclick="post('designer.setShade', 900)"
+                    wf-onclick="post('designer.toolbar', 'setShade', { shade: 900 })"
                     value=""
                   >
                     <div class="flex items-center gap-3">
@@ -2161,7 +2161,7 @@
                   </button>
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                    wf-onclick="post('designer.setShade', 950)"
+                    wf-onclick="post('designer.toolbar', 'setShade', { shade: 950 })"
                     value=""
                   >
                     <div class="flex items-center gap-3">
@@ -2196,7 +2196,7 @@
                   <div class="max-h-96 overflow-auto *:hover:bg-[#091017]">
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none *:hover:bg-[#091017]"
-                      wf-onclick="post('designer.toggleBgHue', 'red')"
+                      wf-onclick="post('designer.toolbar', 'toggleBgHue', { hue: 'red' })"
                       value=""
                     >
                       <div class="flex items-center gap-3">
@@ -2212,7 +2212,7 @@
                     </button>
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                      wf-onclick="post('designer.toggleBgHue', 'orange')"
+                      wf-onclick="post('designer.toolbar', 'toggleBgHue', { hue: 'orange' })"
                       value=""
                     >
                       <div class="flex items-center gap-3">
@@ -2230,7 +2230,7 @@
                     </button>
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                      wf-onclick="post('designer.toggleBgHue', 'amber')"
+                      wf-onclick="post('designer.toolbar', 'toggleBgHue', { hue: 'amber' })"
                       value=""
                     >
                       <div class="flex items-center gap-3">
@@ -2246,7 +2246,7 @@
                     </button>
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                      wf-onclick="post('designer.toggleBgHue', 'yellow')"
+                      wf-onclick="post('designer.toolbar', 'toggleBgHue', { hue: 'yellow' })"
                       value=""
                     >
                       <div class="flex items-center gap-3">
@@ -2264,7 +2264,7 @@
                     </button>
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                      wf-onclick="post('designer.toggleBgHue', 'lime')"
+                      wf-onclick="post('designer.toolbar', 'toggleBgHue', { hue: 'lime' })"
                       value=""
                     >
                       <div class="flex items-center gap-3">
@@ -2280,7 +2280,7 @@
                     </button>
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                      wf-onclick="post('designer.toggleBgHue', 'green')"
+                      wf-onclick="post('designer.toolbar', 'toggleBgHue', { hue: 'green' })"
                       value=""
                     >
                       <div class="flex items-center gap-3">
@@ -2296,7 +2296,7 @@
                     </button>
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                      wf-onclick="post('designer.toggleBgHue', 'emerald')"
+                      wf-onclick="post('designer.toolbar', 'toggleBgHue', { hue: 'emerald' })"
                       value=""
                     >
                       <div class="flex items-center gap-3">
@@ -2314,7 +2314,7 @@
                     </button>
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                      wf-onclick="post('designer.toggleBgHue', 'teal')"
+                      wf-onclick="post('designer.toolbar', 'toggleBgHue', { hue: 'teal' })"
                       value=""
                     >
                       <div class="flex items-center gap-3">
@@ -2330,7 +2330,7 @@
                     </button>
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                      wf-onclick="post('designer.toggleBgHue', 'cyan')"
+                      wf-onclick="post('designer.toolbar', 'toggleBgHue', { hue: 'cyan' })"
                       value=""
                     >
                       <div class="flex items-center gap-3">
@@ -2346,7 +2346,7 @@
                     </button>
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                      wf-onclick="post('designer.toggleBgHue', 'sky')"
+                      wf-onclick="post('designer.toolbar', 'toggleBgHue', { hue: 'sky' })"
                       value=""
                     >
                       <div class="flex items-center gap-3">
@@ -2362,7 +2362,7 @@
                     </button>
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                      wf-onclick="post('designer.toggleBgHue', 'blue')"
+                      wf-onclick="post('designer.toolbar', 'toggleBgHue', { hue: 'blue' })"
                       value=""
                     >
                       <div class="flex items-center gap-3">
@@ -2378,7 +2378,7 @@
                     </button>
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                      wf-onclick="post('designer.toggleBgHue', 'indigo')"
+                      wf-onclick="post('designer.toolbar', 'toggleBgHue', { hue: 'indigo' })"
                       value=""
                     >
                       <div class="flex items-center gap-3">
@@ -2396,7 +2396,7 @@
                     </button>
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                      wf-onclick="post('designer.toggleBgHue', 'violet')"
+                      wf-onclick="post('designer.toolbar', 'toggleBgHue', { hue: 'violet' })"
                       value=""
                     >
                       <div class="flex items-center gap-3">
@@ -2414,7 +2414,7 @@
                     </button>
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                      wf-onclick="post('designer.toggleBgHue', 'purple')"
+                      wf-onclick="post('designer.toolbar', 'toggleBgHue', { hue: 'purple' })"
                       value=""
                     >
                       <div class="flex items-center gap-3">
@@ -2432,7 +2432,7 @@
                     </button>
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                      wf-onclick="post('designer.toggleBgHue', 'fuchsia')"
+                      wf-onclick="post('designer.toolbar', 'toggleBgHue', { hue: 'fuchsia' })"
                       value=""
                     >
                       <div class="flex items-center gap-3">
@@ -2450,7 +2450,7 @@
                     </button>
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                      wf-onclick="post('designer.toggleBgHue', 'pink')"
+                      wf-onclick="post('designer.toolbar', 'toggleBgHue', { hue: 'pink' })"
                       value=""
                     >
                       <div class="flex items-center gap-3">
@@ -2466,7 +2466,7 @@
                     </button>
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                      wf-onclick="post('designer.toggleBgHue', 'rose')"
+                      wf-onclick="post('designer.toolbar', 'toggleBgHue', { hue: 'rose' })"
                       value=""
                     >
                       <div class="flex items-center gap-3">
@@ -2482,7 +2482,7 @@
                     </button>
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                      wf-onclick="post('designer.toggleBgHue', 'slate')"
+                      wf-onclick="post('designer.toolbar', 'toggleBgHue', { hue: 'slate' })"
                       value=""
                     >
                       <div class="flex items-center gap-3">
@@ -2498,7 +2498,7 @@
                     </button>
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                      wf-onclick="post('designer.toggleBgHue', 'gray')"
+                      wf-onclick="post('designer.toolbar', 'toggleBgHue', { hue: 'gray' })"
                       value=""
                     >
                       <div class="flex items-center gap-3">
@@ -2514,7 +2514,7 @@
                     </button>
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                      wf-onclick="post('designer.toggleBgHue', 'zinc')"
+                      wf-onclick="post('designer.toolbar', 'toggleBgHue', { hue: 'zinc' })"
                       value=""
                     >
                       <div class="flex items-center gap-3">
@@ -2530,7 +2530,7 @@
                     </button>
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                      wf-onclick="post('designer.toggleBgHue', 'neutral')"
+                      wf-onclick="post('designer.toolbar', 'toggleBgHue', { hue: 'neutral' })"
                       value=""
                     >
                       <div class="flex items-center gap-3">
@@ -2548,7 +2548,7 @@
                     </button>
                     <button
                       class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                      wf-onclick="post('designer.toggleBgHue', 'stone')"
+                      wf-onclick="post('designer.toolbar', 'toggleBgHue', { hue: 'stone' })"
                       value=""
                     >
                       <div class="flex items-center gap-3">
@@ -2583,7 +2583,7 @@
                 >
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                    wf-onclick="post('designer.setBgShade', 50)"
+                    wf-onclick="post('designer.toolbar', 'setBgShade', { shade: 50 })"
                     value=""
                   >
                     <div class="flex items-center gap-3">
@@ -2602,7 +2602,7 @@
                   </button>
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                    wf-onclick="post('designer.setBgShade', 100)"
+                    wf-onclick="post('designer.toolbar', 'setBgShade', { shade: 100 })"
                     value=""
                   >
                     <div class="flex items-center gap-3">
@@ -2621,7 +2621,7 @@
                   </button>
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                    wf-onclick="post('designer.setBgShade', 200)"
+                    wf-onclick="post('designer.toolbar', 'setBgShade', { shade: 200 })"
                     value=""
                   >
                     <div class="flex items-center gap-3">
@@ -2640,7 +2640,7 @@
                   </button>
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                    wf-onclick="post('designer.setBgShade', 300)"
+                    wf-onclick="post('designer.toolbar', 'setBgShade', { shade: 300 })"
                     value=""
                   >
                     <div class="flex items-center gap-3">
@@ -2659,7 +2659,7 @@
                   </button>
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                    wf-onclick="post('designer.setBgShade', 400)"
+                    wf-onclick="post('designer.toolbar', 'setBgShade', { shade: 400 })"
                     value=""
                   >
                     <div class="flex items-center gap-3">
@@ -2678,7 +2678,7 @@
                   </button>
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                    wf-onclick="post('designer.setBgShade', 500)"
+                    wf-onclick="post('designer.toolbar', 'setBgShade', { shade: 500 })"
                     value=""
                   >
                     <div class="flex items-center gap-3">
@@ -2697,7 +2697,7 @@
                   </button>
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                    wf-onclick="post('designer.setBgShade', 600)"
+                    wf-onclick="post('designer.toolbar', 'setBgShade', { shade: 600 })"
                     value=""
                   >
                     <div class="flex items-center gap-3">
@@ -2716,7 +2716,7 @@
                   </button>
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                    wf-onclick="post('designer.setBgShade', 700)"
+                    wf-onclick="post('designer.toolbar', 'setBgShade', { shade: 700 })"
                     value=""
                   >
                     <div class="flex items-center gap-3">
@@ -2735,7 +2735,7 @@
                   </button>
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                    wf-onclick="post('designer.setBgShade', 800)"
+                    wf-onclick="post('designer.toolbar', 'setBgShade', { shade: 800 })"
                     value=""
                   >
                     <div class="flex items-center gap-3">
@@ -2754,7 +2754,7 @@
                   </button>
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                    wf-onclick="post('designer.setBgShade', 900)"
+                    wf-onclick="post('designer.toolbar', 'setBgShade', { shade: 900 })"
                     value=""
                   >
                     <div class="flex items-center gap-3">
@@ -2773,7 +2773,7 @@
                   </button>
                   <button
                     class="w-full text-left px-3 py-2 flex justify-between items-center outline-none"
-                    wf-onclick="post('designer.setBgShade', 950)"
+                    wf-onclick="post('designer.toolbar', 'setBgShade', { shade: 950 })"
                     value=""
                   >
                     <div class="flex items-center gap-3">

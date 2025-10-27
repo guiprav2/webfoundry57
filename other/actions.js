@@ -6,6 +6,14 @@ import { lookup as mimeLookup } from 'https://esm.sh/mrmime';
 
 let PEXELS_API_KEY = 'TvQp9hqct3J5XlyGjBUtt0TlgqiCd1UtDuJlvhl4HzfOt53BrvwuCq6b';
 
+let TAILWIND_HUES = ['red', 'orange', 'amber', 'yellow', 'lime', 'green', 'emerald', 'teal', 'cyan', 'sky', 'blue', 'indigo', 'violet', 'purple', 'fuchsia', 'pink', 'rose', 'slate', 'gray', 'zinc', 'neutral', 'stone'];
+let TAILWIND_SHADES = ['50', '100', '200', '300', '400', '500', '600', '700', '800', '900', '950'];
+let TAILWIND_HUE_SET = new Set(TAILWIND_HUES);
+let TAILWIND_SHADE_SET = new Set(TAILWIND_SHADES);
+let TEXT_COLOR_RE = new RegExp(`^text-(${TAILWIND_HUES.join('|')})-(${TAILWIND_SHADES.join('|')})$`);
+let BG_COLOR_RE = new RegExp(`^bg-(${TAILWIND_HUES.join('|')})-(${TAILWIND_SHADES.join('|')})$`);
+let DEFAULT_SHADE = '500';
+
 let actions = window.actions = {
   selectPanel: {
     parameters: {
@@ -1766,6 +1774,157 @@ let actions = window.actions = {
     },
   },
 
+  toggleCssClass: {
+    description: `Toggles a single Tailwind class, optionally removing conflicting ones`,
+    disabled: ({ cur = 'master' }) => [
+      !state.designer.open && `Designer closed.`,
+      state.designer.open && !state.designer.current.cursors[cur]?.length && `No elements selected.`,
+    ],
+    parameters: {
+      type: 'object',
+      properties: {
+        cur: { type: 'string', description: `Whose selection to affect (defaults to current user)` },
+        cls: { type: 'string', description: `Class to toggle (e.g. text-lg, font-bold)` },
+        conflict: { type: 'string', enum: ['textSize', 'fontWeight', 'italic', 'tracking', 'decoration', 'gfont'] },
+      },
+      required: ['cls'],
+    },
+    handler: async ({ cur = state.collab.uid, cls, conflict = null } = {}) => {
+      let frame = state.designer.current;
+      let ids = frame.cursors[cur] || [];
+      if (!ids.length) return;
+      let allUnset = ids.every(id => {
+        let el = frame.map.get(id);
+        return el && !el.classList.contains(cls);
+      });
+      let conflictRegex = {
+        textSize: /^text-(xs|sm|base|md|lg|[234567]?xl)$/,
+        fontWeight: /^font-(thin|extralight|light|normal|medium|semibold|bold)$/,
+        italic: /^italic|not-italic$/,
+        tracking: /^tracking-(tighter|tight|normal|wide|wider|widest)$/,
+        decoration: /^underline|line-through$/,
+        gfont: /^gfont-/,
+      }[conflict] || null;
+      if (allUnset) {
+        await actions.replaceCssClasses.handler({ cur, old: conflictRegex, cls: [cls] });
+      } else {
+        await actions.removeCssClasses.handler({ cur, cls: [cls] });
+      }
+    },
+  },
+
+  toggleHue: {
+    description: `Toggles Tailwind text hue for selected elements`,
+    disabled: ({ cur = 'master' }) => [
+      !state.designer.open && `Designer closed.`,
+      state.designer.open && !state.designer.current.cursors[cur]?.length && `No elements selected.`,
+    ],
+    parameters: {
+      type: 'object',
+      properties: {
+        cur: { type: 'string', description: `Whose selection to affect (defaults to master)` },
+        hue: { type: 'string', description: `Tailwind hue (e.g. red, blue, green)` },
+      },
+      required: ['hue'],
+    },
+    handler: async ({ cur = 'master', hue } = {}) => {
+      let fallbackCur = state.collab?.uid ?? 'master';
+      cur ||= fallbackCur;
+      hue = hue?.toString();
+      if (!TAILWIND_HUE_SET.has(hue)) return;
+      let { elements, matches, regex } = getTailwindColorInfo('text', cur);
+      if (!elements.length) return;
+      let allSameHue = matches.length && matches.every(m => m && m.hue === hue);
+      if (allSameHue) return await actions.replaceCssClasses.handler({ cur, old: regex, cls: [] });
+      let shade = matches.find(m => m)?.shade;
+      if (!TAILWIND_SHADE_SET.has(shade)) shade = DEFAULT_SHADE;
+      await actions.replaceCssClasses.handler({ cur, old: regex, cls: [`text-${hue}-${shade}`] });
+    },
+  },
+
+  setShade: {
+    description: `Sets Tailwind text shade for selected elements`,
+    disabled: ({ cur = 'master' }) => [
+      !state.designer.open && `Designer closed.`,
+      state.designer.open && !state.designer.current.cursors[cur]?.length && `No elements selected.`,
+    ],
+    parameters: {
+      type: 'object',
+      properties: {
+        cur: { type: 'string', description: `Whose selection to affect (defaults to master)` },
+        shade: { type: 'string', description: `Tailwind shade (e.g. 100, 500, 900)` },
+      },
+      required: ['shade'],
+    },
+    handler: async ({ cur = 'master', shade } = {}) => {
+      let fallbackCur = state.collab?.uid ?? 'master';
+      cur ||= fallbackCur;
+      shade = shade?.toString();
+      if (!TAILWIND_SHADE_SET.has(shade)) return;
+      let { elements, matches, regex } = getTailwindColorInfo('text', cur);
+      if (!elements.length) return;
+      let match = matches.find(m => m);
+      if (!match || !TAILWIND_HUE_SET.has(match.hue)) return;
+      await actions.replaceCssClasses.handler({ cur, old: regex, cls: [`text-${match.hue}-${shade}`] });
+    },
+  },
+
+  toggleBgHue: {
+    description: `Toggles Tailwind background hue for selected elements`,
+    disabled: ({ cur = 'master' }) => [
+      !state.designer.open && `Designer closed.`,
+      state.designer.open && !state.designer.current.cursors[cur]?.length && `No elements selected.`,
+    ],
+    parameters: {
+      type: 'object',
+      properties: {
+        cur: { type: 'string', description: `Whose selection to affect (defaults to master)` },
+        hue: { type: 'string', description: `Tailwind hue (e.g. red, blue, green)` },
+      },
+      required: ['hue'],
+    },
+    handler: async ({ cur = 'master', hue } = {}) => {
+      let fallbackCur = state.collab?.uid ?? 'master';
+      cur ||= fallbackCur;
+      hue = hue?.toString();
+      if (!TAILWIND_HUE_SET.has(hue)) return;
+      let { elements, matches, regex } = getTailwindColorInfo('bg', cur);
+      if (!elements.length) return;
+      let allSameHue = matches.length && matches.every(m => m && m.hue === hue);
+      if (allSameHue) return await actions.replaceCssClasses.handler({ cur, old: regex, cls: [] });
+      let shade = matches.find(m => m)?.shade;
+      if (!TAILWIND_SHADE_SET.has(shade)) shade = DEFAULT_SHADE;
+      await actions.replaceCssClasses.handler({ cur, old: regex, cls: [`bg-${hue}-${shade}`] });
+    },
+  },
+
+  setBgShade: {
+    description: `Sets Tailwind background shade for selected elements`,
+    disabled: ({ cur = 'master' }) => [
+      !state.designer.open && `Designer closed.`,
+      state.designer.open && !state.designer.current.cursors[cur]?.length && `No elements selected.`,
+    ],
+    parameters: {
+      type: 'object',
+      properties: {
+        cur: { type: 'string', description: `Whose selection to affect (defaults to master)` },
+        shade: { type: 'string', description: `Tailwind shade (e.g. 100, 500, 900)` },
+      },
+      required: ['shade'],
+    },
+    handler: async ({ cur = 'master', shade } = {}) => {
+      let fallbackCur = state.collab?.uid ?? 'master';
+      cur ||= fallbackCur;
+      shade = shade?.toString();
+      if (!TAILWIND_SHADE_SET.has(shade)) return;
+      let { elements, matches, regex } = getTailwindColorInfo('bg', cur);
+      if (!elements.length) return;
+      let match = matches.find(m => m);
+      if (!match || !TAILWIND_HUE_SET.has(match.hue)) return;
+      await actions.replaceCssClasses.handler({ cur, old: regex, cls: [`bg-${match.hue}-${shade}`] });
+    },
+  },
+
   changeHtml: {
     description: `Changes the outer HTML of selected elements (prompts if not provided)`,
     shortcut: 'm',
@@ -2688,6 +2847,22 @@ let actions = window.actions = {
 
   throwConfetti: { description: `Use only when dictated by cue instructions or the user really deserves it or sounds excited.`, handler: () => { confetti() } },
 };
+
+function getTailwindColorInfo(prefix, cur = state.collab.uid) {
+  let frame = state.designer.current;
+  let regex = prefix === 'bg' ? BG_COLOR_RE : TEXT_COLOR_RE;
+  if (!frame) return { frame: null, elements: [], matches: [], regex };
+  let ids = frame.cursors[cur] || [];
+  let elements = ids.map(id => frame.map.get(id)).filter(Boolean);
+  let matches = elements.map(el => {
+    for (let cls of el?.classList || []) {
+      let match = cls.match(regex);
+      if (match) return { className: match[0], hue: match[1], shade: match[2] };
+    }
+    return null;
+  });
+  return { frame, elements, matches, regex };
+}
 
 async function loadFileText(path) {
   if (state.collab?.uid && state.collab.uid !== 'master') throw new Error(`Peers can't read files directly.`);
