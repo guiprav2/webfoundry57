@@ -219,6 +219,7 @@ let actions = window.actions = {
       if (state.collab.uid === cur) await post('designer.toggleMobileKeyboard');
       await post('designer.sync', state.designer.current);
       await post('collab.sync');
+      state.event.bus.emit('actions:changeSelection:ready', { s });
     },
   },
 
@@ -2232,7 +2233,7 @@ let actions = window.actions = {
     },
   },
 
-  throwConfetti: { description: `Use only when dictated by cue instructions or the user really deserves it or sounds excited.`, handler: confetti },
+  throwConfetti: { description: `Use only when dictated by cue instructions or the user really deserves it or sounds excited.`, handler: () => { confetti() } },
 };
 
 let ifeval = (fn, args) => new Promise((resolve, reject) => {
