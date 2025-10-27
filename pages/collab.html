@@ -2896,10 +2896,11 @@
                   <div class="shrink-0">Wallpaper:</div>
                   <input
                     class="flex-1 bg-black/50 outline-none rounded-md px-4 py-2 min-w-0"
-                    value="{{state.settings.opt.wallpaper}}"
+                    value=""
                     wf-disabled="loadman.busy()"
                     wf-onkeyup="event.preventDefault(), post('settings.option', 'wallpaper', event.target.value)"
                     placeholder="Public URL"
+                    wf-value="state.settings.opt.wallpaper"
                   />
                 </div>
               </div>

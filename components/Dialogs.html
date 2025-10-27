@@ -571,7 +571,11 @@
                     No sites available
                   </option>
                   <option value="new" selected="">Create new site</option>
-                  <option wf-map="site of this.sites" value="{{site.id}}">
+                  <option
+                    wf-map="site of this.sites"
+                    value=""
+                    wf-value="site.id"
+                  >
                     {{site.ssl_url.slice('https://'.length)}}
                   </option>
                 </select>
