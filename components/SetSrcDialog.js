@@ -1,4 +1,4 @@
-class ChangeSrcDialog {
+class SetSrcDialog {
   constructor(props) {
     this.props = props;
     this.srcValue = this.props.initialSrcValue ?? '';
@@ -20,4 +20,4 @@ class ChangeSrcDialog {
   };
 }
 
-export default ChangeSrcDialog;
+export default SetSrcDialog;
