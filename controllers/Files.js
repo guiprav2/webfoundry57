@@ -43,7 +43,7 @@ export default class Files {
 
       navigator.serviceWorker.addEventListener('message', async event => {
         let { type, project, path } = event.data || {};
-        if (type !== 'fetch' || wfThisProject === project) return;
+        if (type !== 'fetch' || window.wfThisProject === project) return;
         let port = event.ports?.[0];
         if (!port) return;
         await respond({ project, path }, payload => port.postMessage(payload));

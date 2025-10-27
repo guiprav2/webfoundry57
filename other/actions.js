@@ -1,4 +1,5 @@
 import completion from 'https://esm.sh/@camilaprav/kittygpt@0.0.65/completion.js';
+import confetti from 'https://esm.sh/canvas-confetti';
 import { loadman, joinPath } from '../other/util.js';
 import { lookup as mimeLookup } from 'https://esm.sh/mrmime';
 
@@ -2230,6 +2231,8 @@ let actions = window.actions = {
       return { success: true, urls };
     },
   },
+
+  throwConfetti: { description: `Use only when dictated by cue instructions or the user really deserves it or sounds excited.`, handler: confetti },
 };
 
 let ifeval = (fn, args) => new Promise((resolve, reject) => {
