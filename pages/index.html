@@ -114,15 +114,15 @@
 
       <div class="flex-1 flex flex-col min-w-0 basis-0">
         <div
-          class="text-neutral-100 text-center border-b border-black/50 bg-[#060a0fc0] backdrop-blur-[4px] md:py-3.5 py-2"
+          class="text-neutral-100 text-center border-b border-black/50 md:py-3.5 py-2 bg-[#060a0fc0] backdrop-blur-[4px]"
           wf-if="state.projects.current"
         >
           {{state.projects.current?.split?.(':')?.[0]}}
         </div>
 
         <div
-          wf-if="state.designer.open &amp;&amp; !state.designer.current.preview &amp;&amp; state.settings.opt.toolbar &amp;&amp; !state.app.demo"
           class="bg-[#060a0fc0] backdrop-blur-[4px] z-10 hidden md:block"
+          wf-if="state.designer.open &amp;&amp; !state.designer.current.preview &amp;&amp; state.settings.opt.toolbar &amp;&amp; !state.app.demo"
         >
           <div
             class="text-neutral-100 border-b border-black/50 flex px-4 items-center py-3 gap-4"
@@ -2789,8 +2789,8 @@
         <div class="flex flex-1 min-w-0 basis-0 md:overflow-auto">
           <div
             class="ProjectsPanel flex flex-col text-neutral-100 border-r border-black/50 select-none shrink-0 bg-[#091017c0] backdrop-blur-[4px] w-full md:w-96"
-            wf-class="{{replaces w-96: state.app.demo ? 'w-64' : 'w-96'}}"
             wf-if="state.app.panel === 'projects'"
+            wf-class="{{replaces w-96: state.app.demo ? 'w-64' : 'w-96'}}"
           >
             <button
               class="ProjectsPanel-createBtn outline-none border-b border-black/50 transition-all h-12 text-xl transition-colors shrink-0 hover:bg-[#008ad9] bg-[#0071b2]"
@@ -2842,8 +2842,8 @@
           </div>
           <div
             class="FilesPanel flex flex-col text-neutral-100 border-r border-black/50 select-none shrink-0 bg-[#091017c0] backdrop-blur-[4px] w-full md:w-96"
-            wf-class="{{replaces w-96: state.app.demo ? 'w-64' : 'w-96'}}"
             wf-if="state.app.panel === 'files'"
+            wf-class="{{replaces w-96: state.app.demo ? 'w-64' : 'w-96'}}"
           >
             <button
               class="FilesPanel-createBtn outline-none border-b border-black/50 transition-all h-12 text-xl transition-colors hover:bg-[#008ad9] shrink-0 bg-[#0071b2]"

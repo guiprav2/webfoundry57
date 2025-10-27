@@ -26,7 +26,7 @@
 
           <div
             id="Loading"
-            class="outline-none rounded-lg shadow-xl text-neutral-100 bg-[#091017] w-64 p-3 min-w-64 py-2"
+            class="outline-none rounded-lg shadow-xl text-neutral-100 w-64 p-3 min-w-64 py-2 bg-[#030609e0] backdrop-blur-md"
           >
             <div>{{this.props.msg || 'Loading...'}}</div>
           </div>
@@ -36,7 +36,7 @@
           <div class="text-3xl">InfoDialog</div>
           <div
             id="InfoDialog"
-            class="outline-none rounded-lg shadow-xl text-neutral-100 bg-[#091017] w-64 p-3 pt-2 min-w-64"
+            class="outline-none rounded-lg shadow-xl text-neutral-100 w-64 p-3 pt-2 min-w-64 bg-[#030609e0] backdrop-blur-md"
           >
             <form method="dialog">
               <div>{{this.props.title}}</div>
@@ -56,7 +56,7 @@
 
           <div
             id="ConfirmationDialog"
-            class="outline-none rounded-lg shadow-xl text-neutral-100 bg-[#091017] w-64 p-3 pt-2 min-w-64"
+            class="outline-none rounded-lg shadow-xl text-neutral-100 w-64 p-3 pt-2 min-w-64 bg-[#030609e0] backdrop-blur-md"
           >
             <form method="dialog">
               <div>{{this.props.title}}</div>
@@ -83,7 +83,7 @@
 
           <div
             id="PromptDialog"
-            class="outline-none rounded-lg shadow-xl text-neutral-100 bg-[#091017] p-3 pt-2"
+            class="outline-none rounded-lg shadow-xl text-neutral-100 p-3 pt-2 bg-[#030609e0] backdrop-blur-md"
             wf-class="{{this.props.short ? 'w-64' : 'w-[30vw]'}}"
           >
             <form
@@ -133,7 +133,7 @@
 
           <div
             id="CreateFileDialog"
-            class="outline-none rounded-lg shadow-xl text-neutral-100 bg-[#091017] w-64 p-3 pt-2"
+            class="outline-none rounded-lg shadow-xl text-neutral-100 w-64 p-3 pt-2 bg-[#030609e0] backdrop-blur-md"
           >
             <form
               method="dialog"
@@ -187,7 +187,7 @@
 
           <div
             id="FileExtensionWarningDialog"
-            class="outline-none rounded-lg shadow-xl text-neutral-100 bg-[#091017] w-64 p-3 pt-2 min-w-[420px]"
+            class="outline-none rounded-lg shadow-xl text-neutral-100 w-64 p-3 pt-2 min-w-[420px] bg-[#030609e0] backdrop-blur-md"
           >
             <form method="dialog">
               <div>HTML or text file?</div>
@@ -218,7 +218,7 @@
 
           <div
             id="RenameFileDialog"
-            class="outline-none rounded-lg shadow-xl text-neutral-100 bg-[#091017] w-64 p-3 pt-2"
+            class="outline-none rounded-lg shadow-xl text-neutral-100 w-64 p-3 pt-2 bg-[#030609e0] backdrop-blur-md"
           >
             <form
               method="dialog"
@@ -264,7 +264,7 @@
 
           <div
             id="ChangeValueDialog"
-            class="outline-none rounded-lg shadow-xl text-neutral-100 bg-[#091017] w-[30vw] p-3 pt-2"
+            class="outline-none rounded-lg shadow-xl text-neutral-100 w-[30vw] p-3 pt-2 bg-[#030609e0] backdrop-blur-md"
           >
             <form
               method="dialog"
@@ -304,7 +304,7 @@
 
           <div
             id="ChangeSrcDialog"
-            class="outline-none rounded-lg shadow-xl text-neutral-100 bg-[#091017] w-[30vw] p-3 pt-2"
+            class="outline-none rounded-lg shadow-xl text-neutral-100 w-[30vw] p-3 pt-2 bg-[#030609e0] backdrop-blur-md"
           >
             <form
               method="dialog"
@@ -344,7 +344,7 @@
 
           <div
             id="SetComponentDialog"
-            class="outline-none rounded-lg shadow-xl text-neutral-100 bg-[#091017] p-3 pt-2"
+            class="outline-none rounded-lg shadow-xl text-neutral-100 p-3 pt-2 bg-[#030609e0] backdrop-blur-md"
           >
             <form
               method="dialog"
@@ -398,7 +398,7 @@
 
           <div
             id="EventHandlersDialog"
-            class="outline-none rounded-lg shadow-xl text-neutral-100 bg-[#091017] p-3 pt-2"
+            class="outline-none rounded-lg shadow-xl text-neutral-100 p-3 pt-2 bg-[#030609e0] backdrop-blur-md"
           >
             <form
               method="dialog"
@@ -444,7 +444,7 @@
 
           <div
             id="Collaborate"
-            class="outline-none rounded-lg shadow-xl text-neutral-100 bg-[#091017] p-3 pt-2 min-w-64 w-96"
+            class="outline-none rounded-lg shadow-xl text-neutral-100 p-3 pt-2 min-w-64 w-96 bg-[#030609e0] backdrop-blur-md"
           >
             <form method="dialog" wf-onsubmit="this.submit(event)">
               <div class="mb-1">Realtime Collaboration</div>
@@ -492,7 +492,7 @@
 
           <div
             id="NetlifyApiKeyDialog"
-            class="outline-none rounded-lg shadow-xl bg-[#091017] w-96 text-neutral-100 p-3 pt-2"
+            class="outline-none rounded-lg shadow-xl w-96 text-neutral-100 p-3 pt-2 bg-[#030609e0] backdrop-blur-md"
           >
             <form
               method="dialog"
@@ -530,7 +530,7 @@
 
           <div
             id="NetlifyDeployDialog"
-            class="outline-none rounded-lg shadow-xl bg-[#091017] w-96 text-neutral-100 p-3 pt-2"
+            class="outline-none rounded-lg shadow-xl w-96 text-neutral-100 p-3 pt-2 bg-[#030609e0] backdrop-blur-md"
           >
             <form
               method="dialog"
@@ -605,7 +605,7 @@
 
           <div
             id="NetlifyPostDeployDialog"
-            class="outline-none rounded-lg shadow-xl text-neutral-100 bg-[#091017] w-64 p-3 pt-2 min-w-64"
+            class="outline-none rounded-lg shadow-xl text-neutral-100 w-64 p-3 pt-2 min-w-64 bg-[#030609e0] backdrop-blur-md"
           >
             <form method="dialog">
               <div>Netlify Deploy</div>
@@ -639,7 +639,7 @@
 
           <div
             id="CodeDialog"
-            class="outline-none rounded-lg shadow-xl text-neutral-100 bg-[#091017] w-64 p-3 pt-2 w-[62vw]"
+            class="outline-none rounded-lg shadow-xl text-neutral-100 w-64 p-3 pt-2 w-[62vw] bg-[#030609e0] backdrop-blur-md"
             wf-onattach="this.onAttach()"
             wf-ondetach="this.onDetach()"
           >
@@ -696,7 +696,7 @@
 
           <div
             id="MediaGalleryDialog"
-            class="outline-none rounded shadow-xl text-neutral-100 bg-[#091017]"
+            class="outline-none rounded shadow-xl text-neutral-100 bg-[#030609e0] backdrop-blur-md"
             wf-class="{{`w-[${Math.min(70, 40 + (this.media.length / 5) * 30)}vw]`}}"
           >
             <form
