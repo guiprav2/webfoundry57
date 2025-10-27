@@ -97,19 +97,19 @@
                 class="outline-none mt-2 w-full rounded px-2 py-1 bg-[#2b2d3130] disabled:opacity-50 focus:bg-[#2b2d3150]"
                 wf-onattach="_1.select()"
                 wf-placeholder="this.props.placeholder || 'Value'"
-                value="{{this.value}}"
+                wf-value="this.value"
+                value=""
+                placeholder="Value"
               />
               <textarea
                 wf-if="this.props.multiline"
-                class="outline-none mt-2 w-full rounded py-1 bg-[#2b2d3130] disabled:opacity-50 focus:bg-[#2b2d3150] min-h-32"
+                class="outline-none mt-2 w-full rounded py-1 bg-[#2b2d3130] disabled:opacity-50 focus:bg-[#2b2d3150] min-h-32 px-2"
                 wf-onattach="_1.select()"
                 wf-placeholder="this.props.placeholder || 'Value'"
-                value="  {{this.value}}
-"
-              >
-  {{this.value}}
-</textarea
-              >
+                value=""
+                placeholder="Value"
+                wf-value="this.value"
+              ></textarea>
               <div class="flex gap-1.5 mt-3">
                 <button
                   value="cancel"
@@ -154,8 +154,9 @@
               <input
                 class="outline-none mt-2 w-full rounded px-2 py-1 bg-[#2b2d3130] disabled:opacity-50 focus:bg-[#2b2d3150]"
                 placeholder="Name"
-                value="{{this.value}}"
+                value=""
                 autofocus=""
+                wf-value="this.value"
               />
               <div
                 class="text-yellow-500 mt-2"
@@ -276,12 +277,14 @@
               <input
                 placeholder="Value"
                 class="outline-none mt-2 w-full rounded px-2 py-1 bg-[#2b2d3130] disabled:opacity-50 focus:bg-[#2b2d3150]"
-                value="{{this.value}}"
+                value=""
+                wf-value="this.value"
               />
               <input
                 placeholder="Value expression"
                 class="outline-none mt-2 w-full rounded px-2 py-1 bg-[#2b2d3130] disabled:opacity-50 focus:bg-[#2b2d3150]"
-                value="{{this.exprValue}}"
+                value=""
+                wf-value="this.exprValue"
               />
               <div class="flex gap-1.5 mt-3 justify-end">
                 <button
@@ -316,12 +319,14 @@
               <input
                 placeholder="src"
                 class="outline-none mt-2 w-full rounded px-2 py-1 bg-[#2b2d3130] disabled:opacity-50 focus:bg-[#2b2d3150]"
-                value="{{this.srcValue}}"
+                value=""
+                wf-value="this.srcValue"
               />
               <input
                 placeholder="src expression"
                 class="outline-none mt-2 w-full rounded px-2 py-1 bg-[#2b2d3130] disabled:opacity-50 focus:bg-[#2b2d3150]"
-                value="{{this.exprValue}}"
+                value=""
+                wf-value="this.exprValue"
               />
               <div class="flex gap-1.5 mt-3 justify-end">
                 <button
@@ -368,12 +373,14 @@
                   <input
                     class="outline-none rounded px-2 py-1 disabled:opacity-50 w-40 bg-[#2b2d3130] focus:bg-[#2b2d3150]"
                     placeholder="Property"
-                    value="{{prop.name}}"
+                    value=""
+                    wf-value="prop.name"
                   />
                   <input
                     class="outline-none w-full rounded px-2 py-1 bg-[#2b2d3130] disabled:opacity-50 focus:bg-[#2b2d3150]"
                     placeholder="Expression"
-                    value="{{prop.expr}}"
+                    value=""
+                    wf-value="prop.expr"
                   />
                 </div>
               </div>
@@ -413,12 +420,14 @@
                   <input
                     class="outline-none rounded px-2 py-1 bg-[#2b2d3130] disabled:opacity-50 focus:bg-[#2b2d3150] w-40"
                     placeholder="Event"
-                    value="{{handler.name}}"
+                    value=""
+                    wf-value="handler.name"
                   />
                   <input
                     class="outline-none w-full rounded px-2 py-1 bg-[#2b2d3130] disabled:opacity-50 focus:bg-[#2b2d3150]"
                     placeholder="Handler"
-                    value="{{handler.expr}}"
+                    value=""
+                    wf-value="handler.expr"
                   />
                 </div>
               </div>
@@ -454,9 +463,10 @@
               </div>
               <input
                 class="outline-none rounded px-2 py-1 bg-[#2b2d3130] disabled:opacity-50 focus:bg-[#2b2d3150] w-full"
-                value="{{this.link}}"
+                value=""
                 wf-onclick="this.selectLink(event)"
                 wf-onkeydown="this.linkKeyDown(event)"
+                wf-value="this.link"
               />
               <div
                 class="text-sm mt-1 text-green-400"
@@ -506,7 +516,8 @@
                 type="password"
                 placeholder="Enter your Netlify API key"
                 class="w-full rounded px-3 py-2 bg-[#2b2d3130] outline-none"
-                value="{{this.value}}"
+                value=""
+                wf-value="this.value"
               />
               <div class="flex gap-2 justify-end">
                 <button
@@ -573,7 +584,8 @@
                   type="text"
                   placeholder="Enter new site name"
                   class="w-full rounded px-3 py-2 bg-[#2b2d3130] focus:bg-[#2b2d3150] outline-none"
-                  value="{{this.newSiteName}}"
+                  value=""
+                  wf-value="this.newSiteName"
                 />
               </div>
 

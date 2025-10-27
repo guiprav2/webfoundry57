@@ -438,18 +438,6 @@ function compile(root) {
       }
     }
 
-    if (/^{{.*?}}$/.test(x.getAttribute('value'))) {
-      let expr = x.value.slice(2, -2).trim();
-      x.value = '';
-      x.removeAttribute('value');
-      d.el(x, {
-        value: d.binding({
-          get: () => wfeval(x, expr || 'null'),
-          set: y => wfeval(x, expr ? `${expr} = ${JSON.stringify(y)}` : 'null'),
-        }),
-      });
-    }
-
     if (x.getAttribute('wf-value')) {
       let expr = x.getAttribute('wf-value');
       x.removeAttribute('wf-value');

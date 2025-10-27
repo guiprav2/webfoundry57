@@ -1459,7 +1459,7 @@ let actions = window.actions = {
   },
 
   changeInputPlaceholder: {
-    shortcut: 'w',
+    shortcut: '@',
     disabled: ({ cur = 'master' }) => [!state.designer.open && `Designer closed.`, state.designer.open && !state.designer.current.cursors[cur]?.length && `No elements selected.`],
     parameters: { type: 'object', properties: { cur: { type: 'string' }, placeholder: { type: 'string' } } },
     handler: async ({ cur = 'master', placeholder = null } = {}) => {
@@ -1551,7 +1551,7 @@ let actions = window.actions = {
       if (!targets.length) return;
       let prev = targets.map(x => x.textContent);
       if (text == null) {
-        let [btn, val] = await showModal('PromptDialog', { title: 'Replace text', label: 'Text', initialValue: prev[0] });
+        let [btn, val] = await showModal('PromptDialog', { title: 'Set text', label: 'Text', initialValue: prev[0] });
         if (btn !== 'ok') return;
         text = val;
       }
@@ -1579,7 +1579,7 @@ let actions = window.actions = {
       if (!targets.length) return;
       let prev = targets.map(x => x.textContent);
       if (text == null) {
-        let [btn, val] = await showModal('PromptDialog', { title: 'Replace text (multiline)', label: 'Text', initialValue: prev.join('\n'), multiline: true });
+        let [btn, val] = await showModal('PromptDialog', { title: 'Set text (multiline)', label: 'Text', initialValue: prev.join('\n'), multiline: true });
         if (btn !== 'ok') return;
         text = val;
       }
@@ -1592,6 +1592,57 @@ let actions = window.actions = {
             if (el) el.textContent = args.apply ? args.text : args.prev[n];
           }
         }, { targets: targetKeys, text, prev, apply });
+      });
+    },
+  },
+
+  setInputValue: {
+    shortcut: '#',
+    disabled: ({ cur = 'master' }) => [
+      !state.designer.open && `Designer closed.`,
+      state.designer.open && !state.designer.current.cursors[cur]?.length && `No elements selected.`,
+    ],
+    parameters: { type: 'object', properties: { cur: { type: 'string' }, value: { type: ['string', 'null'] }, expr: { type: ['string', 'null'] } } },
+    handler: async ({ cur = 'master', value, expr } = {}) => {
+      let frame = state.designer.current;
+      let targets = frame.cursors[cur].map(x => frame.map.get(x)).filter(x => x && x.tagName === 'INPUT');
+      if (!targets.length) return;
+      let prevValues = targets.map(x => x.getAttribute('value'));
+      let prevExprs = targets.map(x => x.getAttribute('wf-value'));
+      if (value == null && expr == null) {
+        let first = targets[0];
+        let initialValue = first.getAttribute('value');
+        if (initialValue == null && typeof first.value === 'string') initialValue = first.value;
+        let initialExpr = first.getAttribute('wf-value') || '';
+        let [btn, nextValue, nextExpr] = await showModal('SetValueDialog', { initialValue: initialValue || '', initialExprValue: initialExpr || '' });
+        if (btn !== 'ok') return;
+        value = nextValue;
+        expr = nextExpr;
+      }
+      let normalizedValue = typeof value === 'string' ? value.trim() : '';
+      let normalizedExpr = typeof expr === 'string' ? expr.trim() : '';
+      let newValue = normalizedValue || null;
+      let newExpr = normalizedExpr || null;
+      let unchanged = targets.every((_, idx) => {
+        let prevValue = prevValues[idx] ?? null;
+        let prevExpr = prevExprs[idx] ?? null;
+        return prevValue === newValue && prevExpr === newExpr;
+      });
+      if (unchanged) return;
+      if (state.collab.uid !== 'master') return state.collab.rtc.send({ type: 'cmd', k: 'setInputValue', cur, value: newValue, expr: newExpr });
+      let targetKeys = targets.map(x => frame.map.getKey(x));
+      await post('designer.pushHistory', cur, async apply => {
+        await ifeval(({ args }) => {
+          for (let n = 0; n < args.targets.length; n++) {
+            let el = state.map.get(args.targets[n]);
+            if (!el) continue;
+            let val = args.apply ? args.newValue : args.prevValues[n];
+            let exprVal = args.apply ? args.newExpr : args.prevExprs[n];
+            if (exprVal) el.setAttribute('wf-value', exprVal); else el.removeAttribute('wf-value');
+            if (val != null) el.setAttribute('value', val); else el.removeAttribute('value');
+            if (typeof el.value === 'string') el.value = val != null ? val : '';
+          }
+        }, { targets: targetKeys, prevValues, prevExprs, newValue, newExpr, apply });
       });
     },
   },
@@ -1625,7 +1676,7 @@ let actions = window.actions = {
     },
   },
 
-  setMediaSrc: {
+  changeMediaSrc: {
     shortcut: 's',
     disabled: ({ cur = 'master' }) => [!state.designer.open && `Designer closed.`, state.designer.open && !state.designer.current.cursors[cur]?.length && `No elements selected.`],
     parameters: { type: 'object', properties: { cur: { type: 'string' }, src: { type: ['string', 'null'] }, expr: { type: ['string', 'null'] } } },
@@ -1646,12 +1697,12 @@ let actions = window.actions = {
       let newSrc = normalizedSrc || null;
       let newExpr = normalizedExpr || null;
       let unchanged = targets.every((_, idx) => {
-        let prevSrc = prevSrcs[idx] || null;
-        let prevExpr = prevExprs[idx] || null;
+        let prevSrc = prevSrcs[idx] ?? null;
+        let prevExpr = prevExprs[idx] ?? null;
         return prevSrc === newSrc && prevExpr === newExpr;
       });
       if (unchanged) return;
-      if (state.collab.uid !== 'master') return state.collab.rtc.send({ type: 'cmd', k: 'setMediaSrc', cur, src: newSrc, expr: newExpr });
+      if (state.collab.uid !== 'master') return state.collab.rtc.send({ type: 'cmd', k: 'changeMediaSrc', cur, src: newSrc, expr: newExpr });
 
       let mimeSource = newExpr ? null : newSrc;
       let mime = mimeSource ? mimeLookup(mimeSource) : null;
