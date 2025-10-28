@@ -1,193 +1,203 @@
-import Datastore from '@seald-io/nedb';
-import express from 'express';
-import path from 'node:path';
-import qs from 'qs';
-import { access, mkdir, readdir } from 'fs/promises';
+let isServer = typeof window === 'undefined';
+let Datastore;
+let pathModule = null;
+let fsMkdir = null;
+let fsReaddir = null;
+let dbDir = null;
+let directoryEnsured = false;
+let peacock = {};
 
-let app = express();
-app.set('query parser', str => qs.parse(str));
-app.use(express.json());
+if (isServer) {
+  let pathImport = await import('node:path');
+  pathModule = pathImport.default || pathImport;
+  let fsImport = await import('fs/promises');
+  fsMkdir = fsImport.mkdir;
+  fsReaddir = fsImport.readdir;
+  let nedbImport = await import('@seald-io/nedb');
+  Datastore = nedbImport.default;
+  dbDir = pathModule.join(process.cwd(), 'data', 'db');
+} else {
+  let nedbImport = await import('https://esm.sh/@seald-io/nedb');
+  Datastore = nedbImport.default;
+}
 
-let dbDir = path.join(process.cwd(), 'data', 'db');
 let datastores = new Map();
 let pendingLoads = new Map();
+let knownCollections = new Set();
+let browserCollectionsKey = 'peacock.collections';
 
-app.get('/_collections', async (req, res) => {
-  try {
-    let files = await readdir(dbDir);
-    let names = [];
-    for (let file of files) {
-      if (file.endsWith('.json')) {
-        names.push(file.replace(/\.json$/, ''));
+if (!isServer) {
+  let storedCollections = readBrowserCollections();
+  for (let index = 0; index < storedCollections.length; index += 1) {
+    knownCollections.add(storedCollections[index]);
+  }
+}
+
+peacock.get = async function(collection, ...args) {
+  let name = ensureCollectionName(collection);
+  if (name === '_collections') {
+    return await peacock.list();
+  }
+  let parsed = parseIdAndQueryArgs(args);
+  let datastore = await getDatastore(name, { createIfMissing: false });
+  if (!datastore) {
+    if (parsed.id !== undefined) {
+      throw httpError(404, 'Not Found');
+    }
+    return [];
+  }
+  if (parsed.id !== undefined) {
+    ensureQueryMatchesId(parsed.query, parsed.id);
+    parsed.query._id = parsed.id;
+    let doc = await findDocument(datastore, parsed.query);
+    if (!doc) {
+      throw httpError(404, 'Not Found');
+    }
+    return doc;
+  }
+  return await findDocuments(datastore, parsed.query);
+};
+
+peacock.post = async function(collection, body) {
+  let name = ensureCollectionName(collection);
+  if (body === undefined || body === null) {
+    throw httpError(400, 'Request body is required');
+  }
+  if (typeof body !== 'object') {
+    throw httpError(400, 'Request body must be an object or array');
+  }
+  let datastore = await getDatastore(name, { createIfMissing: true });
+  let inserted = await insertDocuments(datastore, body);
+  return inserted;
+};
+
+peacock.put = async function(collection, ...args) {
+  let name = ensureCollectionName(collection);
+  if (args.length === 0) {
+    throw httpError(400, 'ID is required');
+  }
+  let idCandidate = args[0];
+  if (!isIdValue(idCandidate)) {
+    throw httpError(400, 'ID is required');
+  }
+  if (args.length < 2) {
+    throw httpError(400, 'Request body is required');
+  }
+  let id = String(idCandidate);
+  let payload = args[1];
+  let querySource = args.length > 2 ? args[2] : undefined;
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    throw httpError(400, 'Request body must be an object');
+  }
+  if (payload._id && String(payload._id) !== id) {
+    throw httpError(400, '_id in body must match route parameter');
+  }
+  let datastore = await getDatastore(name, { createIfMissing: true });
+  let query = buildQuery(querySource);
+  ensureQueryMatchesId(query, id);
+  query._id = id;
+  let usesOperators = hasOperatorKeys(payload);
+  let update = usesOperators ? payload : Object.assign({}, payload, { _id: id });
+  let result = await updateDocument(datastore, query, update, { upsert: false });
+  if (!result.numAffected) {
+    throw httpError(404, 'Not Found');
+  }
+  return result.affectedDocument;
+};
+
+peacock.delete = async function(collection, ...args) {
+  let name = ensureCollectionName(collection);
+  let parsed = parseIdAndQueryArgs(args);
+  let datastore = await getDatastore(name, { createIfMissing: false });
+  if (!datastore) {
+    if (parsed.id !== undefined) {
+      throw httpError(404, 'Not Found');
+    }
+    return { deleted: 0 };
+  }
+  if (parsed.id !== undefined) {
+    ensureQueryMatchesId(parsed.query, parsed.id);
+    parsed.query._id = parsed.id;
+    let removedSingle = await removeDocuments(datastore, parsed.query, { multi: false });
+    if (!removedSingle) {
+      throw httpError(404, 'Not Found');
+    }
+    return { deleted: removedSingle };
+  }
+  let removed = await removeDocuments(datastore, parsed.query, { multi: true });
+  return { deleted: removed };
+};
+
+peacock.list = async function() {
+  let names = new Set();
+  for (let value of knownCollections) {
+    names.add(value);
+  }
+  if (isServer) {
+    try {
+      await ensureDbDir();
+      let files = await fsReaddir(dbDir);
+      for (let index = 0; index < files.length; index += 1) {
+        let file = files[index];
+        if (file.endsWith('.json')) {
+          names.add(file.replace(/\.json$/i, ''));
+        }
+      }
+    } catch (error) {
+      if (!error || error.code !== 'ENOENT') {
+        throw error;
       }
     }
-    res.json(names);
-  } catch (error) {
-    if (error && error.code === 'ENOENT') {
-      res.json([]);
-      return;
-    }
-    console.error(error);
-    res.status(500).json({ error: `Internal Server Error` });
   }
-});
+  return Array.from(names);
+};
 
-app.get('/:collection', async (req, res) => {
-  try {
-    let collection = req.params.collection;
-    let datastore = await getDatastore(collection, { createIfMissing: false });
-    if (!datastore) {
-      res.json([]);
-      return;
-    }
-    let query = buildQuery(req.query);
-    let docs = await findDocuments(datastore, query);
-    res.json(docs);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: `Internal Server Error` });
+function ensureCollectionName(collection) {
+  if (collection === undefined || collection === null) {
+    throw httpError(400, 'Collection name is required');
   }
-});
+  return String(collection);
+}
 
-app.get('/:collection/:_id', async (req, res) => {
-  try {
-    let collection = req.params.collection;
-    let id = req.params._id;
-    let datastore = await getDatastore(collection, { createIfMissing: false });
-    if (!datastore) {
-      res.status(404).json({ error: `Not Found` });
-      return;
+function parseIdAndQueryArgs(args) {
+  let id;
+  let querySource;
+  if (args.length > 0 && isIdValue(args[0])) {
+    id = String(args[0]);
+    if (args.length > 1) {
+      querySource = args[1];
     }
-    let query = buildQuery(req.query);
-    if (query._id !== undefined && query._id !== id) {
-      res.status(400).json({ error: `Query _id must match route parameter` });
-      return;
-    }
-    query._id = id;
-    let doc = await findDocument(datastore, query);
-    if (!doc) {
-      res.status(404).json({ error: `Not Found` });
-      return;
-    }
-    res.json(doc);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: `Internal Server Error` });
+  } else if (args.length > 0) {
+    querySource = args[0];
   }
-});
+  let query = buildQuery(querySource);
+  return { id, query };
+}
 
-app.post('/:collection', async (req, res) => {
-  try {
-    let collection = req.params.collection;
-    let payload = req.body;
-    if (payload === undefined || payload === null) {
-      res.status(400).json({ error: `Request body is required` });
-      return;
-    }
-    if (typeof payload !== 'object') {
-      res.status(400).json({ error: `Request body must be an object or array` });
-      return;
-    }
-    let datastore = await getDatastore(collection, { createIfMissing: true });
-    let inserted = await insertDocuments(datastore, payload);
-    res.status(201).json(inserted);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: `Internal Server Error` });
-  }
-});
-
-app.put('/:collection/:_id', async (req, res) => {
-  try {
-    let collection = req.params.collection;
-    let id = req.params._id;
-    let payload = req.body;
-    if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
-      res.status(400).json({ error: `Request body must be an object` });
-      return;
-    }
-    if (payload._id && payload._id !== id) {
-      res.status(400).json({ error: `_id in body must match route parameter` });
-      return;
-    }
-    let datastore = await getDatastore(collection, { createIfMissing: true });
-    let query = buildQuery(req.query);
-    if (query._id !== undefined && query._id !== id) {
-      res.status(400).json({ error: `Query _id must match route parameter` });
-      return;
-    }
-    query._id = id;
-    let usesOperators = hasOperatorKeys(payload);
-    let update = usesOperators ? payload : Object.assign({}, payload, { _id: id });
-    let result = await updateDocument(datastore, query, update, { upsert: false });
-    if (!result.numAffected) {
-      res.status(404).json({ error: `Not Found` });
-      return;
-    }
-    res.json(result.affectedDocument);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: `Internal Server Error` });
-  }
-});
-
-app.delete('/:collection/:_id', async (req, res) => {
-  try {
-    let collection = req.params.collection;
-    let id = req.params._id;
-    let datastore = await getDatastore(collection, { createIfMissing: false });
-    if (!datastore) {
-      res.status(404).json({ error: `Not Found` });
-      return;
-    }
-    let query = buildQuery(req.query);
-    if (query._id !== undefined && query._id !== id) {
-      res.status(400).json({ error: `Query _id must match route parameter` });
-      return;
-    }
-    query._id = id;
-    let removed = await removeDocuments(datastore, query, { multi: false });
-    if (!removed) {
-      res.status(404).json({ error: `Not Found` });
-      return;
-    }
-    res.json({ deleted: removed });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: `Internal Server Error` });
-  }
-});
-
-app.delete('/:collection', async (req, res) => {
-  try {
-    let collection = req.params.collection;
-    let datastore = await getDatastore(collection, { createIfMissing: false });
-    if (!datastore) {
-      res.json({ deleted: 0 });
-      return;
-    }
-    let query = buildQuery(req.query);
-    let removed = await removeDocuments(datastore, query, { multi: true });
-    res.json({ deleted: removed });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: `Internal Server Error` });
-  }
-});
+function isIdValue(value) {
+  return typeof value === 'string' || typeof value === 'number';
+}
 
 function buildQuery(params) {
   let query = {};
-  if (!params) {
+  if (!params || typeof params !== 'object') {
     return query;
   }
   let entries = Object.entries(params);
   for (let index = 0; index < entries.length; index += 1) {
     let entry = entries[index];
-    let key = entry[0];
-    let value = entry[1];
-    query[key] = value;
+    query[entry[0]] = entry[1];
   }
   return query;
+}
+
+function ensureQueryMatchesId(query, id) {
+  if (!query) {
+    return;
+  }
+  if (query._id !== undefined && String(query._id) !== id) {
+    throw httpError(400, 'Query _id must match route parameter');
+  }
 }
 
 function hasOperatorKeys(payload) {
@@ -203,44 +213,13 @@ function hasOperatorKeys(payload) {
 
 async function getDatastore(collection, options = {}) {
   let createIfMissing = options.createIfMissing === undefined ? true : options.createIfMissing;
-  if (!collection) {
-    throw new Error('Collection name is required');
-  }
   if (datastores.has(collection)) {
     return datastores.get(collection);
   }
   if (pendingLoads.has(collection)) {
-    return pendingLoads.get(collection);
+    return await pendingLoads.get(collection);
   }
-  let filename = path.join(dbDir, `${collection}.json`);
-  if (!createIfMissing) {
-    let exists = await fileExists(filename);
-    if (!exists) {
-      return null;
-    }
-  } else {
-    await mkdir(dbDir, { recursive: true });
-  }
-  if (datastores.has(collection)) {
-    return datastores.get(collection);
-  }
-  if (pendingLoads.has(collection)) {
-    return pendingLoads.get(collection);
-  }
-  let loader = (async () => {
-    let datastore = new Datastore({ filename, autoload: false });
-    await new Promise((resolve, reject) => {
-      datastore.loadDatabase(err => {
-        if (err) {
-          reject(err);
-          return;
-        }
-        resolve();
-      });
-    });
-    datastores.set(collection, datastore);
-    return datastore;
-  })();
+  let loader = loadDatastoreForCollection(collection, createIfMissing);
   pendingLoads.set(collection, loader);
   try {
     let datastore = await loader;
@@ -250,16 +229,108 @@ async function getDatastore(collection, options = {}) {
   }
 }
 
-async function fileExists(filename) {
-  try {
-    await access(filename);
-    return true;
-  } catch (error) {
-    if (error && error.code === 'ENOENT') {
-      return false;
+async function loadDatastoreForCollection(collection, createIfMissing) {
+  let filename = isServer ? pathModule.join(dbDir, `${collection}.json`) : `${collection}.json`;
+  let datastore = new Datastore({ filename, autoload: false });
+  let exists = await datastore.persistence.storage.existsAsync(datastore.filename);
+  if (!exists) {
+    if (!createIfMissing) {
+      return null;
     }
-    throw error;
+    if (isServer) {
+      await ensureDbDir();
+    }
   }
+  if (isServer) {
+    await ensureDbDir();
+  }
+  await loadDatabase(datastore);
+  datastores.set(collection, datastore);
+  recordKnownCollection(collection);
+  return datastore;
+}
+
+function recordKnownCollection(collection) {
+  if (!knownCollections.has(collection)) {
+    knownCollections.add(collection);
+    if (!isServer) {
+      persistBrowserCollections();
+    }
+  } else if (!isServer) {
+    persistBrowserCollections();
+  }
+}
+
+function readBrowserCollections() {
+  if (typeof window === 'undefined') {
+    return [];
+  }
+  let storage;
+  try {
+    storage = window.localStorage;
+  } catch (error) {
+    return [];
+  }
+  if (!storage) {
+    return [];
+  }
+  try {
+    let raw = storage.getItem(browserCollectionsKey);
+    if (!raw) {
+      return [];
+    }
+    let parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      return parsed;
+    }
+    return [];
+  } catch (error) {
+    return [];
+  }
+}
+
+function persistBrowserCollections() {
+  if (typeof window === 'undefined') {
+    return;
+  }
+  let storage;
+  try {
+    storage = window.localStorage;
+  } catch (error) {
+    return;
+  }
+  if (!storage) {
+    return;
+  }
+  try {
+    let list = Array.from(knownCollections);
+    storage.setItem(browserCollectionsKey, JSON.stringify(list));
+  } catch (error) {
+    console.warn('Failed to persist collection list', error);
+  }
+}
+
+async function ensureDbDir() {
+  if (!isServer) {
+    return;
+  }
+  if (directoryEnsured) {
+    return;
+  }
+  await fsMkdir(dbDir, { recursive: true });
+  directoryEnsured = true;
+}
+
+async function loadDatabase(datastore) {
+  await new Promise((resolve, reject) => {
+    datastore.loadDatabase(error => {
+      if (error) {
+        reject(error);
+        return;
+      }
+      resolve();
+    });
+  });
 }
 
 function findDocuments(datastore, query) {
@@ -326,7 +397,10 @@ function removeDocuments(datastore, selector, options = {}) {
   });
 }
 
-let port = process.env.PORT || 3000;
-app.listen(port, () => {
-  console.log(`Server listening on http://localhost:${port}`);
-});
+function httpError(status, message) {
+  let error = new Error(message);
+  error.status = status;
+  return error;
+}
+
+export default peacock;
