@@ -75,13 +75,19 @@
           wf-onclick="post('app.selectPanel', 'styles')"
           wf-if="state.designer.open &amp;&amp; !state.designer.current?.preview"
           value=""
+        ></button
+        ><button
+          class="outline-none nf border-b border-black/50 transition-all hover:bg-black/70 w-12 md:w-16 h-12 md:h-16 IconsSidebar-stylesBtn nf-seti-db"
+          wf-class="{{state.app.panel === 'db' &amp;&amp; 'bg-black/70'}}"
+          wf-onclick="post('app.selectPanel', 'db')"
+          value=""
         ></button>
         <button
           class="outline-none nf border-b border-black/50 transition-all hover:bg-black/70 w-12 md:w-16 h-12 md:h-16 nf-oct-command_palette IconsSidebar-shellBtn"
-          wf-class="{{state.shell.open &amp;&amp; 'bg-black/70'}}"
-          wf-onclick="post('shell.toggle')"
           wf-if="/^connected|auth_fail$/.test(state.companion.client?.status) || state.shell.list.length"
+          wf-onclick="post('shell.toggle')"
           value=""
+          wf-class="{{state.shell.open &amp;&amp; 'bg-black/70'}}"
         ></button>
         <button
           class="outline-none nf border-b border-black/50 transition-all hover:bg-black/70 w-12 md:w-16 h-12 md:h-16 IconsSidebar-playBtn nf-fa-play"
@@ -92,9 +98,9 @@
 
         <button
           class="outline-none nf border-b border-black/50 transition-all hover:bg-black/70 w-12 md:w-16 h-12 md:h-16 nf-fa-pause IconsSidebar-pauseBtn"
-          wf-if="state.designer.open &amp;&amp; state.designer.current?.preview"
           wf-onclick="post('designer.togglePreview')"
           value=""
+          wf-if="state.designer.open &amp;&amp; state.designer.current?.preview"
         ></button>
 
         <button
@@ -2924,6 +2930,57 @@
             </div>
           </div>
           <div
+            class="DbPanel flex flex-col text-neutral-100 border-r border-black/50 select-none shrink-0 bg-[#091017c0] backdrop-blur-[4px] w-full md:w-96"
+            wf-class="{{replaces w-96: state.app.demo ? 'w-64' : 'w-96'}}"
+            wf-if="state.app.panel === 'db'"
+          >
+            <button
+              class="outline-none border-b border-black/50 transition-all h-12 text-xl transition-colors hover:bg-[#008ad9] shrink-0 bg-[#0071b2] DbPanel-createBtn"
+              wf-onclick="event.preventDefault(), post('db.create')"
+              value=""
+            >
+              Create
+            </button>
+            <div
+              class="DbPanel-collectionList flex flex-col gap-2 p-4 overflow-auto min-h-0 basis-0 flex-1"
+            >
+              <div
+                class="italic mb-1"
+                wf-if="!state.db.list.length &amp;&amp; loadman.ops['db.load']?.length"
+              >
+                Loading collections, please wait...
+              </div>
+
+              <a
+                href="#"
+                class="DbPanel-collection flex items-center gap-3 rounded outline-none py-1 justify-between px-2 ml-[0rem]"
+                wf-map="x of state.db.list"
+                wf-onclick="post('db.select', x)"
+              >
+                <div class="max-w-[calc(100%_-_5rem)] flex items-center gap-3">
+                  <div class="nf p-2 nf-seti-db"></div>
+                  <div
+                    class="DbPanel-collectionName overflow-hidden text-ellipsis"
+                  >
+                    {{x}}
+                  </div>
+                </div>
+                <div class="flex">
+                  <button
+                    class="outline-none nf p-2 nf-fa-pencil"
+                    wf-onclick="event.preventDefault(), event.stopPropagation(), post('db.rename', x)"
+                    value=""
+                  ></button
+                  ><button
+                    class="outline-none nf p-2 nf-fa-trash"
+                    wf-onclick="event.preventDefault(), event.stopPropagation(), post('db.rm', x)"
+                    value=""
+                  ></button>
+                </div>
+              </a>
+            </div>
+          </div>
+          <div
             class="StylesPanel flex flex-col text-neutral-100 border-r border-black/50 shrink-0 bg-[#091017c0] backdrop-blur-[4px] w-full md:w-96"
             wf-class="{{replaces w-96: state.app.demo ? 'w-64' : 'w-96'}}"
             wf-if="state.app.panel === 'styles'"
@@ -3448,6 +3505,20 @@
               class="min-w-96 flex flex-col flex-1 bg-[#091017c0] backdrop-blur-[4px]"
               wf-if="/^text\/(?!html$).+$/.test(mimeLookup(state.files.current))"
               id="CodeEditor"
+            ></div>
+            <div
+              class="min-w-96 flex flex-col flex-1 bg-[#091017c0] backdrop-blur-[4px]"
+              wf-if="/^text\/(?!html$).+$/.test(mimeLookup(state.files.current))"
+              id="CodeEditor"
+            ></div>
+            <div
+              class="min-w-96 flex flex-col flex-1 bg-[#091017c0] backdrop-blur-[4px]"
+              wf-if="/^text\/(?!html$).+$/.test(mimeLookup(state.files.current))"
+              id="CodeEditor"
+            ></div>
+            <div
+              class="min-w-96 flex flex-col flex-1 bg-[#091017c0] backdrop-blur-[4px]"
+              wf-if="state.app.panel === 'db' &amp;&amp; state.db.current"
             ></div>
           </div>
         </div>
