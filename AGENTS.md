@@ -64,7 +64,7 @@ Webfoundry templates support **declarative bindings**:
 ### Two-Way Binding
 
 ```html
-<input value="{{state.app.input}}">
+<input wf-value="state.app.input">
 ```
 
 ### Conditional Rendering (`wf-if`)
@@ -157,7 +157,7 @@ Webfoundry templates support **declarative bindings**:
 * **Access state**: `state.<controller>.<field>`
 * **Call action**: `post('<controller>.<action>', ...args)`
 * **Text binding**: `{{expr}}`
-* **Two-way binding**: `<input value="{{...}}">`
+* **Two-way binding**: `<input wf-value="...">`
 * **Conditionals**: `wf-if="expr"`
 * **Lists**: `wf-map="x of expr"`
 * **Events**: `wf-on<event>="expr"`
