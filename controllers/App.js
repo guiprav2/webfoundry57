@@ -5,7 +5,7 @@ export default class App {
     init: async () => {
       if (
         !location.hostname.includes('localhost') &&
-        !/^webfoundry\d+\.netlify\.app$/.test(location.hostname) &&
+        !/^([a-z0-9]+--)?webfoundry\d+\.netlify\.app$/.test(location.hostname) &&
         location.hostname !== 'www.webfoundry.app' &&
         new URL(location.href).searchParams.get('isolate') == null
       ) {

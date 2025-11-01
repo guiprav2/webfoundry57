@@ -593,6 +593,37 @@
                 />
               </div>
 
+              <div class="mb-4" wf-if="this.sites">
+                <label class="block mb-1 text-sm">Deploy Target</label>
+                <div class="flex gap-2">
+                  <button
+                    type="button"
+                    class="flex-1 rounded px-3 py-2 border border-transparent bg-[#121d2b] hover:bg-[#1a2a40] outline-none text-sm transition-colors"
+                    wf-onclick="this.setDeployType('production')"
+                    wf-class="{{this.deployType === 'production' &amp;&amp; 'border-[#2a9df4] bg-[#0b1521]'}}"
+                    value=""
+                  >
+                    Production
+                  </button>
+                  <button
+                    type="button"
+                    class="flex-1 rounded px-3 py-2 border border-transparent bg-[#121d2b] hover:bg-[#1a2a40] outline-none text-sm transition-colors"
+                    wf-onclick="this.setDeployType('preview')"
+                    wf-class="{{this.deployType === 'preview' &amp;&amp; 'border-[#2a9df4] bg-[#0b1521]'}}"
+                    value=""
+                  >
+                    Deploy Preview
+                  </button>
+                </div>
+                <div
+                  class="text-xs text-neutral-400 mt-2"
+                  wf-if="this.deployType === 'preview'"
+                >
+                  Creates a draft deploy that does not replace the production
+                  site.
+                </div>
+              </div>
+
               <!-- Buttons -->
               <div class="flex gap-2 justify-end">
                 <button
@@ -622,19 +653,47 @@
 
           <div
             id="NetlifyPostDeployDialog"
-            class="outline-none rounded-lg shadow-xl text-neutral-100 w-64 p-3 pt-2 min-w-64 bg-[#091017e0] backdrop-blur-md"
+            class="outline-none rounded-lg shadow-xl text-neutral-100 p-3 pt-2 bg-[#091017e0] backdrop-blur-md w-72 min-w-96"
           >
             <form method="dialog">
               <div>Netlify Deploy</div>
-              <div wf-if="this.props.success">Deployment successful.</div>
+              <div wf-if="this.props.success">
+                <div
+                  wf-if="this.props.previewUrl"
+                  class="mt-2 text-xs break-all text-neutral-300"
+                >
+                  <div class="text-sm text-neutral-100">Preview URL</div>
+                  <div>{{this.props.previewUrl}}</div>
+                </div>
+                <div
+                  wf-if="this.props.productionUrl"
+                  class="mt-2 text-xs break-all text-neutral-300"
+                >
+                  <div class="text-sm text-neutral-100">Production URL</div>
+                  <div>{{this.props.productionUrl}}</div>
+                </div>
+              </div>
               <div class="text-red-400" wf-if="!this.props.success">
                 Deployment failed. Check your Netlify dashboard for details.
               </div>
+              <div
+                class="text-xs text-neutral-300 break-all mt-1"
+                wf-if="!this.props.success &amp;&amp; this.props.error"
+              >
+                {{this.props.error}}
+              </div>
               <div class="flex gap-1.5 mt-3">
+                <button
+                  value="preview"
+                  class="flex-1 outline-none rounded px-3 py-1 bg-[#121d2b] hover:bg-[#1a2a40] transition-colors disabled:hover:bg-[#121d2b] disabled:opacity-50"
+                  wf-if="this.props.success &amp;&amp; this.props.previewUrl"
+                >
+                  Preview
+                </button>
                 <button
                   value="visit"
                   class="flex-1 outline-none rounded px-3 py-1 bg-[#121d2b] hover:bg-[#1a2a40] transition-colors disabled:hover:bg-[#121d2b] disabled:opacity-50"
-                  wf-if="this.props.success"
+                  wf-if="this.props.success &amp;&amp; this.props.productionUrl"
                 >
                   Visit Site
                 </button>

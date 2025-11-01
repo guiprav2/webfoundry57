@@ -297,9 +297,11 @@ export default class Files {
         localStorage.setItem('webfoundry:netlifyApiKey', key);
       }
       let siteId = localStorage.getItem(`webfoundry:netlifySiteId:${project}`);
-      let btn, type, x;
+      let deployMode = localStorage.getItem('webfoundry:netlifyDeployMode') || 'production';
+      let btn, type, x, selectedMode;
       while (true) {
-        [btn, type, x] = await showModal('NetlifyDeployDialog', { key, id: siteId });
+        [btn, type, x, selectedMode] = await showModal('NetlifyDeployDialog', { key, id: siteId, mode: deployMode });
+        if (selectedMode) deployMode = selectedMode;
         if (btn === 'key') {
           let key = localStorage.getItem('webfoundry:netlifyApiKey');
           let [btn, x] = await showModal('NetlifyApiKeyDialog', { key });
@@ -311,6 +313,7 @@ export default class Files {
         if (btn !== 'ok') return;
         break;
       }
+      deployMode = deployMode || 'production';
       showModal('LoadingDialog', { msg: 'Compressing files...' });
       const blob = await rfiles.exportZip(project);
       document.querySelector('dialog')?.remove?.();
@@ -331,41 +334,115 @@ export default class Files {
         siteId = x;
       }
       localStorage.setItem(`webfoundry:netlifySiteId:${project}`, siteId);
+      localStorage.setItem('webfoundry:netlifyDeployMode', deployMode);
       const uploadStart = Date.now();
+      let uploadDeployId = null;
+      let expectedContext = deployMode === 'preview' ? 'deploy-preview' : 'production';
       showModal('LoadingDialog', { msg: 'Deploying to Netlify...' });
+      let uploadFailed = false;
       try {
-        await fetch(`https://api.netlify.com/api/v1/sites/${siteId}/deploys`, {
+        let uploadUrl = `https://api.netlify.com/api/v1/sites/${siteId}/deploys`;
+        if (deployMode === 'preview') uploadUrl += '?draft=true';
+        const res = await fetch(uploadUrl, {
           method: 'POST',
           headers: { ...headers, 'Content-Type': 'application/zip' },
           body: blob,
         });
+        if (!res.ok) {
+          uploadFailed = true;
+          throw new Error(`Netlify deploy upload failed (${res.status})`);
+        }
+        try {
+          let payload = await res.json();
+          uploadDeployId = payload?.id || payload?.deploy_id || uploadDeployId;
+          if (payload?.context) expectedContext = payload.context;
+        } catch (_) {
+          /* ignore parse failures; we'll fall back to listing */
+        }
       } catch (err) {
-        !err.message.includes('CORS') && console.error(err);
+        if (!err.message.includes('CORS')) console.error(err);
+        if (uploadFailed) {
+          document.querySelector('dialog')?.remove?.();
+          await showModal('NetlifyPostDeployDialog', { success: false, error: err.message });
+          return;
+        }
       }
-      const checkDeployStatus = async (timeout = 60000, interval = 3000) => {
+      const recentEnough = createdAt => {
+        if (!createdAt) return true;
+        let created = new Date(createdAt).getTime();
+        if (Number.isNaN(created)) return true;
+        return created + 180000 >= uploadStart;
+      };
+      const matchesContext = deploy => {
+        if (!deploy) return false;
+        if (!expectedContext) return true;
+        if (deploy.context) return deploy.context === expectedContext;
+        if (expectedContext === 'deploy-preview') return deploy.published === false;
+        if (expectedContext === 'production') return deploy.published !== false;
+        return true;
+      };
+      const checkDeployStatus = async (timeout = 300000, interval = 3000) => {
         const start = Date.now();
+        let warnedDetailFetch = false;
         while (Date.now() - start < timeout) {
-          const res = await fetch(`https://api.netlify.com/api/v1/sites/${siteId}/deploys`, { headers });
-          if (res.ok) {
-            const deploys = await res.json();
-            deploys.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-            const latestDeploy = deploys[0];
-            if (latestDeploy && new Date(latestDeploy.created_at).getTime() >= uploadStart) return latestDeploy;
+          let deploy = null;
+          if (uploadDeployId) {
+            try {
+              const detailRes = await fetch(`https://api.netlify.com/api/v1/sites/${siteId}/deploys/${uploadDeployId}`, { headers });
+              if (detailRes.ok) deploy = await detailRes.json();
+              if (deploy && deploy.context) expectedContext = deploy.context;
+            } catch (err) {
+              if (!warnedDetailFetch) console.warn('Failed to load Netlify deploy detail:', err);
+              warnedDetailFetch = true;
+            }
+          }
+          if (!deploy) {
+            const res = await fetch(`https://api.netlify.com/api/v1/sites/${siteId}/deploys?per_page=10`, { headers });
+            if (res.ok) {
+              let deploys = await res.json();
+              deploys.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+              deploy = deploys.find(item => matchesContext(item) && recentEnough(item?.created_at));
+            }
+          }
+          if (deploy && !uploadDeployId && deploy.created_at) {
+            let createdTime = new Date(deploy.created_at).getTime();
+            if (!Number.isNaN(createdTime) && createdTime + 60000 < uploadStart) deploy = null;
+          }
+          if (deploy) {
+            if (deploy.state === 'error') {
+              let message = deploy.error_message || deploy.error_message_body || 'Deploy failed';
+              let err = new Error(message);
+              err.deploy = deploy;
+              throw err;
+            }
+            if (deploy.state === 'ready') return deploy;
           }
           await new Promise(resolve => setTimeout(resolve, interval));
         }
         throw new Error('Deploy status check timed out');
       };
       try {
-        let x = await checkDeployStatus();
+        let deploy = await checkDeployStatus();
         document.querySelector('dialog')?.remove?.();
-        let [btn] = await showModal('NetlifyPostDeployDialog', { success: true });
-        let url = x.ssl_urll || x.url;
-        url = this.state.current && !this.state.current.endsWith('/index.html') ? `${url}/${this.state.current.slice('pages/'.length)}` : url;
-        btn === 'visit' && open(url, siteId);
+        let pagePath = this.state.current?.startsWith?.('pages/') ? this.state.current.slice('pages/'.length) : '';
+        if (pagePath.endsWith('/index.html')) pagePath = pagePath.slice(0, -'/index.html'.length);
+        if (pagePath === 'index.html') pagePath = '';
+        let formatUrl = base => {
+          if (!base) return null;
+          let url = base.endsWith('/') ? base.slice(0, -1) : base;
+          if (!pagePath) return url;
+          let encodedPath = pagePath.split('/').map(part => encodeURIComponent(part)).join('/');
+          return `${url}/${encodedPath}`;
+        };
+        let productionUrl = deployMode === 'production' ? formatUrl(deploy.ssl_url || deploy.url) : null;
+        let previewUrl = deployMode === 'preview' ? formatUrl(deploy.review_url || deploy.deploy_ssl_url || deploy.deploy_url || deploy.ssl_url || deploy.url) : null;
+        let [btn] = await showModal('NetlifyPostDeployDialog', { success: true, productionUrl, previewUrl, mode: deployMode });
+        if (btn === 'preview' && previewUrl) open(previewUrl, `${siteId}:preview`);
+        if (btn === 'visit' && productionUrl) open(productionUrl, siteId);
       } catch (err) {
         console.error(err);
-        await showModal('NetlifyPostDeployDialog', { success: false });
+        document.querySelector('dialog')?.remove?.();
+        await showModal('NetlifyPostDeployDialog', { success: false, error: err.message });
       }
     },
 
