@@ -64,9 +64,9 @@ export default class Projects {
         await rprojects.config(project, opt);
         await Promise.all(['controllers', 'components', 'media', 'pages'].map(async x => await rfiles.save(project, `${x}/.keep`, new Blob([''], { type: 'text/plain' }))));
         await Promise.all([
-          '_redirects',
           'AGENTS.md',
           'index.html',
+          'webfoundry/_redirects',
           'webfoundry/wf.config.js',
           'webfoundry/app.js',
           'webfoundry/bimap.js',
@@ -77,7 +77,10 @@ export default class Projects {
         ].map(async x => {
           let text = await (await fetch(x)).text();
           if (x === 'index.html') text = text.replace('<title>Webfoundry</title>', `<title>${esc(name)}</title>`);
-          await rfiles.save(project, !x.endsWith('/wf.config.js') ? x : 'wf.config.js', new Blob([text], { type: mimeLookup(x) }));
+          let target = x;
+          if (target.endsWith('/wf.config.js')) target = 'wf.config.js';
+          if (target.endsWith('/_redirects')) target = '_redirects';
+          await rfiles.save(project, target, new Blob([text], { type: mimeLookup(x) }));
         }));
         await rfiles.save(project, 'pages/index.html', new Blob([defaultHtml()], { type: 'text/html' }));
         bus.emit('projects:create:ready', { project });

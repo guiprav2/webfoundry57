@@ -1968,7 +1968,7 @@ let actions = window.actions = {
             `---`,
             `User request: ${desc}`,
           ],
-        }], { endpoint: 'https://kittygpt.netlify.app/.netlify/functions/completion', model: 'gpt-4o-mini' })).content;
+        }], { endpoint: 'https://kittygpt.netlify.app/.netlify/functions/completion', model: 'gpt-4o' })).content;
       });
       if (html == null) {
         let combined = order.map(o => {
@@ -2050,7 +2050,7 @@ let actions = window.actions = {
             `---`,
             `User request: ${desc}`,
           ],
-        }], { endpoint: 'https://kittygpt.netlify.app/.netlify/functions/completion', model: 'gpt-4o-mini' })).content;
+        }], { endpoint: 'https://kittygpt.netlify.app/.netlify/functions/completion', model: 'gpt-4o' })).content;
       });
       if (html == null) {
         let [btn, val] = await showModal('CodeDialog', { title: 'Change HTML (inner)', initialValue: prev.join('\n') });

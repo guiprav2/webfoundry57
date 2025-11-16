@@ -22,23 +22,40 @@ self.addEventListener('fetch', async ev => {
   let prefix = null;
   if (pathname.startsWith('/files/')) prefix = '/files/';
   else if (pathname.startsWith('/preview/')) prefix = '/preview/';
-  else return;
-  let parts = pathname.slice(prefix.length).split('/');
-  let tabId = parts.shift();
-  let project = parts.shift();
-  let isPreview = prefix === '/preview/';
-  let path = isPreview && pathname.endsWith('.html') ? 'index.html' : parts.join('/');
-  ev.respondWith(new Promise(async (resolve, reject) => {
-    let channel = new MessageChannel();
-    let timeout = setTimeout(() => reject(new Error('Request timeout')), 30000);
-    channel.port1.onmessage = e => {
-      clearTimeout(timeout);
-      let { status, error, data } = e.data || {};
-      if (error) return resolve(new Response(error, { status }));
-      resolve(new Response(data, { status }));
-    };
-    let client = await self.clients.get(await getTab(tabId));
-    if (!client) return fetch(ev.request);
-    client.postMessage({ type: 'fetch', project, path }, [channel.port2]);
-  }).catch(err => new Response(err.message, { status: 503 })));
+  if (prefix) {
+    let parts = pathname.slice(prefix.length).split('/');
+    let tabId = parts.shift();
+    let project = parts.shift();
+    let isPreview = prefix === '/preview/';
+    let path = isPreview && pathname.endsWith('.html') ? 'index.html' : parts.join('/');
+    ev.respondWith(new Promise(async (resolve, reject) => {
+      let channel = new MessageChannel();
+      let timeout = setTimeout(() => reject(new Error('Request timeout')), 30000);
+      channel.port1.onmessage = e => {
+        clearTimeout(timeout);
+        let { status, error, data } = e.data || {};
+        if (error) return resolve(new Response(error, { status }));
+        resolve(new Response(data, { status }));
+      };
+      let client = await self.clients.get(await getTab(tabId));
+      if (!client) return fetch(ev.request);
+      client.postMessage({ type: 'fetch', project, path }, [channel.port2]);
+    }).catch(err => new Response(err.message, { status: 503 })));
+    return;
+  }
+  /*
+  ev.respondWith((async () => {
+    let cache = await caches.open('webfoundry-dynamic');
+    try {
+      let res = await fetch(ev.request);
+      if (res?.type === 'opaque' || res?.type === 'cors' || res?.ok) cache.put(ev.request, res.clone());
+      return res;
+    } catch (err) {
+      console.error(err);
+      let cached = await cache.match(ev.request);
+      if (cached) return cached;
+      return new Response('Offline and not cached', { status: 503 });
+    }
+  })());
+  */
 });

@@ -280,7 +280,7 @@ export default class Designer {
       let activeEl = document.activeElement;
       let activeTag = activeEl?.tagName || '';
       let isLockInput = activeEl?.id === 'DesignerMobileKeyboardLock';
-      if (!isLockInput && /^input|textarea|button$/i.test(activeTag)) {
+      if (!isLockInput && /^input|textarea$/i.test(activeTag)) {
         if (ev.key === 'Escape' && !ev.target?.closest?.('.CodeMirror, .lighted')) ev.target.blur();
         return;
       }

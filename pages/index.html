@@ -2810,18 +2810,27 @@
             wf-if="state.app.panel === 'projects'"
             wf-class="{{replaces w-96: state.app.demo ? 'w-64' : 'w-96'}}"
           >
-            <button
-              class="ProjectsPanel-createBtn outline-none border-b border-black/50 transition-all h-12 text-xl transition-colors shrink-0 hover:bg-[#008ad9] bg-[#0071b2]"
-              wf-onclick="post('projects.create')"
-              value=""
-            >
-              Create
-            </button>
+            <div class="flex gap-px">
+              <button
+                class="ProjectsPanel-createBtn outline-none border-b border-black/50 transition-all h-12 text-xl transition-colors shrink-0 hover:bg-[#008ad9] bg-[#0071b2] flex-1"
+                wf-onclick="post('projects.open')"
+                value=""
+                wf-if="window.__TAURI__"
+              >
+                Open</button
+              ><button
+                class="ProjectsPanel-createBtn outline-none border-b border-black/50 transition-all h-12 text-xl transition-colors shrink-0 hover:bg-[#008ad9] bg-[#0071b2] flex-1"
+                wf-onclick="post('projects.create')"
+                value=""
+              >
+                Create
+              </button>
+            </div>
             <div
               class="ProjectsPanel-projectList flex flex-col gap-2 p-4 overflow-auto min-h-0 basis-0 flex-1"
             >
               <div class="italic mb-1" wf-if="!state.projects.list.length">
-                Click the button above to create your first project.
+                Click the button above to open or create your first project.
               </div>
 
               <a
@@ -3460,7 +3469,7 @@
                   wf-onattach="post('designer.frameAttach', x.path, _1)"
                   wf-onload="post('designer.frameLoaded', x.path)"
                   wf-onerror="post('designer.frameLoaded', x.path, event)"
-                  allow="microphone;camera"
+                  allow="microphone;camera;geolocation"
                 ></iframe>
               </div>
             </div>
@@ -3501,16 +3510,6 @@
                 hidden=""
               ></audio>
             </div>
-            <div
-              class="min-w-96 flex flex-col flex-1 bg-[#091017c0] backdrop-blur-[4px]"
-              wf-if="/^text\/(?!html$).+$/.test(mimeLookup(state.files.current))"
-              id="CodeEditor"
-            ></div>
-            <div
-              class="min-w-96 flex flex-col flex-1 bg-[#091017c0] backdrop-blur-[4px]"
-              wf-if="/^text\/(?!html$).+$/.test(mimeLookup(state.files.current))"
-              id="CodeEditor"
-            ></div>
             <div
               class="min-w-96 flex flex-col flex-1 bg-[#091017c0] backdrop-blur-[4px]"
               wf-if="/^text\/(?!html$).+$/.test(mimeLookup(state.files.current))"
