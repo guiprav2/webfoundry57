@@ -3113,6 +3113,20 @@
                 </div>
               </div>
               <div class="space-y-2 mt-2 -ml-3">
+                <button
+                  class="w-full text-left px-3 py-2 flex justify-between items-center rounded hover:bg-black/50 outline-none"
+                  wf-disabled="loadman.busy()"
+                  wf-onclick="event.preventDefault(), post('settings.setOpenAIKey')"
+                  value=""
+                >
+                  <div>OpenAI API key</div>
+                  <div
+                    class="text-sm"
+                    wf-class="{{state.settings.hasOpenAIKey ? 'text-green-400' : 'text-amber-400'}}"
+                  >
+                    {{state.settings.hasOpenAIKey ? 'Key set' : 'Not set'}}
+                  </div>
+                </button>
                 <label
                   class="w-full text-left px-3 py-2 flex justify-between items-center rounded hover:bg-black/50 outline-none cursor-pointer"
                   wf-if="state.settings.opt.su &amp;&amp; !state.collab.rtc"

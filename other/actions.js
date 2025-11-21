@@ -1,8 +1,8 @@
-import completion from 'https://esm.sh/@camilaprav/kittygpt@0.0.65/completion.js';
 import confetti from 'https://esm.sh/canvas-confetti';
 import { loadman, joinPath } from '../other/util.js';
 import rfiles from '../repos/rfiles.js';
 import { lookup as mimeLookup } from 'https://esm.sh/mrmime';
+import { complete as openaiComplete } from './openai.js';
 
 let PEXELS_API_KEY = 'TvQp9hqct3J5XlyGjBUtt0TlgqiCd1UtDuJlvhl4HzfOt53BrvwuCq6b';
 
@@ -1952,7 +1952,7 @@ let actions = window.actions = {
         return a.p.compareDocumentPosition(b.p) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1;
       });
       desc && await loadman.run('actions.changeHtml.aigen', async () => {
-        html = (await completion([{
+        html = await openaiComplete([{
           role: 'system',
           content: [
             `You're an HTML artisan. You can only use Tailwind classes, no style attributes.`,
@@ -1968,7 +1968,7 @@ let actions = window.actions = {
             `---`,
             `User request: ${desc}`,
           ],
-        }], { endpoint: 'https://kittygpt.netlify.app/.netlify/functions/completion', model: 'gpt-4o' })).content;
+        }], { model: 'gpt-5.1-codex' });
       });
       if (html == null) {
         let combined = order.map(o => {
@@ -2034,7 +2034,7 @@ let actions = window.actions = {
       if (!targets.length) return;
       let prev = targets.map(x => x.innerHTML);
       desc && await loadman.run('actions.changeInnerHtml.aigen', async () => {
-        html = (await completion([{
+        html = await openaiComplete([{
           role: 'system',
           content: [
             `You're an HTML artisan. You can only use Tailwind classes, no style attributes.`,
@@ -2050,7 +2050,7 @@ let actions = window.actions = {
             `---`,
             `User request: ${desc}`,
           ],
-        }], { endpoint: 'https://kittygpt.netlify.app/.netlify/functions/completion', model: 'gpt-4o' })).content;
+        }], { model: 'gpt-5.1-codex' });
       });
       if (html == null) {
         let [btn, val] = await showModal('CodeDialog', { title: 'Change HTML (inner)', initialValue: prev.join('\n') });

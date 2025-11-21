@@ -1,13 +1,19 @@
 import prettier from '../other/prettier.js';
 import rfiles from '../repos/rfiles.js';
 import rprojects from '../repos/rprojects.js';
+import { getOpenAIKey, promptForOpenAIKey } from '../other/openai.js';
 
 export default class Settings {
-  state = {};
+  state = { hasOpenAIKey: false };
 
   actions = {
     init: async () => {
       let { bus } = state.event;
+      this.state.hasOpenAIKey = !!getOpenAIKey();
+      bus.on('settings:openaiKey:changed', ({ hasKey }) => {
+        this.state.hasOpenAIKey = hasKey;
+        d.update();
+      });
       this.state.opt = JSON.parse(localStorage.getItem('webfoundry:config') || 'null');
       if (!this.state.opt) {
         this.state.opt = {
@@ -52,6 +58,10 @@ export default class Settings {
         d.update();
         bus.emit('settings:projects:reload:ready', { project, opt: this.state.popt });
       }));
+    },
+
+    setOpenAIKey: async () => {
+      await promptForOpenAIKey();
     },
 
     fetchProjectTitle: async () => {
