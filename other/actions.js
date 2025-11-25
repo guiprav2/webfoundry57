@@ -4,8 +4,6 @@ import rfiles from '../repos/rfiles.js';
 import { lookup as mimeLookup } from 'https://esm.sh/mrmime';
 import { complete as openaiComplete } from './openai.js';
 
-let PEXELS_API_KEY = 'TvQp9hqct3J5XlyGjBUtt0TlgqiCd1UtDuJlvhl4HzfOt53BrvwuCq6b';
-
 let TAILWIND_HUES = ['red', 'orange', 'amber', 'yellow', 'lime', 'green', 'emerald', 'teal', 'cyan', 'sky', 'blue', 'indigo', 'violet', 'purple', 'fuchsia', 'pink', 'rose', 'slate', 'gray', 'zinc', 'neutral', 'stone'];
 let TAILWIND_SHADES = ['50', '100', '200', '300', '400', '500', '600', '700', '800', '900', '950'];
 let TAILWIND_HUE_SET = new Set(TAILWIND_HUES);
@@ -1925,7 +1923,7 @@ let actions = window.actions = {
     },
   },
 
-  changeHtml: {
+  change: {
     description: `Changes the outer HTML of selected elements (prompts if not provided)`,
     shortcut: 'm',
     disabled: ({ cur = 'master' }) => [
@@ -1958,6 +1956,7 @@ let actions = window.actions = {
             `You're an HTML artisan. You can only use Tailwind classes, no style attributes.`,
             `Take the page HTML, selection htmlsnap IDs, and user request`,
             `and generate a bare replacement HTML with no Markdown code block wrappers.`,
+            `Do not generate a full page with html and body tags, only replacement HTML for the selection.`,
           ],
         }, {
           role: 'user',
@@ -2511,6 +2510,16 @@ let actions = window.actions = {
     },
   },
 
+  changeMediaFromPexels: {
+    disabled: ({ cur = 'master' }) => [!state.designer.open && `Designer closed.`, state.designer.open && !state.designer.current.cursors[cur]?.length && `No elements selected.`],
+    parameters: { type: 'object', properties: { cur: { type: 'string' }, query: { type: 'string' } } },
+    handler: async ({ cur = 'master', query = '' } = {}) => {
+      let [btn, url] = await showModal('PexelsGalleryDialog', { query, mode: 'media' });
+      if (btn !== 'ok' || !url) return;
+      await actions.changeMediaSrc.handler({ cur, src: url });
+    },
+  },
+
   changeBackgroundUrl: {
     shortcut: 'b',
     disabled: ({ cur = 'master' }) => [!state.designer.open && `Designer closed.`, state.designer.open && !state.designer.current.cursors[cur]?.length && `No elements selected.`],
@@ -2563,6 +2572,16 @@ let actions = window.actions = {
         }, { targets: targetKeys, newBg, prev, apply });
         await actions.changeSelection.handler({ cur, s: targetKeys });
       });
+    },
+  },
+
+  changeBackgroundFromPexels: {
+    disabled: ({ cur = 'master' }) => [!state.designer.open && `Designer closed.`, state.designer.open && !state.designer.current.cursors[cur]?.length && `No elements selected.`],
+    parameters: { type: 'object', properties: { cur: { type: 'string' }, query: { type: 'string' } } },
+    handler: async ({ cur = 'master', query = '' } = {}) => {
+      let [btn, url] = await showModal('PexelsGalleryDialog', { query, mode: 'background' });
+      if (btn !== 'ok' || !url) return;
+      await actions.changeBackgroundUrl.handler({ cur, url });
     },
   },
 
@@ -2827,21 +2846,6 @@ let actions = window.actions = {
     handler: async () => {
       if (state.collab.uid !== 'master') return;
       await post('designer.refresh');
-    },
-  },
-
-  searchPexelsImagePlaceholders: {
-    parameters: {
-      type: 'object',
-      properties: { searchTerms: { type: 'string' } },
-      required: ['searchTerms'],
-    },
-    handler: async ({ searchTerms }) => {
-      let res = await fetch(`https://api.pexels.com/v1/search?query=${encodeURIComponent(searchTerms)}&per_page=5`, { headers: { Authorization: PEXELS_API_KEY } });
-      if (!res.ok) throw new Error(`Pexels API error: ${res.status}`);
-      let data = await res.json();
-      let urls = data.photos.map(p => p.src.medium);
-      return { success: true, urls };
     },
   },
 

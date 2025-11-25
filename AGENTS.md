@@ -6,6 +6,7 @@ This guide explains how **projects inside Webfoundry** are structured and how to
 
 ## 📌 General Guidelines
 
+* In Webfoundry, a div right under body is the page root, not body itself. Make sure all page content is wrapped inside that root div.
 * Always use `let`, never `const`.
 * Ignore webfoundry/{scripts,templates}.json, they're fully managed by Webfoundry.
 * Never put long JavaScript or script tags in HTML, always put them in a controller and call using wf-onattach or other event handler attributes.

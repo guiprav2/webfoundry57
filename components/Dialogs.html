@@ -950,6 +950,124 @@
             </form>
           </div>
         </div>
+        <div class="p-8 flex flex-col items-center gap-6">
+          <div class="text-3xl">PexelsGalleryDialog</div>
+
+          <div
+            id="PexelsGalleryDialog"
+            class="outline-none rounded shadow-xl text-neutral-100 bg-[#091017e0] backdrop-blur-md w-[70vw] max-w-5xl"
+          >
+            <form
+              method="dialog"
+              class="flex flex-col gap-3"
+              wf-onsubmit="this.submit(event)"
+            >
+              <div class="flex flex-wrap gap-3 items-end px-4 pt-4">
+                <div class="flex-1 min-w-[200px]">
+                  <label class="text-xs uppercase tracking-wider text-neutral-400">Search Pexels</label>
+                  <input
+                    type="text"
+                    class="mt-1 w-full rounded px-3 py-2 bg-[#2b2d3130] outline-none"
+                    placeholder="e.g. modern office"
+                    wf-value="this.query"
+                    wf-oninput="this.onQueryInput(event)"
+                    wf-onkeydown="this.onQueryKeyDown(event)"
+                  />
+                </div>
+                <div>
+                  <label class="text-xs uppercase tracking-wider text-neutral-400">Orientation</label>
+                  <select
+                    class="mt-1 rounded px-2 py-2 bg-[#2b2d3130] outline-none"
+                    wf-value="this.orientation"
+                    wf-onchange="this.onOrientationChange(event)"
+                  >
+                    <option value="landscape">Landscape</option>
+                    <option value="portrait">Portrait</option>
+                    <option value="square">Square</option>
+                    <option value="any">Any</option>
+                  </select>
+                </div>
+                <button
+                  type="button"
+                  class="rounded px-4 py-2 bg-[#0071b2] hover:bg-[#008ad9] transition-colors"
+                  wf-onclick="this.performSearch(event)"
+                >
+                  Search
+                </button>
+              </div>
+              <div class="px-4" wf-if="this.error">
+                <div class="text-sm text-red-400">{{this.error}}</div>
+              </div>
+              <div class="px-4" wf-if="!this.error && !this.loading && !this.photos.length">
+                <div class="text-sm text-neutral-400">No photos found. Try a different query.</div>
+              </div>
+              <div class="px-4 pb-4" wf-if="this.loading">
+                <div class="flex flex-col items-center gap-2 py-8 text-neutral-300">
+                  <span class="nf nf-fa-spinner animate-spin text-2xl"></span>
+                  <div>Loading beautiful stock photos…</div>
+                </div>
+              </div>
+              <div
+                class="px-4 pb-4 grid gap-4 max-h-[65vh] overflow-auto"
+                wf-if="this.photos.length"
+                wf-class="{{replaces grid-cols-3: `grid-cols-${Math.max(2, Math.min(4, Math.ceil(Math.sqrt(this.photos.length))))}`}}"
+              >
+                <div wf-map="photo of this.photos" class="flex flex-col gap-1">
+                  <button
+                    type="button"
+                    class="relative rounded overflow-hidden outline outline-2 outline-transparent hover:outline-blue-400"
+                    wf-class="{{this.selectedId === photo.id ? 'outline-blue-500 outline-4' : 'outline-neutral-700'}}"
+                    wf-onclick="this.selectPhoto(photo)"
+                  >
+                    <img
+                      wf-src="this.thumbnailUrl(photo)"
+                      class="w-full h-48 object-cover"
+                      alt=""
+                    />
+                    <div class="absolute bottom-0 left-0 right-0 bg-black/60 text-xs px-2 py-1 text-left">
+                      {{photo.photographer}}
+                    </div>
+                  </button>
+                  <div class="text-xs text-neutral-400 flex items-center justify-between">
+                    <a
+                      wf-href="photo.url"
+                      target="_blank"
+                      rel="noopener"
+                      class="underline"
+                    >
+                      View on Pexels
+                    </a>
+                    <button
+                      type="button"
+                      class="text-xs underline"
+                      wf-onclick="event.preventDefault(), this.selectPhoto(photo)"
+                    >
+                      Select
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div class="px-4 pb-3 text-xs text-neutral-400">
+                Photos provided by Pexels. Selecting an image will insert its URL directly into your project.
+              </div>
+              <div class="flex gap-2 justify-end px-4 pb-4">
+                <button
+                  value="cancel"
+                  class="rounded px-6 py-2 bg-[#121d2b] hover:bg-[#1a2a40] outline-none"
+                >
+                  Cancel
+                </button>
+                <button
+                  value="ok"
+                  class="rounded px-6 py-2 bg-[#0071b2] hover:bg-[#008ad9] outline-none disabled:opacity-50 disabled:hover:bg-[#0071b2]"
+                  wf-disabled="!this.selectedUrl"
+                >
+                  {{this.mode === 'background' ? 'Use as Background' : 'Use Image'}}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       </div>
     </div>
   </body>
