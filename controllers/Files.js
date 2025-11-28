@@ -542,7 +542,6 @@ export default class Files {
           return;
         }
         if (!project) project = state.projects.list.find(x => x.startsWith(`${projectName}:`));
-        await post('projects.select', project);
         try {
           await runGitImportFlow(project, repoUrl, branch);
         } catch (err) {
@@ -615,7 +614,7 @@ async function runGitImportFlow(project, repoUrl, branch) {
     await importGitRepository(project, repoUrl, branch);
     //await post('files.injectBuiltins');
     //await post('files.reflect');
-    await post('files.load');
+    //await post('files.load');
     document.querySelector('dialog')?.remove?.();
   } catch (err) {
     document.querySelector('dialog')?.remove?.();
