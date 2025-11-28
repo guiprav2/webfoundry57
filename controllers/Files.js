@@ -1,4 +1,7 @@
 import * as pako from 'https://esm.sh/pako';
+import LightningFS from 'https://esm.sh/@isomorphic-git/lightning-fs';
+import git from 'https://esm.sh/isomorphic-git';
+import gitHttp from 'https://unpkg.com/isomorphic-git@beta/http/web/index.js';
 import prettier from '../other/prettier.js';
 import rfiles from '../repos/rfiles.js';
 import rprojects from '../repos/rprojects.js';
@@ -464,6 +467,53 @@ export default class Files {
       input.remove();
     },
 
+    importGit: async () => {
+      let project = state.projects.current;
+      if (!project) return;
+      let [btn, repoUrl] = await showModal('PromptDialog', {
+        title: 'Import HTTPS Git repository',
+        placeholder: 'https://github.com/user/repo.git',
+        allowEmpty: false,
+      });
+      if (btn !== 'ok') return;
+      repoUrl = repoUrl?.trim();
+      if (!repoUrl) return;
+      showModal('LoadingDialog', { msg: 'Detecting branches...' });
+      let branchInfo;
+      try {
+        branchInfo = await fetchGitBranches(repoUrl);
+        console.log(branchInfo);
+      } catch (err) {
+        console.error(err);
+        document.querySelector('dialog')?.remove?.();
+        await showModal('InfoDialog', { title: `Unable to read repository: ${err.message}` });
+        return;
+      }
+      document.querySelector('dialog')?.remove?.();
+      let branch = branchInfo.defaultBranch;
+      if (!branch) {
+        if (!branchInfo.branches.length) {
+          await showModal('InfoDialog', { title: 'No Git branches found to import.' });
+          return;
+        }
+        let [choice, selected] = await showBranchChooser(branchInfo.branches, repoUrl, branchInfo.defaultBranch);
+        if (choice !== 'ok') return;
+        branch = selected;
+      }
+      showModal('LoadingDialog', { msg: `Importing ${branch}...` });
+      try {
+        await importGitRepository(project, repoUrl, branch);
+        //await post('files.injectBuiltins');
+        //await post('files.reflect');
+        await post('files.load');
+        document.querySelector('dialog')?.remove?.();
+      } catch (err) {
+        console.error(err);
+        document.querySelector('dialog')?.remove?.();
+        await showModal('InfoDialog', { title: `Git import failed: ${err.message}` });
+      }
+    },
+
     exportZip: async () => {
       let project = state.projects.current;
       showModal('LoadingDialog', { msg: 'Exporting ZIP...' });
@@ -474,6 +524,170 @@ export default class Files {
     },
   };
 };
+
+let gitCorsProxy = 'https://cors.isomorphic-git.org';
+
+async function fetchGitBranches(url) {
+  let refs = [];
+  let info = null;
+  let trimmed = url?.trim();
+  if (!trimmed) return { branches: [], defaultBranch: null };
+  try {
+    info = await git.getRemoteInfo({ http: gitHttp, url: trimmed, corsProxy: gitCorsProxy });
+    console.log(info?.refs);
+    refs = normalizeGitRefs(info?.refs);
+    console.log(refs);
+  } catch (err) {
+    refs = await git.listServerRefs({ http: gitHttp, url: trimmed, corsProxy: gitCorsProxy });
+  }
+  let { branches, defaultBranch } = parseGitBranches(refs, info);
+  return { branches, defaultBranch };
+}
+
+function normalizeGitRefs(refs) {
+  if (!refs) return [];
+  if (Array.isArray(refs)) return refs;
+  let entries = [];
+  let walk = (node, parts = []) => {
+    if (node == null) return;
+    if (typeof node === 'string') {
+      if (!parts.length) return;
+      let ref = parts.join('/');
+      if (!ref.startsWith('refs/')) ref = `refs/${ref}`;
+      entries.push({ ref, oid: node });
+      return;
+    }
+    if (typeof node === 'object' && !Array.isArray(node)) {
+      if (typeof node.oid === 'string' && parts.length) {
+        let ref = parts.join('/');
+        if (!ref.startsWith('refs/')) ref = `refs/${ref}`;
+        let entry = { ref, oid: node.oid };
+        if (node.target) entry.target = node.target;
+        entries.push(entry);
+        return;
+      }
+      for (let [key, value] of Object.entries(node)) {
+        walk(value, [...parts, key]);
+      }
+    }
+  };
+  walk(refs, []);
+  return entries;
+}
+
+function parseGitBranches(refs, info) {
+  refs = refs || [];
+  let branches = refs
+    .map(x => x?.ref || x)
+    .filter(x => typeof x === 'string' && x.startsWith('refs/heads/'))
+    .map(trimGitBranch);
+  branches = Array.from(new Set(branches.filter(Boolean))).sort((a, b) => a.localeCompare(b));
+  let defaultBranch = trimGitBranch(info?.defaultBranch) || trimGitBranch(info?.HEAD?.ref) || trimGitBranch(info?.HEAD?.target);
+  if (!defaultBranch) {
+    let head = refs.find(x => (x?.ref || x) === 'HEAD');
+    defaultBranch = trimGitBranch(head?.target || head?.symref);
+  }
+  if (!defaultBranch) {
+    if (branches.includes('main')) defaultBranch = 'main';
+    else if (branches.includes('master')) defaultBranch = 'master';
+  }
+  return { branches, defaultBranch };
+}
+
+function trimGitBranch(ref) {
+  if (!ref || typeof ref !== 'string') return null;
+  return ref.replace(/^refs\/heads\//, '');
+}
+
+async function importGitRepository(project, url, branch) {
+  let dir = `/wf-git-import-${Date.now()}`;
+  let fs = new LightningFS(`wf-git-import-${Math.random().toString(16).slice(2)}`, { wipe: true });
+  let pfs = fs.promises;
+  try {
+    await pfs.mkdir(dir);
+  } catch (err) {
+    if (err?.code !== 'EEXIST') throw err;
+  }
+  await git.clone({
+    fs,
+    http: gitHttp,
+    dir,
+    url,
+    ref: branch,
+    singleBranch: true,
+    depth: 1,
+    corsProxy: gitCorsProxy,
+  });
+  await persistGitFiles(project, pfs, dir, '');
+}
+
+async function persistGitFiles(project, pfs, currentDir, prefix) {
+  let entries = await pfs.readdir(currentDir);
+  for (let entry of entries) {
+    if (entry === '.git') continue;
+    let fullPath = currentDir === '/' ? `/${entry}` : `${currentDir}/${entry}`;
+    let relativePath = prefix ? `${prefix}/${entry}` : entry;
+    let stat = await pfs.stat(fullPath);
+    if (stat?.type === 'file') {
+      let data = await pfs.readFile(fullPath);
+      let blob = new Blob([data], { type: mimeLookup(relativePath) || 'application/octet-stream' });
+      await rfiles.save(project, relativePath, blob);
+    } else if (stat?.type === 'dir') {
+      await persistGitFiles(project, pfs, fullPath, relativePath);
+    }
+  }
+}
+
+async function showBranchChooser(branches, repoUrl, initialBranch) {
+  let dialog = document.createElement('dialog');
+  dialog.className = 'outline-none bg-transparent';
+  let wrapper = document.createElement('div');
+  wrapper.className = 'outline-none rounded-lg shadow-xl text-neutral-100 w-64 p-3 pt-2 bg-[#091017e0] backdrop-blur-md';
+  let form = document.createElement('form');
+  form.method = 'dialog';
+  let title = document.createElement('div');
+  title.textContent = 'Select Git branch';
+  form.append(title);
+  let select = document.createElement('select');
+  select.className = 'outline-none mt-2 w-full rounded px-2 py-1 bg-[#2b2d3130] focus:bg-[#2b2d3150]';
+  for (let branch of branches) {
+    let option = document.createElement('option');
+    option.value = branch;
+    option.textContent = branch;
+    select.append(option);
+  }
+  select.value = branches.includes(initialBranch) ? initialBranch : branches[0];
+  form.append(select);
+  if (repoUrl) {
+    let hint = document.createElement('div');
+    hint.className = 'text-xs text-neutral-300 mt-2 break-words';
+    hint.textContent = repoUrl;
+    form.append(hint);
+  }
+  let actions = document.createElement('div');
+  actions.className = 'flex gap-1.5 mt-3';
+  let cancel = document.createElement('button');
+  cancel.value = 'cancel';
+  cancel.className = 'flex-1 outline-none rounded px-3 py-1 bg-[#121d2b] hover:bg-[#1a2a40]';
+  cancel.textContent = 'Cancel';
+  let ok = document.createElement('button');
+  ok.value = 'ok';
+  ok.className = 'flex-1 outline-none rounded px-3 py-1 bg-[#0071b2] hover:bg-[#008ad9]';
+  ok.textContent = 'Import';
+  actions.append(cancel, ok);
+  form.append(actions);
+  wrapper.append(form);
+  dialog.append(wrapper);
+  document.body.append(dialog);
+  let { promise, resolve } = Promise.withResolvers();
+  dialog.addEventListener('close', () => {
+    let selection = select.value;
+    dialog.remove();
+    resolve([dialog.returnValue || 'cancel', selection]);
+  });
+  dialog.showModal();
+  return await promise;
+}
 
 async function ungzblob(blob, type) {
   if (blob == null) return null;
