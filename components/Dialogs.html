@@ -768,7 +768,76 @@
             </form>
           </div>
         </div>
+        <div class="p-8 flex flex-col items-center gap-6">
+          <div class="text-3xl">GitImportDialog</div>
+          <div
+            id="GitImportDialog"
+            class="outline-none rounded-lg shadow-xl w-96 text-neutral-100 p-3 pt-2 bg-[#091017e0] backdrop-blur-md"
+          >
+            <form
+              method="dialog"
+              class="flex flex-col gap-2.5"
+              wf-onsubmit="this.onSubmit(event)"
+              wf-onkeydown="this.onKeyDown(event)"
+            >
+              <div class="">Git Import</div>
+
+              <div class="flex gap-2">
+                <input
+                  placeholder="Git Clone URL (HTTPS-only)"
+                  class="w-full rounded px-3 py-2 bg-[#2b2d3130] outline-none flex-1"
+                  value=""
+                  wf-value="this.url"
+                  wf-onattach="_1.focus()"
+                /><img
+                  wf-if="this.loading"
+                  class="block mx-auto w-8 p-1 relative top-px"
+                  src="../media/loading.svg"
+                />
+              </div>
+              <select
+                placeholder="Target branch"
+                class="w-full rounded px-3 py-2 bg-[#2b2d3130] outline-none"
+                wf-if="this.branches?.length"
+                wf-value="this.branch"
+                value=""
+              >
+                <option wf-map="x of this.branches" value="" selected="">
+                  {{x}}
+                </option>
+              </select>
+              <div class="text-red-400" wf-if="this.props.branch === 'error'">
+                Unable to read repository or no branches found, try a different
+                URL.
+              </div>
+              <input
+                placeholder="Cloned project name"
+                class="w-full rounded px-3 py-2 bg-[#2b2d3130] outline-none"
+                value=""
+                wf-if="this.url"
+                wf-value="this.name"
+              />
+              <div class="flex flex-wrap gap-2 justify-end items-center">
+                <button
+                  class="rounded px-4 py-2 bg-[#121d2b] hover:bg-[#1a2a40] outline-none text-sm"
+                  value="cancel"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  value="ok"
+                  class="outline-none rounded bg-[#0071b2] hover:bg-[#008ad9] transition-colors disabled:opacity-50 disabled:hover:bg-[#0071b2] px-4 py-1"
+                  wf-disabled="!this.valid"
+                >
+                  Import
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       </div>
+
       <div class="grid justify-center"></div>
       <div class="grid justify-center xl:grid-cols-3">
         <div class="p-8 flex flex-col items-center gap-6 xl:col-span-2">
@@ -958,12 +1027,14 @@
             </form>
           </div>
         </div>
-        <div class="p-8 flex flex-col items-center gap-6">
+      </div>
+      <div class="grid justify-center xl:grid-cols-3">
+        <div class="p-8 flex flex-col items-center gap-6 col-span-2">
           <div class="text-3xl">PexelsGalleryDialog</div>
 
           <div
             id="PexelsGalleryDialog"
-            class="outline-none rounded shadow-xl text-neutral-100 bg-[#091017e0] backdrop-blur-md w-[70vw] max-w-5xl"
+            class="outline-none rounded shadow-xl text-neutral-100 bg-[#091017e0] backdrop-blur-md w-[70vw] max-w-4xl"
           >
             <form
               method="dialog"
@@ -1024,11 +1095,13 @@
                 </div>
               </div>
               <div class="px-4 pb-4" wf-if="this.loading">
-                <div
-                  class="flex flex-col items-center gap-2 py-8 text-neutral-300"
-                >
-                  <span class="nf nf-fa-spinner animate-spin text-2xl"></span>
-                  <div>Loading beautiful stock photos…</div>
+                <div class="flex flex-col items-center py-8 text-neutral-300">
+                  <img
+                    wf-if="!this.sites"
+                    class="block w-12 mx-auto my-4"
+                    src="../media/loading.svg"
+                  />
+                  <div>Loading stock photos…</div>
                 </div>
               </div>
               <div

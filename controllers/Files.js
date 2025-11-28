@@ -519,6 +519,7 @@ export default class Files {
       let urlValue = presetUrl;
       while (true) {
         let [btn, entered] = await showModal('PromptDialog', {
+          short: true,
           title: 'Git repository URL',
           placeholder: 'https://github.com/user/repo.git',
           initialValue: urlValue || '',
@@ -785,16 +786,13 @@ async function showBranchChooser(branches, repoUrl, initialBranch, opt = {}) {
 function consumeGitImportParam() {
   try {
     let current = new URL(location.href);
-    let value = current.searchParams.get('gitimport');
+    let value = current.searchParams.get('git');
+    current.searchParams.delete('git');
+    history.replaceState(null, '', currrent.href);
     if (!value) return null;
-    current.searchParams.delete('gitimport');
-    if (typeof history?.replaceState === 'function') {
-      let next = `${current.pathname}${current.search}${current.hash}`;
-      history.replaceState(history.state, '', next);
-    }
     return value;
   } catch (err) {
-    console.error('Failed to parse gitimport param', err);
+    console.error('Failed to parse git param', err);
     return null;
   }
 }
