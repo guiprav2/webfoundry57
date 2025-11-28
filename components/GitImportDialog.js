@@ -35,7 +35,7 @@ class GitImportDialog {
     if (this.nameValue === val) return;
     this.nameValue = val;
     if (!this.suppressNameEdited && val.trim()) this.nameEdited = true;
-    if (this.nameError) this.nameError = '';
+    this.nameError = state.projects.list.find(x => x.startsWith(`${val}:`)) && `This project name already exists, please choose a different name.`;
     d.update();
   }
 

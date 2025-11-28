@@ -822,8 +822,8 @@
                 wf-if="this.requireName"
                 wf-value="this.name"
               />
-              <div class="text-red-400" wf-if="this.nameError">
-                {{this.nameError}}
+              <div class="text-yellow-500 mt-2" wf-if="this.nameError">
+                <span class="nf nf-fa-warning"></span> {{this.nameError}}
               </div>
               <div class="flex flex-wrap gap-2 justify-end items-center">
                 <button
