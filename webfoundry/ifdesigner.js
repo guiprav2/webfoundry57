@@ -65,6 +65,7 @@ function expandComponents() {
   }
 }
 addEventListener('mousedown', async ev => {
+  if (ev.button !== 0) return;
   document.activeElement.blur();
   ev.preventDefault();
   let { target } = ev;

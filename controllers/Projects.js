@@ -11,12 +11,10 @@ export default class Projects {
       let { bus } = state.event;
       bus.on('projects:create:ready', async ({ project }) => {
         await post('projects.load');
-        await new Promise(pres => setTimeout(pres, 1000));
         await post('projects.select', project);
       });
       bus.on('projects:mv:ready', async ({ project, newName }) => {
         await post('projects.load');
-        await new Promise(pres => setTimeout(pres, 1000));
         await post('projects.select', `${newName}:${project.split(':')[1]}`);
       });
       bus.on('projects:rm:ready', async ({ project }) => {

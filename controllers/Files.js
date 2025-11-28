@@ -76,7 +76,7 @@ export default class Files {
         d.update();
         if (project) {
           await post('files.load');
-          if (state.app.panel === 'projects') await post('app.selectPanel', 'files');
+          if (!state.app.panel || state.app.panel === 'projects') await post('app.selectPanel', 'files');
         }
       }));
       bus.on('files:select:ready', ({ path }) => {

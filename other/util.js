@@ -12,20 +12,26 @@ export function arrayify(x, opt = null) {
 
 export function debounce(func, delay) {
   let timeoutId;
+  let pending = [];
+  let lastArgs;
+  let lastThis;
   return function (...args) {
     clearTimeout(timeoutId);
+    lastArgs = args;
+    lastThis = this;
     if (func.constructor.name === 'AsyncFunction') {
-      let pending = [];
       return new Promise((resolve, reject) => {
         pending.push({ resolve, reject });
         timeoutId = setTimeout(() => {
-          func.apply(this, args)
-            .then((result) => { pending.forEach(p => p.resolve(result)); pending = [] })
-            .catch((err) => { pending.forEach(p => p.reject(err)); pending = [] });
+          let waiters = pending;
+          pending = [];
+          func.apply(lastThis, lastArgs)
+            .then(result => waiters.forEach(p => p.resolve(result)))
+            .catch(err => waiters.forEach(p => p.reject(err)));
         }, delay);
       });
     } else {
-      timeoutId = setTimeout(() => func.apply(this, args), delay);
+      timeoutId = setTimeout(() => func.apply(lastThis, lastArgs), delay);
     }
   };
 }
