@@ -16,14 +16,14 @@ class OpenAIKeyDialog {
 
   onSubmit = ev => {
     ev.preventDefault();
-    this.root.parentElement.returnDetail = this.value;
+    this.root.parentElement.returnDetail = this.value.trim();
     this.root.parentElement.close(ev.submitter.value);
   };
 
   onRemove = ev => {
     ev.preventDefault();
     this.root.parentElement.returnDetail = '';
-    this.root.parentElement.close('remove');
+    this.root.parentElement.close('ok');
   };
 }
 

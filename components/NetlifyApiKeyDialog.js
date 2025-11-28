@@ -8,7 +8,13 @@ class NetlifyApiKey {
     ev.target.closest('form').querySelector('[value="ok"]').click();
   };
 
-  onSubmit = ev => { ev.preventDefault(); this.root.parentElement.returnDetail = this.value; this.root.parentElement.close(ev.submitter.value) };
+  onSubmit = ev => { ev.preventDefault(); this.root.parentElement.returnDetail = this.value.trim(); this.root.parentElement.close(ev.submitter.value) };
+
+  onRemove = ev => {
+    ev.preventDefault();
+    this.root.parentElement.returnDetail = '';
+    this.root.parentElement.close('ok');
+  };
 }
 
 export default NetlifyApiKey;

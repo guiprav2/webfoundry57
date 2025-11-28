@@ -3121,10 +3121,10 @@
                 >
                   <div>OpenAI API key</div>
                   <div
-                    class="text-sm"
-                    wf-class="{{state.settings.hasOpenAIKey ? 'text-green-400' : 'text-amber-400'}}"
+                    class="text-sm truncate max-w-32 text-green-400"
+                    wf-class=""
                   >
-                    {{state.settings.hasOpenAIKey ? 'Key set' : 'Not set'}}
+                    {{state.settings.hasOpenAIKey &amp;&amp; 'Set'}}
                   </div>
                 </button>
                 <label

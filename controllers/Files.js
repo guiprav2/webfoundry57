@@ -298,6 +298,7 @@ export default class Files {
         if (btn !== 'ok') return;
         key = x;
         localStorage.setItem('webfoundry:netlifyApiKey', key);
+        if (!key) return;
       }
       let siteId = localStorage.getItem(`webfoundry:netlifySiteId:${project}`);
       let deployMode = localStorage.getItem('webfoundry:netlifyDeployMode') || 'production';
@@ -311,6 +312,7 @@ export default class Files {
           if (btn !== 'ok') continue;
           key = x;
           localStorage.setItem('webfoundry:netlifyApiKey', key);
+          if (!key) return;
           continue;
         }
         if (btn !== 'ok') return;

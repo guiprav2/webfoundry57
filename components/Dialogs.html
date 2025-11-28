@@ -514,13 +514,21 @@
               <div class="">Netlify API Key</div>
               <input
                 type="password"
-                placeholder="Enter your Netlify API key"
+                placeholder="nfp_shhh..."
                 class="w-full rounded px-3 py-2 bg-[#2b2d3130] outline-none"
                 value=""
                 wf-value="this.value"
               />
               <div class="flex gap-2 justify-end">
                 <button
+                  value=""
+                  class="rounded px-3 py-2 bg-transparent text-sm text-red-300 hover:text-red-200"
+                  type="button"
+                  wf-if="this.props.key"
+                  wf-onclick="this.onRemove(event)"
+                >
+                  Remove key</button
+                ><button
                   value="cancel"
                   class="rounded px-4 py-2 bg-[#121d2b] hover:bg-[#1a2a40] outline-none text-sm"
                 >
@@ -550,14 +558,14 @@
               wf-onsubmit="this.onSubmit(event)"
               class="flex flex-col gap-2.5"
             >
-              <div class="text-lg font-semibold">OpenAI API Key</div>
+              <div class="">OpenAI API Key</div>
               <div class="text-sm text-neutral-300">
                 Paste a secret key from platform.openai.com. It is stored
                 locally and never sent to Webfoundry servers.
               </div>
               <input
                 type="password"
-                placeholder="sk-..."
+                placeholder="sk-shhh..."
                 class="w-full rounded px-3 py-2 bg-[#2b2d3130] outline-none"
                 value=""
                 wf-value="this.value"
@@ -565,20 +573,20 @@
               />
               <div class="flex flex-wrap gap-2 justify-end items-center">
                 <button
-                  value="cancel"
+                  value=""
+                  class="rounded px-3 py-2 bg-transparent text-sm text-red-300 hover:text-red-200"
+                  wf-onclick="this.onRemove(event)"
+                  wf-if="this.props.key"
+                  type="button"
+                >
+                  Remove key</button
+                ><button
                   class="rounded px-4 py-2 bg-[#121d2b] hover:bg-[#1a2a40] outline-none text-sm"
+                  value="cancel"
                 >
                   Cancel
                 </button>
-                <button
-                  type="button"
-                  class="rounded px-3 py-2 bg-transparent text-sm text-red-300 hover:text-red-200"
-                  wf-if="this.props.key"
-                  wf-onclick="this.onRemove(event)"
-                  value=""
-                >
-                  Remove key
-                </button>
+
                 <button
                   value="ok"
                   class="outline-none rounded bg-[#0071b2] hover:bg-[#008ad9] transition-colors disabled:opacity-50 disabled:hover:bg-[#0071b2] px-4 py-1"
@@ -964,7 +972,10 @@
             >
               <div class="flex flex-wrap gap-3 items-end px-4 pt-4">
                 <div class="flex-1 min-w-[200px]">
-                  <label class="text-xs uppercase tracking-wider text-neutral-400">Search Pexels</label>
+                  <label
+                    class="text-xs uppercase tracking-wider text-neutral-400"
+                    >Search Pexels</label
+                  >
                   <input
                     type="text"
                     class="mt-1 w-full rounded px-3 py-2 bg-[#2b2d3130] outline-none"
@@ -972,16 +983,21 @@
                     wf-value="this.query"
                     wf-oninput="this.onQueryInput(event)"
                     wf-onkeydown="this.onQueryKeyDown(event)"
+                    value=""
                   />
                 </div>
                 <div>
-                  <label class="text-xs uppercase tracking-wider text-neutral-400">Orientation</label>
+                  <label
+                    class="text-xs uppercase tracking-wider text-neutral-400"
+                    >Orientation</label
+                  >
                   <select
                     class="mt-1 rounded px-2 py-2 bg-[#2b2d3130] outline-none"
                     wf-value="this.orientation"
                     wf-onchange="this.onOrientationChange(event)"
+                    value=""
                   >
-                    <option value="landscape">Landscape</option>
+                    <option value="landscape" selected="">Landscape</option>
                     <option value="portrait">Portrait</option>
                     <option value="square">Square</option>
                     <option value="any">Any</option>
@@ -991,6 +1007,7 @@
                   type="button"
                   class="rounded px-4 py-2 bg-[#0071b2] hover:bg-[#008ad9] transition-colors"
                   wf-onclick="this.performSearch(event)"
+                  value=""
                 >
                   Search
                 </button>
@@ -998,11 +1015,18 @@
               <div class="px-4" wf-if="this.error">
                 <div class="text-sm text-red-400">{{this.error}}</div>
               </div>
-              <div class="px-4" wf-if="!this.error && !this.loading && !this.photos.length">
-                <div class="text-sm text-neutral-400">No photos found. Try a different query.</div>
+              <div
+                class="px-4"
+                wf-if="!this.error &amp;&amp; !this.loading &amp;&amp; !this.photos.length"
+              >
+                <div class="text-sm text-neutral-400">
+                  No photos found. Try a different query.
+                </div>
               </div>
               <div class="px-4 pb-4" wf-if="this.loading">
-                <div class="flex flex-col items-center gap-2 py-8 text-neutral-300">
+                <div
+                  class="flex flex-col items-center gap-2 py-8 text-neutral-300"
+                >
                   <span class="nf nf-fa-spinner animate-spin text-2xl"></span>
                   <div>Loading beautiful stock photos…</div>
                 </div>
@@ -1018,17 +1042,22 @@
                     class="relative rounded overflow-hidden outline outline-2 outline-transparent hover:outline-blue-400"
                     wf-class="{{this.selectedId === photo.id ? 'outline-blue-500 outline-4' : 'outline-neutral-700'}}"
                     wf-onclick="this.selectPhoto(photo)"
+                    value=""
                   >
                     <img
                       wf-src="this.thumbnailUrl(photo)"
                       class="w-full h-48 object-cover"
                       alt=""
                     />
-                    <div class="absolute bottom-0 left-0 right-0 bg-black/60 text-xs px-2 py-1 text-left">
+                    <div
+                      class="absolute bottom-0 left-0 right-0 bg-black/60 text-xs px-2 py-1 text-left"
+                    >
                       {{photo.photographer}}
                     </div>
                   </button>
-                  <div class="text-xs text-neutral-400 flex items-center justify-between">
+                  <div
+                    class="text-xs text-neutral-400 flex items-center justify-between"
+                  >
                     <a
                       wf-href="photo.url"
                       target="_blank"
@@ -1041,6 +1070,7 @@
                       type="button"
                       class="text-xs underline"
                       wf-onclick="event.preventDefault(), this.selectPhoto(photo)"
+                      value=""
                     >
                       Select
                     </button>
@@ -1048,7 +1078,8 @@
                 </div>
               </div>
               <div class="px-4 pb-3 text-xs text-neutral-400">
-                Photos provided by Pexels. Selecting an image will insert its URL directly into your project.
+                Photos provided by Pexels. Selecting an image will insert its
+                URL directly into your project.
               </div>
               <div class="flex gap-2 justify-end px-4 pb-4">
                 <button
