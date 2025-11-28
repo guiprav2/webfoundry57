@@ -53,7 +53,7 @@ export default class Projects {
           break;
         }
       }
-      await loadman.run('projects.create', async () => {
+      let project = await loadman.run('projects.create', async () => {
         bus.emit('projects:create:confirmed', { name });
         let project = rprojects.create(name);
         let uuid = project.split(':')[1];
@@ -84,7 +84,9 @@ export default class Projects {
         }));
         await rfiles.save(project, 'pages/index.html', new Blob([defaultHtml()], { type: 'text/html' }));
         bus.emit('projects:create:ready', { project });
+        return project;
       });
+      return project;
     },
 
     mv: async (project, newName) => {

@@ -14,6 +14,7 @@ export default class Files {
   state = {
     list: [],
     expandedPaths: new Set(),
+    gitImportQueryHandled: false,
 
     expanded: path => {
       if (!path) return true;
@@ -27,7 +28,7 @@ export default class Files {
   };
 
   actions = {
-    init: () => {
+    init: async () => {
       let { bus } = state.event;
       let respond = async ({ project, path }, callback) => {
         try {
@@ -130,6 +131,7 @@ export default class Files {
         if (btn !== 'yes') return;
         await post(v === 'local' ? 'files.push' : 'files.pull');
       });
+      await this.actions.handleGitImportQuery();
     },
 
     load: debounce(async () => await loadman.run('files.load', async () => {
@@ -480,38 +482,104 @@ export default class Files {
       if (btn !== 'ok') return;
       repoUrl = repoUrl?.trim();
       if (!repoUrl) return;
-      showModal('LoadingDialog', { msg: 'Detecting branches...' });
       let branchInfo;
       try {
-        branchInfo = await fetchGitBranches(repoUrl);
-        console.log(branchInfo);
+        branchInfo = await loadGitBranchInfo(repoUrl);
       } catch (err) {
         console.error(err);
-        document.querySelector('dialog')?.remove?.();
         await showModal('InfoDialog', { title: `Unable to read repository: ${err.message}` });
         return;
       }
-      document.querySelector('dialog')?.remove?.();
-      let branch = branchInfo.defaultBranch;
-      if (!branch) {
-        if (!branchInfo.branches.length) {
-          await showModal('InfoDialog', { title: 'No Git branches found to import.' });
-          return;
-        }
-        let [choice, selected] = await showBranchChooser(branchInfo.branches, repoUrl, branchInfo.defaultBranch);
-        if (choice !== 'ok') return;
-        branch = selected;
+      if (!branchInfo?.branches?.length) {
+        await showModal('InfoDialog', { title: 'No Git branches found to import.' });
+        return;
       }
-      showModal('LoadingDialog', { msg: `Importing ${branch}...` });
+      let [choice, branch] = await showBranchChooser(
+        branchInfo.branches,
+        repoUrl,
+        branchInfo.defaultBranch || branchInfo.branches[0],
+        { confirmLabel: 'Import' },
+      );
+      if (choice !== 'ok') return;
       try {
-        await importGitRepository(project, repoUrl, branch);
-        //await post('files.injectBuiltins');
-        //await post('files.reflect');
-        await post('files.load');
-        document.querySelector('dialog')?.remove?.();
+        await runGitImportFlow(project, repoUrl, branch);
       } catch (err) {
         console.error(err);
-        document.querySelector('dialog')?.remove?.();
+        await showModal('InfoDialog', { title: `Git import failed: ${err.message}` });
+      }
+    },
+
+    handleGitImportQuery: async () => {
+      if (state.collab.uid !== 'master') return;
+      if (this.state.gitImportQueryHandled) return;
+      let query = consumeGitImportParam();
+      if (!query) return;
+      this.state.gitImportQueryHandled = true;
+      let { repoUrl: presetUrl, projectName: presetName } = parseGitImportParam(query);
+      let urlValue = presetUrl;
+      while (true) {
+        let [btn, entered] = await showModal('PromptDialog', {
+          title: 'Git repository URL',
+          placeholder: 'https://github.com/user/repo.git',
+          initialValue: urlValue || '',
+          allowEmpty: false,
+        });
+        if (btn !== 'ok') return;
+        urlValue = entered?.trim();
+        if (urlValue) break;
+      }
+      let branchInfo;
+      try {
+        branchInfo = await loadGitBranchInfo(urlValue);
+      } catch (err) {
+        console.error(err);
+        await showModal('InfoDialog', { title: `Unable to read repository: ${err.message}` });
+        return;
+      }
+      if (!branchInfo?.branches?.length) {
+        await showModal('InfoDialog', { title: 'No Git branches found to import.' });
+        return;
+      }
+      let [choice, branch] = await showBranchChooser(
+        branchInfo.branches,
+        urlValue,
+        branchInfo.defaultBranch || branchInfo.branches[0],
+        { confirmLabel: 'Continue', title: 'Choose branch to import' },
+      );
+      if (choice !== 'ok') return;
+      let defaultName = presetName || deriveProjectNameFromUrl(urlValue) || 'Imported Project';
+      let projectName = defaultName;
+      while (true) {
+        let [btn, val] = await showModal('PromptDialog', {
+          title: 'Project name',
+          placeholder: 'Project name',
+          initialValue: projectName,
+          allowEmpty: false,
+          short: true,
+        });
+        if (btn !== 'ok') return;
+        projectName = val?.trim();
+        if (!projectName) continue;
+        if (state.projects.list.find(x => x.split(':')[0] === projectName)) {
+          await showModal('InfoDialog', { title: 'Project already exists. Choose another name.' });
+          continue;
+        }
+        break;
+      }
+      let project;
+      try {
+        project = await post('projects.create', projectName);
+      } catch (err) {
+        console.error(err);
+        await showModal('InfoDialog', { title: `Failed to create project: ${err.message}` });
+        return;
+      }
+      if (!project) project = state.projects.list.find(x => x.startsWith(`${projectName}:`));
+      await post('projects.select', project);
+      try {
+        await runGitImportFlow(project, urlValue, branch);
+      } catch (err) {
+        console.error(err);
         await showModal('InfoDialog', { title: `Git import failed: ${err.message}` });
       }
     },
@@ -529,6 +597,15 @@ export default class Files {
 
 let gitCorsProxy = 'https://cors.isomorphic-git.org';
 
+async function loadGitBranchInfo(repoUrl) {
+  showModal('LoadingDialog', { msg: 'Detecting branches...' });
+  try {
+    return await fetchGitBranches(repoUrl);
+  } finally {
+    document.querySelector('dialog')?.remove?.();
+  }
+}
+
 async function fetchGitBranches(url) {
   let refs = [];
   let info = null;
@@ -536,9 +613,7 @@ async function fetchGitBranches(url) {
   if (!trimmed) return { branches: [], defaultBranch: null };
   try {
     info = await git.getRemoteInfo({ http: gitHttp, url: trimmed, corsProxy: gitCorsProxy });
-    console.log(info?.refs);
     refs = normalizeGitRefs(info?.refs);
-    console.log(refs);
   } catch (err) {
     refs = await git.listServerRefs({ http: gitHttp, url: trimmed, corsProxy: gitCorsProxy });
   }
@@ -640,7 +715,23 @@ async function persistGitFiles(project, pfs, currentDir, prefix) {
   }
 }
 
-async function showBranchChooser(branches, repoUrl, initialBranch) {
+async function runGitImportFlow(project, repoUrl, branch) {
+  showModal('LoadingDialog', { msg: `Importing ${branch}...` });
+  try {
+    await importGitRepository(project, repoUrl, branch);
+    //await post('files.injectBuiltins');
+    //await post('files.reflect');
+    //await new Promise(pres => setTimeout(pres, 1000));
+    //await post('projects.load');
+    //await post('projects.select', project);
+    document.querySelector('dialog')?.remove?.();
+  } catch (err) {
+    document.querySelector('dialog')?.remove?.();
+    throw err;
+  }
+}
+
+async function showBranchChooser(branches, repoUrl, initialBranch, opt = {}) {
   let dialog = document.createElement('dialog');
   dialog.className = 'outline-none bg-transparent';
   let wrapper = document.createElement('div');
@@ -648,7 +739,7 @@ async function showBranchChooser(branches, repoUrl, initialBranch) {
   let form = document.createElement('form');
   form.method = 'dialog';
   let title = document.createElement('div');
-  title.textContent = 'Select Git branch';
+  title.textContent = opt.title || 'Select Git branch';
   form.append(title);
   let select = document.createElement('select');
   select.className = 'outline-none mt-2 w-full rounded px-2 py-1 bg-[#2b2d3130] focus:bg-[#2b2d3150]';
@@ -671,11 +762,11 @@ async function showBranchChooser(branches, repoUrl, initialBranch) {
   let cancel = document.createElement('button');
   cancel.value = 'cancel';
   cancel.className = 'flex-1 outline-none rounded px-3 py-1 bg-[#121d2b] hover:bg-[#1a2a40]';
-  cancel.textContent = 'Cancel';
+  cancel.textContent = opt.cancelLabel || 'Cancel';
   let ok = document.createElement('button');
   ok.value = 'ok';
   ok.className = 'flex-1 outline-none rounded px-3 py-1 bg-[#0071b2] hover:bg-[#008ad9]';
-  ok.textContent = 'Import';
+  ok.textContent = opt.confirmLabel || 'Import';
   actions.append(cancel, ok);
   form.append(actions);
   wrapper.append(form);
@@ -689,6 +780,47 @@ async function showBranchChooser(branches, repoUrl, initialBranch) {
   });
   dialog.showModal();
   return await promise;
+}
+
+function consumeGitImportParam() {
+  try {
+    let current = new URL(location.href);
+    let value = current.searchParams.get('gitimport');
+    if (!value) return null;
+    current.searchParams.delete('gitimport');
+    if (typeof history?.replaceState === 'function') {
+      let next = `${current.pathname}${current.search}${current.hash}`;
+      history.replaceState(history.state, '', next);
+    }
+    return value;
+  } catch (err) {
+    console.error('Failed to parse gitimport param', err);
+    return null;
+  }
+}
+
+function parseGitImportParam(value) {
+  let raw = value?.trim() || '';
+  if (!raw) return { repoUrl: '', projectName: '' };
+  if (raw.includes('::')) {
+    let [maybeName, ...rest] = raw.split('::');
+    let repo = rest.join('::').trim();
+    return { repoUrl: repo || '', projectName: maybeName?.trim() || '' };
+  }
+  return { repoUrl: raw, projectName: '' };
+}
+
+function deriveProjectNameFromUrl(repoUrl) {
+  if (!repoUrl) return '';
+  try {
+    let remote = new URL(repoUrl);
+    let parts = remote.pathname.split('/').filter(Boolean);
+    if (!parts.length) return '';
+    let last = parts[parts.length - 1] || '';
+    return decodeURIComponent(last.replace(/\.git$/, ''));
+  } catch (err) {
+    return '';
+  }
 }
 
 async function ungzblob(blob, type) {

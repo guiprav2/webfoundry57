@@ -68,13 +68,15 @@ class LoadingManager {
       throw new Error(`Operation already running: "${k}"`);
     ops[k].push(fn);
     d.update();
+    let result;
     try {
-      await fn();
+      result = await fn();
     } finally {
       ops[k].splice(ops[k].indexOf(fn), 1);
       if (!ops[k].length) delete ops[k];
       d.update();
     }
+    return result;
   }
 }
 
