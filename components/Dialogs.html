@@ -795,6 +795,7 @@
                   src="../media/loading.svg"
                 />
               </div>
+              <div class="text-red-400" wf-if="this.error">{{this.error}}</div>
               <select
                 placeholder="Target branch"
                 class="w-full rounded px-3 py-2 bg-[#2b2d3130] outline-none"
@@ -802,24 +803,27 @@
                 wf-value="this.branch"
                 value=""
               >
-                <option wf-map="x of this.branches" value="" selected="">
-                  {{x}}
+                <option value="" disabled="" wf-if="!this.branch" selected="">
+                  Select a branch
+                </option>
+                <option
+                  wf-map="branch of this.branches"
+                  value=""
+                  wf-value="branch"
+                >
+                  {{branch}}
                 </option>
               </select>
-              <div class="text-red-400" wf-if="this.props.branch === 'error'">
-                Unable to read repository or no branches found, try a different
-                URL.
-              </div>
+
               <input
                 placeholder="Cloned project name"
                 class="w-full rounded px-3 py-2 bg-[#2b2d3130] outline-none"
                 value=""
-                wf-if="this.url"
+                wf-if="this.requireName"
                 wf-value="this.name"
               />
-              <div class="text-red-400" wf-if="this.props.branch === 'error'">
-                A project with this name already exists, please choose a
-                different name.
+              <div class="text-red-400" wf-if="this.nameError">
+                {{this.nameError}}
               </div>
               <div class="flex flex-wrap gap-2 justify-end items-center">
                 <button
