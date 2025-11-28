@@ -123,7 +123,7 @@ function wfevalLoop(n, x) {
 window.arrayify = x => (Array.isArray(x) ? x : x == null ? [] : [x]);
 
 window.showModal = async (x, props) => {
-  let dialog = d.el('dialog', { class: 'bg-transparent' }, renderComponent(x, props));
+  let dialog = d.el('dialog', { class: 'outline-none bg-transparent' }, renderComponent(x, props));
   dialog.open = false;
   let { promise: p, resolve: res } = Promise.withResolvers();
   document.body.append(dialog);
