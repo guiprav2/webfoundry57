@@ -23,6 +23,12 @@ self.addEventListener('fetch', async ev => {
   if (pathname.startsWith('/files/')) prefix = '/files/';
   else if (pathname.startsWith('/preview/')) prefix = '/preview/';
   if (prefix) {
+    let securityResponse = (body, init = {}) => {
+      let headers = new Headers(init.headers || {});
+      headers.set('Cross-Origin-Opener-Policy', 'same-origin');
+      headers.set('Cross-Origin-Embedder-Policy', 'require-corp');
+      return new Response(body, { ...init, headers });
+    };
     let parts = pathname.slice(prefix.length).split('/');
     let tabId = parts.shift();
     let project = parts.shift();
@@ -34,13 +40,13 @@ self.addEventListener('fetch', async ev => {
       channel.port1.onmessage = e => {
         clearTimeout(timeout);
         let { status, error, data } = e.data || {};
-        if (error) return resolve(new Response(error, { status }));
-        resolve(new Response(data, { status }));
+        if (error) return resolve(securityResponse(error, { status }));
+        resolve(securityResponse(data, { status }));
       };
       let client = await self.clients.get(await getTab(tabId));
       if (!client) return fetch(ev.request);
       client.postMessage({ type: 'fetch', project, path }, [channel.port2]);
-    }).catch(err => new Response(err.message, { status: 503 })));
+    }).catch(err => securityResponse(err.message, { status: 503 })));
     return;
   }
   /*
