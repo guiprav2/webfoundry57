@@ -132,7 +132,7 @@
 
           <div class="flex flex-wrap gap-3 mb-5">
             <button
-              class="bg-white/5 hover:bg-white/10 border border-white/10 text-sm px-4 py-2 rounded-lg"
+              class="w-full sm:w-auto bg-white/5 hover:bg-white/10 border border-white/10 text-left sm:text-center text-sm px-4 py-3 rounded-lg"
               wf-map="template of state.landing.templates"
               wf-onclick="post('landing.selectTemplate', template.id)"
               wf-class="{{state.landing.currentTemplate === template.id &amp;&amp; 'bg-white/15 border-white/30'}}"
@@ -142,7 +142,7 @@
             </button>
 
             <button
-              class="ml-auto border border-white/10 bg-white/5 hover:bg-white/10 text-white px-4 py-2 rounded-lg text-sm"
+              class="w-full sm:w-auto sm:ml-auto border border-white/10 bg-white/5 hover:bg-white/10 text-white px-4 py-2 rounded-lg text-sm hidden sm:block"
               wf-onclick="post('landing.popout')"
               value=""
             >
@@ -152,7 +152,7 @@
           </div>
 
           <div
-            class="Landing-ratio border border-white/10 bg-black/20 rounded-2xl shadow-soft"
+            class="Landing-ratio border border-white/10 bg-black/20 rounded-2xl shadow-soft hidden sm:block"
           >
             <iframe
               id="wfFrame"
@@ -217,6 +217,25 @@
           </div>
         </section>
       </main>
+
+      <div
+        class="fixed inset-0 bg-black z-50 flex flex-col"
+        wf-if="state.landing.showDemoModal"
+      >
+        <iframe
+          class="flex-1 w-full border-0"
+          wf-src="state.landing.frameSrc"
+          allow="clipboard-read; clipboard-write; microphone; camera; display-capture; geolocation"
+        ></iframe>
+
+        <button
+          class="FilesPanel-createBtn outline-none border-b border-black/50 transition-all h-12 text-xl transition-colors hover:bg-[#008ad9] shrink-0 bg-[#0071b2]"
+          wf-onclick="post('landing.closeDemoModal')"
+          value=""
+        >
+          Close Demo
+        </button>
+      </div>
 
       <div
         class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center"

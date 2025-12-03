@@ -31,6 +31,7 @@ export default class Landing {
     pendingKey: '',
     frameSrc: 'editor.html?git=https://github.com/guiprav2/kankan.git',
     showKeyModal: false,
+    showDemoModal: false,
     year: new Date().getFullYear(),
   };
 
@@ -43,6 +44,11 @@ export default class Landing {
     selectTemplate: id => {
       this.state.currentTemplate = id;
       this.setFrameSrc();
+      let mobileMedia =
+        typeof window !== 'undefined' && window.matchMedia
+          ? window.matchMedia('(max-width: 639px)')
+          : null;
+      this.state.showDemoModal = Boolean(mobileMedia?.matches);
     },
     openKeyModal: () => {
       this.state.pendingKey = this.state.currentKey;
@@ -59,6 +65,9 @@ export default class Landing {
     },
     popout: () => {
       window.open(this.buildFrameUrl(), '_blank', 'noopener,noreferrer');
+    },
+    closeDemoModal: () => {
+      this.state.showDemoModal = false;
     },
     scrollToDemo: () => {
       let section = document.getElementById('projectArea');

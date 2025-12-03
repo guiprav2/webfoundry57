@@ -9,7 +9,7 @@ export default class App {
         location.hostname !== 'www.webfoundry.app' &&
         new URL(location.href).searchParams.get('isolate') == null
       ) {
-        return location.href = 'https://webfoundry.app/';
+        return location.href = `https://webfoundry.app/editor.html${location.search}`;
       }
       this.state.demo = location.search.includes('demo');
       if (this.state.demo) document.body.classList.add('text-xs');
