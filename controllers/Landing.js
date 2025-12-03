@@ -1,3 +1,5 @@
+import { getOpenAIKey, setOpenAIKey } from '../other/openai.js';
+
 export default class Landing {
   state = {
     templates: [
@@ -34,6 +36,8 @@ export default class Landing {
 
   actions = {
     init: () => {
+      this.loadPersistedKey();
+      this.consumeQueryKey();
       this.setFrameSrc();
     },
     selectTemplate: id => {
@@ -49,6 +53,7 @@ export default class Landing {
     },
     applyKey: () => {
       this.state.currentKey = (this.state.pendingKey || '').trim();
+      setOpenAIKey(this.state.currentKey);
       this.state.showKeyModal = false;
       this.setFrameSrc();
     },
@@ -63,6 +68,28 @@ export default class Landing {
 
   setFrameSrc() {
     this.state.frameSrc = this.buildFrameUrl();
+  }
+
+  loadPersistedKey() {
+    let stored = (getOpenAIKey() || '').trim();
+    if (!stored) return;
+    this.state.currentKey = stored;
+    this.state.pendingKey = stored;
+  }
+
+  consumeQueryKey() {
+    let params = new URLSearchParams(location.search || '');
+    if (!params.has('oaiKey')) return;
+    let incoming = (params.get('oaiKey') || '').trim();
+    if (incoming) {
+      this.state.currentKey = incoming;
+      this.state.pendingKey = incoming;
+      setOpenAIKey(incoming);
+    }
+    params.delete('oaiKey');
+    let query = params.toString();
+    let target = `${location.pathname}${query ? `?${query}` : ''}${location.hash || ''}`;
+    history?.replaceState?.(history.state, document.title, target);
   }
 
   buildFrameUrl() {
