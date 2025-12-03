@@ -10,6 +10,7 @@ This guide explains how **projects inside Webfoundry** are structured and how to
 * Always use `let`, never `const`.
 * Ignore webfoundry/{scripts,templates}.json, they're fully managed by Webfoundry.
 * Never put long JavaScript or script tags in HTML, always put them in a controller and call using wf-onattach or other event handler attributes.
+* wf-value is two-way binding, so there's no need to couple with wf-oninput or wf-onkeydown. Also the wf-value binding expression must be assignable.
 
 ---
 
