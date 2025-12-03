@@ -1,4 +1,5 @@
 import '../other/util.js';
+import { setOpenAIKey } from '../other/openai.js';
 
 export default class App {
   actions = {
@@ -11,6 +12,7 @@ export default class App {
       ) {
         return location.href = `https://webfoundry.app/editor.html${location.search}`;
       }
+      this.consumeQueryKey();
       this.state.demo = location.search.includes('demo');
       if (this.state.demo) document.body.classList.add('text-xs');
       sessionStorage.webfoundryTabId ??= crypto.randomUUID();
@@ -67,4 +69,15 @@ export default class App {
       }
     },
   };
+
+  consumeQueryKey() {
+    let params = new URLSearchParams(location.search || '');
+    if (!params.has('oaiKey')) return;
+    let incoming = (params.get('oaiKey') || '').trim();
+    if (incoming) setOpenAIKey(incoming);
+    params.delete('oaiKey');
+    let query = params.toString();
+    let target = `${location.pathname}${query ? `?${query}` : ''}${location.hash || ''}`;
+    history?.replaceState?.(history.state, document.title, target);
+  }
 };

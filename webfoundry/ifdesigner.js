@@ -64,6 +64,7 @@ function expandComponents() {
     // FIXME: state.map.set(state.map.getKey(x), c);
   }
 }
+addEventListener('click', ev => ev.preventDefault());
 addEventListener('mousedown', async ev => {
   if (ev.button !== 0) return;
   document.activeElement.blur();

@@ -38,7 +38,6 @@ export default class Landing {
   actions = {
     init: () => {
       this.loadPersistedKey();
-      this.consumeQueryKey();
       this.setFrameSrc();
     },
     selectTemplate: id => {
@@ -84,21 +83,6 @@ export default class Landing {
     if (!stored) return;
     this.state.currentKey = stored;
     this.state.pendingKey = stored;
-  }
-
-  consumeQueryKey() {
-    let params = new URLSearchParams(location.search || '');
-    if (!params.has('oaiKey')) return;
-    let incoming = (params.get('oaiKey') || '').trim();
-    if (incoming) {
-      this.state.currentKey = incoming;
-      this.state.pendingKey = incoming;
-      setOpenAIKey(incoming);
-    }
-    params.delete('oaiKey');
-    let query = params.toString();
-    let target = `${location.pathname}${query ? `?${query}` : ''}${location.hash || ''}`;
-    history?.replaceState?.(history.state, document.title, target);
   }
 
   buildFrameUrl() {
