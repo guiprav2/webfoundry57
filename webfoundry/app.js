@@ -480,6 +480,13 @@ function compile(root) {
       d.el(x, { src: () => wfeval(x, expr) });
     }
 
+    if (x.getAttribute('wf-alt')) {
+      let expr = x.getAttribute('wf-alt');
+      x.removeAttribute('wf-alt');
+      x.removeAttribute('alt');
+      d.el(x, { alt: () => wfeval(x, expr) });
+    }
+
     if (x.getAttribute?.('src')?.startsWith?.('../')) {
       x.src = x.getAttribute('src').slice(3);
     }
@@ -492,8 +499,9 @@ function compile(root) {
       x.style.backgroundImage = `url("${url.slice(3)}")`;
     }
 
-    if (/^{{.+?}}$/.test(x.getAttribute('href') || '')) {
-      let expr = x.getAttribute('href').slice(2, -2);
+    if (x.getAttribute('wf-href')) {
+      let expr = x.getAttribute('wf-href');
+      x.removeAttribute('wf-href');
       x.removeAttribute('href');
       d.el(x, { href: () => wfeval(x, expr) });
     }
