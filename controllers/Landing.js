@@ -4,6 +4,11 @@ export default class Landing {
   state = {
     templates: [
       {
+        id: 'super-todomvc',
+        label: 'Super TodoMVC',
+        href: 'editor.html?demo&git=https://github.com/guiprav2/super-todomvc.git',
+      },
+      {
         id: 'kankan',
         label: 'Kankan (P2P Kanban Board)',
         href: 'editor.html?demo&git=https://github.com/guiprav2/kankan.git',
@@ -26,10 +31,10 @@ export default class Landing {
         href: 'editor.html?demo',
       },
     ],
-    currentTemplate: 'kankan',
+    currentTemplate: 'super-todomvc',
     currentKey: '',
     pendingKey: '',
-    frameSrc: 'editor.html?demo&git=https://github.com/guiprav2/kankan.git',
+    frameSrc: 'editor.html?demo&git=https://github.com/guiprav2/super-todomvc.git',
     showKeyModal: false,
     showDemoModal: false,
     year: new Date().getFullYear(),
