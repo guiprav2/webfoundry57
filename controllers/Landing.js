@@ -6,19 +6,19 @@ export default class Landing {
       {
         id: 'kankan',
         label: 'Kankan (P2P Kanban Board)',
-        href: 'editor.html?git=https://github.com/guiprav2/kankan.git',
+        href: 'editor.html?demo&git=https://github.com/guiprav2/kankan.git',
       },
       /*
       {
         id: 'mailbox',
         label: 'Mailbox Client',
-        href: 'editor.html?git=https://github.com/guiprav2/mailbox.git',
+        href: 'editor.html?demo&git=https://github.com/guiprav2/mailbox.git',
       },
       */
       {
         id: 'subgpt',
         label: 'SubGPT (LLM Client)',
-        href: 'editor.html?git=https://github.com/guiprav2/subgpt.git',
+        href: 'editor.html?demo&git=https://github.com/guiprav2/subgpt.git',
       },
       {
         id: 'clean',
@@ -29,7 +29,7 @@ export default class Landing {
     currentTemplate: 'kankan',
     currentKey: '',
     pendingKey: '',
-    frameSrc: 'editor.html?git=https://github.com/guiprav2/kankan.git',
+    frameSrc: 'editor.html?demo&git=https://github.com/guiprav2/kankan.git',
     showKeyModal: false,
     showDemoModal: false,
     year: new Date().getFullYear(),

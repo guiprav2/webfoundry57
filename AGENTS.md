@@ -11,6 +11,7 @@ This guide explains how **projects inside Webfoundry** are structured and how to
 * Ignore webfoundry/{scripts,templates}.json, they're fully managed by Webfoundry.
 * Never put long JavaScript or script tags in HTML, always put them in a controller and call using wf-onattach or other event handler attributes.
 * wf-value is two-way binding, so there's no need to couple with wf-oninput or wf-onkeydown. Also the wf-value binding expression must be assignable.
+* wf-value already wires two-way binding—never add wf-oninput, wf-onchange, or wf-onkeydown on that same element for setting the binding. If you need to react to Enter, wf-onkeydown is OK.
 
 ---
 

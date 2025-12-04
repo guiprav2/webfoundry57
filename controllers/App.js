@@ -6,7 +6,7 @@ export default class App {
     init: async () => {
       if (
         !location.hostname.includes('localhost') &&
-        !/^([a-z0-9]+--)?webfoundry\d+\.netlify\.app$/.test(location.hostname) &&
+        !/^([a-z0-9-]+--)?webfoundry\d+\.netlify\.app$/.test(location.hostname) &&
         location.hostname !== 'www.webfoundry.app' &&
         new URL(location.href).searchParams.get('isolate') == null
       ) {
@@ -36,12 +36,14 @@ export default class App {
       await post('broadcast.init');
       await post('collab.init');
       await post('settings.init');
-      if (!location.pathname.startsWith('/collab.html')) {
+      let collab = location.pathname.startsWith('/collab.html');
+      if (!collab) {
         await post('projects.init');
         await post('companion.init');
       }
       await post('shell.init');
       await post('files.init');
+      !collab && await post('files.handleGitImportQuery');
       await post('codeEditor.init');
       await post('styles.init');
       await post('designer.init');

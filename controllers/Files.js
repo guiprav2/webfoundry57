@@ -132,7 +132,6 @@ export default class Files {
         if (btn !== 'yes') return;
         await post(v === 'local' ? 'files.push' : 'files.pull');
       });
-      await this.actions.handleGitImportQuery();
     },
 
     load: debounce(async () => await loadman.run('files.load', async () => {
@@ -498,7 +497,16 @@ export default class Files {
       if (!query) return;
       this.state.gitImportQueryHandled = true;
       let { repoUrl: presetUrl, projectName: presetName } = parseGitImportParam(query);
-      let initialName = presetName || deriveProjectNameFromUrl(presetUrl) || 'Imported Project';
+      let derivedName = presetName?.trim() || deriveProjectNameFromUrl(presetUrl) || '';
+      console.log(state.app.demo, derivedName, state.projects.list);
+      if (state.app.demo && derivedName) {
+        let existing = state.projects.list.find(x => x.startsWith(`${derivedName}:`));
+        if (existing) {
+          await post('projects.select', existing);
+          return;
+        }
+      }
+      let initialName = derivedName || 'Imported Project';
       let dialogProps = {
         title: 'Import Git project',
         requireName: true,
